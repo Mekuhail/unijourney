@@ -125,7 +125,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   return <input ref={ref} className={clsx(inputCls, className)} {...rest} />;
 });
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {
-  return <textarea ref={ref} className={clsx(inputCls, 'min-h-[96px]', className)} {...rest} />;
+  return <textarea ref={ref} className={clsx(inputCls, 'min-h-[96px] touch:min-h-[96px]', className)} {...rest} />;
 });
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, children, ...rest }, ref) {
   return (

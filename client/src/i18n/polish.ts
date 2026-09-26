@@ -1,6 +1,12 @@
 /** Strings added during the UI polish pass (shell, menus, page titles, plurals). */
 export const polishDict = {
   en: {
+    'today.unexcused#one': '{n} absence can still be excused. Send the excuse within 7 days of the session.',
+    'today.unexcused#other': '{n} absences can still be excused. Send each excuse within 7 days of the session.',
+    'academics.excuses.uploadMedical': 'Upload medical report',
+    'academics.excuses.uploadEvidence': 'Upload supporting document',
+    'academics.register.promptPlaceholder': 'Describe the term you want, for example: no classes on Thursday, keep Tuesday afternoons free.',
+    'shell.unread': 'Unread',
     'academics.attendance.subtitle': 'Every session is its own record. Select an Absent chip to draft an excuse for that exact session.',
     'academics.plan.graphHint': 'Select a course to highlight everything it needs and everything it unlocks. Dashed lines mean "either of".',
     'academics.register.duplicateInfo': 'Both submissions returned the same receipt, so there is no double enrolment.',
@@ -213,6 +219,15 @@ export const polishDict = {
     'nav.short.today': 'Today'
   },
   ar: {
+    'today.unexcused#one': 'غياب واحد لا يزال بالإمكان تقديم عذر له. قدّم العذر خلال 7 أيام من المحاضرة.',
+    'today.unexcused#two': 'غيابان لا يزال بالإمكان تقديم عذر لهما. قدّم كل عذر خلال 7 أيام من المحاضرة.',
+    'today.unexcused#few': '{n} حالات غياب لا يزال بالإمكان تقديم أعذار لها. قدّم كل عذر خلال 7 أيام من المحاضرة.',
+    'today.unexcused#many': '{n} حالة غياب لا يزال بالإمكان تقديم أعذار لها. قدّم كل عذر خلال 7 أيام من المحاضرة.',
+    'today.unexcused#other': '{n} حالة غياب لا يزال بالإمكان تقديم أعذار لها. قدّم كل عذر خلال 7 أيام من المحاضرة.',
+    'academics.excuses.uploadMedical': 'رفع التقرير الطبي',
+    'academics.excuses.uploadEvidence': 'رفع مستند داعم',
+    'academics.register.promptPlaceholder': 'صف الفصل الذي تريده، مثلًا: بلا محاضرات يوم الخميس، وأبقِ مساء الثلاثاء فارغًا.',
+    'shell.unread': 'غير مقروء',
     'academics.attendance.clickToExcuse': 'اختر لإنشاء مسودة عذر',
     'academics.register.whyCourses': 'مقررات هذه الخطة',
     'academics.register.required': 'إجباري',

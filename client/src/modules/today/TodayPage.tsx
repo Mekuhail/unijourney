@@ -39,8 +39,17 @@ const addDays = (d: string, n: number) => { const x = new Date(`${d}T00:00:00Z`)
 const weekdayOf = (d: string) => new Date(`${d}T00:00:00Z`).getUTCDay();
 
 function Stat({ label, value, to }: { label: string; value: number; to: string }) {
+  const cls = 'card-2 flex min-h-11 flex-col justify-between gap-1 p-3 transition hover:border-brand-400';
+  if (to.startsWith('#')) {
+    return (
+      <a href={to} className={cls} onClick={(e) => { e.preventDefault(); const el = document.querySelector<HTMLElement>(to); el?.scrollIntoView({ block: 'start' }); el?.querySelector<HTMLElement>('h2')?.focus(); }}>
+        <span className="text-xs font-medium leading-tight text-muted">{label}</span>
+        <span className="num text-2xl font-bold leading-none">{value}</span>
+      </a>
+    );
+  }
   return (
-    <Link to={to} className="card-2 flex min-h-11 flex-col justify-between gap-1 p-3 transition hover:border-brand-400">
+    <Link to={to} className={cls}>
       <span className="text-xs font-medium leading-tight text-muted">{label}</span>
       <span className="num text-2xl font-bold leading-none">{value}</span>
     </Link>
@@ -82,7 +91,7 @@ function WeekAgenda({ entries, today }: { entries: CalendarEntry[]; today: strin
                   <li key={e.id}>
                     <Link to={e.link ?? '/calendar'} className="flex min-h-11 items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm hover:border-brand-400">
                       <span className="num w-20 shrink-0 text-muted">{fmtTime(e.start_at, locale)}</span>
-                      <span dir="auto" className="min-w-0 flex-1 truncate font-medium rtl:text-right">{e.title}</span>
+                      <span dir="auto" title={e.title} className="min-w-0 flex-1 truncate font-medium rtl:text-right">{e.title}</span>
                       {e.kind !== 'class' && <Badge tone={e.kind === 'interview' ? 'info' : e.kind === 'exam' ? 'danger' : 'gold'}>{t(`kind.${e.kind}`)}</Badge>}
                     </Link>
                   </li>
@@ -204,12 +213,18 @@ export function TodayPage() {
             <div className={clsx('grid gap-2', isStaffOnly ? 'grid-cols-1 sm:max-w-xs' : 'grid-cols-3')}>
               {!isStaffOnly && <Stat label={t('today.stat.classes')} value={d.stats.classesToday} to="/academics/timetable" />}
               {!isStaffOnly && <Stat label={t('today.stat.tasks')} value={d.stats.tasksDue} to="/academics/study" />}
-              <Stat label={t('today.stat.pending')} value={d.stats.pending} to="/approvals" />
+              <Stat label={t('today.stat.pending')} value={d.stats.pending + (isStudent && d.stats.unexcusedAbsences ? 1 : 0)} to="#today-attention" />
             </div>
 
-            <Card as="section" aria-labelledby="today-attention">
-              <SectionTitle id="today-attention" action={<SectionLink to="/approvals">{t('nav.approvals')}</SectionLink>}>{t('today.attention')}</SectionTitle>
-              {d.pending.length === 0 ? <p className="flex items-center gap-2 text-sm text-muted"><Sparkles className="h-4 w-4 text-gold-700" aria-hidden />{t('today.caughtUp')}</p> : (
+            <Card as="section" id="today-attention" aria-labelledby="today-attention-h" className="scroll-mt-20">
+              <SectionTitle id="today-attention-h" action={<SectionLink to="/approvals">{t('nav.approvals')}</SectionLink>}>{t('today.attention')}</SectionTitle>
+              {isStudent && d.stats.unexcusedAbsences > 0 && (
+                <Link to="/academics/attendance" className="mb-2 flex min-h-11 items-center justify-between gap-3 rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm transition hover:border-warn">
+                  <span className="min-w-0 font-medium">{t('today.unexcused', { n: d.stats.unexcusedAbsences })}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
+                </Link>
+              )}
+              {d.pending.length === 0 && !(isStudent && d.stats.unexcusedAbsences > 0) ? <p className="flex items-center gap-2 text-sm text-muted"><Sparkles className="h-4 w-4 text-gold-700" aria-hidden />{t('today.caughtUp')}</p> : (
                 <ul className="space-y-2">
                   {d.pending.map((p) => (
                     <li key={p.id}>

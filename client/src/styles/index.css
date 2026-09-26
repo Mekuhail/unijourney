@@ -220,7 +220,7 @@ input, textarea { caret-color: var(--accent); }
 .pad-safe-x { padding-left: max(1rem, var(--safe-left)); padding-right: max(1rem, var(--safe-right)); }
 .dock-safe { padding-bottom: calc(0.5rem + var(--safe-bottom)); }
 @media (pointer: coarse), (max-width: 639.98px) {
-  main button, main a[role="button"], main input[type="checkbox"], main input[type="radio"] { min-height: 2.75rem; } /* 44px touch targets */
+  main button:not([role="switch"]), main a[role="button"] { min-height: 2.75rem; } /* 44px touch targets; switches get their hit area from the wrapping label */
   main input:not([type="checkbox"]):not([type="radio"]), main select, main textarea { font-size: 16px; } /* prevents iOS zoom on focus */
 }
 @media (max-width: 640px) {

@@ -123,7 +123,7 @@ export function ExcuseDetailPage() {
               {e.editable && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <input ref={fileRef} type="file" accept="application/pdf,image/png,image/jpeg" className="hidden" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) void upload(f); ev.target.value = ''; }} />
-                  <Button variant="outline" icon={<Upload className="h-4 w-4" />} onClick={() => fileRef.current?.click()} loading={busy}>{t('academics.excuses.upload', { kind: evidenceKind })}</Button>
+                  <Button variant="outline" icon={<Upload className="h-4 w-4" />} onClick={() => fileRef.current?.click()} loading={busy}>{t(evidenceKind === 'medical' ? 'academics.excuses.uploadMedical' : 'academics.excuses.uploadEvidence')}</Button>
                   {myDocs.length > 0 && <Select className="!w-auto" value="" onChange={(ev) => { if (ev.target.value) void attach(ev.target.value); }}><option value="">{t('academics.excuses.pickExisting')}</option>{myDocs.map((d) => <option key={d.id} value={d.id}>{d.filename} · {d.kind}</option>)}</Select>}
                   {e.documents.length > 0 && <Button variant="ghost" size="sm" icon={<RefreshCw className="h-4 w-4" />} onClick={() => run(async () => { const r = await api<{ extraction: StoredExtraction | null }>(`/academics/excuses/${id}/extract`, { method: 'POST' }); if (r.extraction) setExtraction(r.extraction); })}>{t('academics.excuses.rerun')}</Button>}
                 </div>

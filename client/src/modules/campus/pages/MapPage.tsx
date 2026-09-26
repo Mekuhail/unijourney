@@ -181,7 +181,7 @@ export function MapPage() {
             <div className="relative">
               <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('campus.map.searchPlaceholder')} aria-label={t('common.search')}
-                className="w-full rounded-xl border border-line bg-surface-2 py-2.5 pe-9 ps-9 text-sm focus:border-brand-400 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand-400/30" />
+                className="w-full rounded-xl border border-line bg-surface-2 py-2.5 pe-9 ps-9 text-sm placeholder:text-muted focus:border-brand-400 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand-400/30 touch:min-h-11" />
               {search && <button type="button" onClick={() => setSearch('')} className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-fg" aria-label={t('common.close')}><X className="h-4 w-4" /></button>}
             </div>
           </div>

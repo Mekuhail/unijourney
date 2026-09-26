@@ -22,7 +22,7 @@ export function EventCard({ e, compact }: { e: EventItem; compact?: boolean }) {
   const { t, l, locale } = useI18n();
   const hasClassConflict = e.conflicts.some((c) => c.isClass);
   return (
-    <Link to={`/campus/events/${e.id}`} className={clsx('card block p-4 transition hover:border-brand-400', e.is_past && 'bg-surface-2')}>
+    <Link to={`/campus/events/${e.id}`} className={clsx('card block min-w-0 p-4 transition hover:border-brand-400', e.is_past && 'bg-surface-2')}>
       <div className="flex flex-wrap items-center gap-1.5">
         <KindBadge kind={e.kind} />
         {e.club && <Badge tone="neutral"><span className="h-2 w-2 rounded-full" style={{ background: e.club.color }} />{l(e.club.name_en, e.club.name_ar)}</Badge>}
@@ -32,9 +32,9 @@ export function EventCard({ e, compact }: { e: EventItem; compact?: boolean }) {
       <div className="mt-2 font-semibold leading-snug">{l(e.title_en, e.title_ar)}</div>
       <div className="mt-1.5 space-y-1 text-xs text-muted">
         <div className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 shrink-0" /><span className="num">{fmtRange(e.start_at, e.end_at, locale)}</span></div>
-        {(e.location || e.venue_text) && <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{e.location ? l(e.location.name_en, e.location.name_ar) : e.venue_text}</span></div>}
+        {(e.location || e.venue_text) && <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" /><span className="min-w-0 truncate">{e.location ? l(e.location.name_en, e.location.name_ar) : e.venue_text}</span></div>}
         {!compact && e.kind !== 'personal' && <div className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 shrink-0" /><span>{e.going_count} {t('campus.events.going')}{e.capacity !== null && (e.full ? ` · ${t('campus.events.full')}` : ` · ${t('campus.events.seatsLeft', { n: e.remaining ?? 0 })}`)}</span></div>}
-        {!compact && e.source_url && <div className="flex items-center gap-1.5"><ExternalLink className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{e.organizer}</span></div>}
+        {!compact && e.source_url && <div className="flex items-center gap-1.5"><ExternalLink className="h-3.5 w-3.5 shrink-0" /><span className="min-w-0 truncate">{e.organizer}</span></div>}
       </div>
     </Link>
   );

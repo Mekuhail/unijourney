@@ -50,15 +50,15 @@ export function CampusHub() {
         ))}
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <section>
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="min-w-0">
           <SectionTitle action={<SectionLink to="/campus/events">{t('campus.hub.allEvents')}</SectionLink>}>{t('campus.hub.upcoming')}</SectionTitle>
           {events.loading && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32" />)}</div>}
           {events.error ? <ErrorState error={events.error} onRetry={() => void events.refetch()} /> : null}
           {events.data && upcoming.length === 0 && <EmptyState icon={<CalendarDays className="h-6 w-6" />} title={t('common.empty')} />}
           {upcoming.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{upcoming.map((e) => <EventCard key={e.id} e={e} />)}</div>}
         </section>
-        <section>
+        <section className="min-w-0">
           <SectionTitle action={<SectionLink to="/campus/clubs">{t('campus.hub.browseClubs')}</SectionLink>}>{t('campus.hub.myClubs')}</SectionTitle>
           {clubs.loading && <Skeleton className="h-40" />}
           {clubs.data && myClubs.length === 0 && <EmptyState title={t('campus.hub.noClubs')} action={<Button size="sm" onClick={() => nav('/campus/clubs')}>{t('campus.hub.browseClubs')}</Button>} />}

@@ -11,7 +11,8 @@ function declutter(container: HTMLElement | null) {
   const labels = Array.from(container.querySelectorAll<HTMLElement>('.leaflet-tooltip.uj-label'));
   const rank = (el: HTMLElement) => (el.classList.contains('uj-label--sel') ? 0 : el.classList.contains('uj-label--t1') ? 1 : 2);
   labels.sort((a, b) => rank(a) - rank(b));
-  const placed: DOMRect[] = [];
+  // Pins are obstacles: a label that would sit under another place's pin is hidden rather than painted over.
+  const placed: DOMRect[] = Array.from(container.querySelectorAll<HTMLElement>('.leaflet-marker-icon .uj-pin')).map((p) => p.getBoundingClientRect()).filter((r) => r.width > 0);
   for (const el of labels) {
     el.style.visibility = '';
     if (getComputedStyle(el).display === 'none') continue;

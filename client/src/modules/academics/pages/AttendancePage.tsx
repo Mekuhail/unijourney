@@ -7,7 +7,7 @@ import { api, errorMessage } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
 import { refreshAll } from '@/lib/bus';
 import { useToast } from '@/components/ui/toast';
-import { fmtDate, weekdayName } from '@/lib/format';
+import { fmtDate, weekdayName, fmtTime } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { AbsenceBar } from '@/components/ui/AbsenceBar';
 import { Card, Skeleton, ErrorState, Badge, Modal, Button, Input, Callout, StatusPill } from '@/components/ui';
@@ -77,7 +77,7 @@ export function AttendancePage() {
                 {resolved.matches.map((m) => (
                   <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-line p-2 text-sm hover:border-brand-400">
                     <input type={resolved.needsChoice ? 'checkbox' : 'radio'} checked={picked.includes(m.id)} onChange={(e) => setPicked((v) => e.target.checked ? [...new Set([...v, m.id])] : v.filter((x) => x !== m.id))} />
-                    <span className="font-semibold">{m.course_code}</span><span className="text-muted">{weekdayName(new Date(`${m.session_date}T00:00:00Z`).getUTCDay(), locale)} {fmtDate(m.session_date, locale)} · {m.start_time}–{m.end_time}</span><StatusPill status={m.status} />
+                    <span className="font-semibold">{m.course_code}</span><span className="text-muted">{weekdayName(new Date(`${m.session_date}T00:00:00Z`).getUTCDay(), locale)} {fmtDate(m.session_date, locale)} · {fmtTime(m.start_time, locale)}–{m.end_time}</span><StatusPill status={m.status} />
                   </label>
                 ))}
                 <Button size="sm" disabled={!picked.length} onClick={() => setDraftFor(resolved.matches.filter((m) => picked.includes(m.id)))}>{t('academics.attendance.draftFor', { n: picked.length })}</Button>
@@ -99,7 +99,7 @@ export function AttendancePage() {
             <ul tabIndex={0} aria-label={t('attendance.sessionsOf', { course: c.course_code })} className="mt-3 max-h-56 space-y-1 overflow-y-auto rounded-lg pe-1">
               {c.sessions.slice().reverse().map((s) => (
                 <li key={s.id} id={`s-${s.id}`} className={clsx('flex items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-xs', focus === s.id && 'bg-brand-500/10 ring-1 ring-brand-500/40')}>
-                  <span className="num text-muted">{weekdayName(new Date(`${s.session_date}T00:00:00Z`).getUTCDay(), locale).slice(0, 3)} {fmtDate(s.session_date, locale)} · {s.start_time}</span>
+                  <span className="num text-muted">{weekdayName(new Date(`${s.session_date}T00:00:00Z`).getUTCDay(), locale).slice(0, 3)} {fmtDate(s.session_date, locale)} · {fmtTime(s.start_time, locale)}</span>
                   <SessionPill s={s} onExcuse={(x) => { setDraftFor([x]); setType('medical'); }} />
                 </li>
               ))}

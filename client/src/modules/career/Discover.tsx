@@ -115,7 +115,7 @@ export function Discover() {
                   </div>
                 </button>
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                  <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{o.city || '—'} · {t(`career.remote.${o.remote}`)}</span>
+                  <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{o.remote === 'remote' || !o.city ? t(`career.remote.${o.remote}`) : `${o.city} · ${t(`career.remote.${o.remote}`)}`}</span>
                   {o.deadline && <span className={clsx('inline-flex items-center gap-1', o.expired && 'text-danger')}><CalendarClock className="h-3.5 w-3.5" />{fmtDate(o.deadline, locale)}</span>}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1">

@@ -19,13 +19,12 @@ export function OverviewPage() {
   if (q.error) return <div><AcademicsNav /><ErrorState error={q.error} onRetry={q.refetch} /></div>;
   if (!q.data) return <div><AcademicsNav /><div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28" />)}</div></div>;
   const d = q.data;
-  const first = l(d.student.name_en, d.student.name_ar).split(' ')[0];
   const pct = Math.round((d.credits.earned / Math.max(1, d.credits.required)) * 100);
   const byDay = new Map<number, Overview['week']['entries']>();
   for (const e of d.week.entries) { const wd = new Date(new Date(e.start_at).getTime() + 3 * 3600e3).getUTCDay(); if (!byDay.has(wd)) byDay.set(wd, []); byDay.get(wd)!.push(e); }
   return (
     <div>
-      <PageHeader documentTitle={t('nav.academics')} title={t('academics.overview.hello', { name: first })} subtitle={d.student.program ? `${l(d.student.program.en, d.student.program.ar)} · ${t('academics.overview.level', { level: d.student.level })} · ${l(d.term.label.en, d.term.label.ar)}` : t('academics.overview.noProgram')} />
+      <PageHeader title={t('nav.academics')} subtitle={d.student.program ? `${l(d.student.program.en, d.student.program.ar)} · ${t('academics.overview.level', { level: d.student.level })} · ${l(d.term.label.en, d.term.label.ar)}` : t('academics.overview.noProgram')} />
       <AcademicsNav />
       <section className={clsx('relative mb-6 overflow-hidden rounded-3xl border border-line p-6', resolved === 'dark' ? 'bg-gradient-to-br from-brand-900/40 via-surface to-surface' : 'bg-gradient-to-br from-brand-50 via-surface to-gold-100/40')}>
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

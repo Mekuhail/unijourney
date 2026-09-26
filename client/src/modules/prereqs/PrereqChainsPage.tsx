@@ -233,7 +233,7 @@ export function PrereqChainsPage() {
                   ))}
                   {d.pool.length > 0 && (
                     <div className="w-[176px] shrink-0">
-                      <div className="mb-2 rounded-lg bg-gold-100/70 px-2 py-1 text-center dark:bg-gold-700/20"><div className="text-xs font-semibold uppercase tracking-wide text-gold-700">{t('prereqs.poolTitle')}</div><div className="text-xs text-muted">{d.pool.length}</div></div>
+                      <div className="mb-2 rounded-lg bg-gold-100/70 px-2 py-1 text-center dark:bg-gold-700/20"><div className="text-xs font-semibold text-gold-700">{t('prereqs.poolTitle')}</div><div className="text-xs text-fg">{d.pool.length}</div></div>
                       <div className="space-y-2">{d.pool.map((c, si) => node(c, d.terms.length, si))}</div>
                     </div>
                   )}

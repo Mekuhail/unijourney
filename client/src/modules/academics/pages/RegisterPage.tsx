@@ -33,7 +33,7 @@ function PreferencesForm({ initial, eligibility, onGenerate, busy }: { initial: 
     <Card>
       <SectionTitle action={<button type="button" className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-600 hover:underline" onClick={() => setOpen((v) => !v)}>{open ? t('common.less') : t('academics.register.moreOptions')}</button>}>{t('academics.register.preferences')}</SectionTitle>
       <Field label={t('academics.register.nlLabel')} hint={t('academics.register.nlHint')}>
-        <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={EXAMPLES[0]} rows={2} />
+        <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={t('academics.register.promptPlaceholder')} rows={3} />
       </Field>
       <div className="mt-2 flex flex-wrap gap-1.5">{EXAMPLES.map((ex) => <button key={ex} type="button" onClick={() => setText(ex)} className="rounded-full border border-dashed border-line px-2.5 py-1 text-xs text-muted hover:border-brand-400 hover:text-fg">{ex.slice(0, 48)}{ex.length > 48 ? '…' : ''}</button>)}</div>
       {open && (
