@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { motion } from 'motion/react';
 import { GraduationCap, CheckCircle2, Circle, Briefcase, FlaskConical, AlertTriangle, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
-import CountUp from '@/components/reactbits/CountUp';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, Button, Callout, Card, CopyId, ErrorState, Progress, SectionTitle, Skeleton, StatusPill } from '@/components/ui';
 import { useToast } from '@/components/ui/toast';
 import { useI18n } from '@/i18n';
-import { useTheme } from '@/lib/theme';
 import { ApiError, api, errorMessage } from '@/lib/api';
 import { refreshAll } from '@/lib/bus';
 import { useQuery } from '@/lib/useQuery';
@@ -20,7 +17,6 @@ const COURSE_TONE: Record<string, string> = { completed: 'border-success/40 bg-s
 export function GraduationPage() {
   const { t, l, locale } = useI18n();
   const toast = useToast();
-  const { reducedMotion } = useTheme();
   const q = useQuery(() => api<AuditRes>('/graduation/audit'), [], { refreshOn: ['journey', 'persona'] });
   const [busy, setBusy] = useState<string | null>(null);
   const [blocked, setBlocked] = useState<string[] | null>(null);
@@ -35,10 +31,10 @@ export function GraduationPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             {[{ k: 'earned', v: d.audit.earned, tone: 'text-success' }, { k: 'inProgress', v: d.audit.in_progress, tone: 'text-brand-600' }, { k: 'planned', v: d.audit.planned, tone: 'text-muted' }, { k: 'remaining', v: d.audit.remaining, tone: d.audit.remaining ? 'text-warn' : 'text-success' }].map((s, i) => (
-              <motion.div key={s.k} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="card p-4">
+              <div key={s.k} className="card p-4">
                 <div className="text-xs font-semibold uppercase tracking-wide text-muted">{t(`journey.stat.${s.k}`)}</div>
-                <div className={clsx('num mt-1 text-3xl font-bold', s.tone)}>{reducedMotion ? s.v : <CountUp to={s.v} duration={0.9} />}<span className="ms-1 text-sm font-medium text-muted">/ {d.audit.total_required}</span></div>
-              </motion.div>
+                <div className={clsx('num mt-1 text-3xl font-bold', s.tone)}>{s.v}<span className="ms-1 text-sm font-medium text-muted">/ {d.audit.total_required}</span></div>
+              </div>
             ))}
           </div>
           <Card>

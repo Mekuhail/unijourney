@@ -1,6 +1,5 @@
 import { Link } from 'react-router';
 import { CheckCircle2, Circle, Compass, ArrowRight, UserRound } from 'lucide-react';
-import { motion } from 'motion/react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, Button, Callout, Card, EmptyState, ErrorState, KeyValue, Progress, SectionTitle, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/ui/toast';
@@ -31,7 +30,7 @@ export function OnboardingPage() {
             <Progress value={q.data.done} max={q.data.total} tone={q.data.complete ? 'success' : 'brand'} />
             <ol className="mt-5 space-y-2">
               {q.data.steps.map((s, i) => (
-                <motion.li key={s.key} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className="card-2 flex flex-wrap items-center gap-3 p-3">
+                <li key={s.key} className="card-2 flex flex-wrap items-center gap-3 p-3">
                   {s.status === 'done' ? <CheckCircle2 className="h-5 w-5 shrink-0 text-success" /> : <Circle className="h-5 w-5 shrink-0 text-muted" />}
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{l(s.label_en, s.label_ar)}</div>
@@ -39,7 +38,7 @@ export function OnboardingPage() {
                   </div>
                   <Link to={s.link} className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline">{t('common.open')}<ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" /></Link>
                   {s.status !== 'done' && <Button size="sm" variant="outline" onClick={() => void complete(s.key)}>{t('journey.markDone')}</Button>}
-                </motion.li>
+                </li>
               ))}
             </ol>
             {q.data.complete && <Callout tone="success" title={t('journey.allDone')}>{t('journey.allDoneBody')} <Link className="underline" to="/academics">{t('nav.academics')}</Link></Callout>}

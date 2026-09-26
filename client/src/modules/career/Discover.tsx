@@ -95,8 +95,8 @@ export function Discover() {
       {q.loading && !q.data && <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-56" />)}</div>}
       {q.data && q.data.items.length === 0 && <EmptyState icon={<Search className="h-6 w-6" />} title={t('career.noResults')} body={t('career.noResultsBody')} action={<Button variant="outline" onClick={() => setF(EMPTY)}>{t('career.clearFilters')}</Button>} />}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {q.data?.items.map((o, i) => (
-          <motion.div key={o.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.04 }}>
+        {q.data?.items.map((o) => (
+          <div key={o.id}>
             <SpotlightCard className={clsx('!border-line !bg-surface !p-0 h-full !rounded-[1.25rem] shadow-[var(--shadow-soft)]', o.expired && 'opacity-70')} spotlightColor="rgba(240, 118, 43, 0.18)">
               <div className="flex h-full flex-col p-4">
                 <button type="button" onClick={() => setDetail(o)} className="flex items-start gap-3 text-start">
@@ -131,7 +131,7 @@ export function Discover() {
                 </div>
               </div>
             </SpotlightCard>
-          </motion.div>
+          </div>
         ))}
       </div>
 

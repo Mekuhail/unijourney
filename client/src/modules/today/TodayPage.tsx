@@ -10,7 +10,6 @@ import { api } from '@/lib/api';
 import { fmtTime, fmtDate, minutesLabel } from '@/lib/format';
 import { Card, StatusPill, Skeleton, ErrorState, Progress, Badge, EmptyState, SectionTitle } from '@/components/ui';
 import { WeekCalendar } from '@/pages/CalendarPage';
-import CountUp from '@/components/reactbits/CountUp';
 import Aurora from '@/components/reactbits/Aurora';
 import ShinyText from '@/components/reactbits/ShinyText';
 import SpotlightCard from '@/components/reactbits/SpotlightCard';
@@ -39,7 +38,7 @@ function Stat({ label, value, to, accent }: { label: string; value: number; to: 
   return (
     <Link to={to} className="card-2 group flex flex-col gap-1 p-4 transition hover:border-brand-400">
       <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">{label}</span>
-      <span className={clsx('num text-3xl font-bold', accent)}><CountUp to={value} duration={1.2} /></span>
+      <span className={clsx('num text-3xl font-bold', accent)}>{value}</span>
     </Link>
   );
 }
@@ -99,7 +98,7 @@ export function TodayPage() {
               ].map((s) => (
                 <Link key={s.label} to={s.to} className="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur transition hover:bg-white/15">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70">{s.label}</div>
-                  <div className="num text-2xl font-bold"><CountUp to={s.value} duration={1} /></div>
+                  <div className="num text-2xl font-bold">{s.value}</div>
                 </Link>
               ))}
             </div>
@@ -197,14 +196,14 @@ export function TodayPage() {
               <SectionTitle>{t('today.quick')}</SectionTitle>
               <div className="grid grid-cols-2 gap-3">
                 {actions.map((a, i) => (
-                  <motion.div key={a.to} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }}>
+                  <div key={a.to}>
                     <Link to={a.to} className="block h-full">
                       <SpotlightCard className="!rounded-2xl !border-line !bg-surface !p-4 h-full transition hover:border-brand-400" spotlightColor="rgba(240, 118, 43, 0.25)">
                         <a.icon className="mb-2 h-5 w-5 text-brand-500" />
                         <div className="text-sm font-semibold">{a.label}</div>
                       </SpotlightCard>
                     </Link>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </section>

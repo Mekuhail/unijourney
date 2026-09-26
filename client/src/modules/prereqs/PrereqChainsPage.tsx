@@ -9,7 +9,6 @@ import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Select, Skeleton, Toggle, SectionTitle } from '@/components/ui';
-import CountUp from '@/components/reactbits/CountUp';
 
 interface ProgramInfo { id: string; code: string; name_en: string; name_ar: string; college_id: string; college_en: string; college_ar: string; degree: string; total_credits: number; duration_years: number; source_url: string; source_version: string; source_note: string; campus_ids: string[]; courses: number; mine: boolean }
 interface Catalog { colleges: Array<{ id: string; name_en: string; name_ar: string; url: string; programs: ProgramInfo[] }>; mine: string | null }
@@ -186,7 +185,7 @@ export function PrereqChainsPage() {
           {/* Stats */}
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[{ k: t('prereqs.credit_total'), v: d.stats.credits }, { k: t('prereqs.courses'), v: d.stats.courses }, { k: t('prereqs.longest'), v: d.stats.longestChain }, { k: 'Edges', v: d.stats.edges }].map((s) => (
-              <div key={s.k} className="card-2 p-3"><div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{s.k}</div><div className="num text-2xl font-bold"><CountUp to={s.v} duration={0.8} /></div></div>
+              <div key={s.k} className="card-2 p-3"><div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{s.k}</div><div className="num text-2xl font-bold">{s.v}</div></div>
             ))}
           </div>
           <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">

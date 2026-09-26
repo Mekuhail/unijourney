@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { MotionConfig } from 'motion/react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { I18nProvider } from './i18n';
 import { SessionProvider } from './lib/session';
@@ -33,6 +34,7 @@ function Loading() {
 
 export function App() {
   return (
+    <MotionConfig reducedMotion="user">
     <ThemeProvider>
       <I18nProvider>
         <ToastProvider>
@@ -61,5 +63,6 @@ export function App() {
         </ToastProvider>
       </I18nProvider>
     </ThemeProvider>
+    </MotionConfig>
   );
 }

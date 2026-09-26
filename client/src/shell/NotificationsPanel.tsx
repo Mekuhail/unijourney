@@ -37,7 +37,7 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
               {data && data.items.length === 0 && <EmptyState title={t('shell.noNotifications')} icon={<Bell className="h-6 w-6" />} />}
               <ul className="space-y-2">
                 {data?.items.map((n, i) => (
-                  <motion.li key={n.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }}>
+                  <li key={n.id}>
                     <Link to={n.link ?? '/notifications'} onClick={() => { if (!n.read_at) void markRead(n.id); onClose(); }} className={clsx('block rounded-2xl border p-3 transition hover:border-brand-400', n.read_at ? 'border-line bg-surface' : 'border-brand-200 bg-brand-50/70 dark:border-brand-800 dark:bg-brand-900/20')}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="text-sm font-semibold">{n.title}</div>
@@ -46,7 +46,7 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
                       {n.body && <div className="mt-0.5 text-xs text-muted">{n.body}</div>}
                       <div className="mt-1.5 text-[11px] text-muted">{n.module} · {status ? fmtRelative(n.created_at, status.clock, locale) : ''}</div>
                     </Link>
-                  </motion.li>
+                  </li>
                 ))}
               </ul>
             </div>

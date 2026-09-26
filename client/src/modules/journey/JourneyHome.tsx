@@ -49,14 +49,14 @@ export function JourneyHome() {
             const meta = STAGE_META[s];
             const state = idx < 0 ? 'none' : i < idx ? 'done' : i === idx ? 'current' : 'next';
             return (
-              <motion.li key={s} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: reducedMotion ? 0 : i * 0.08 }} className="relative">
+              <li key={s} className="relative">
                 <Link to={meta.to} className={clsx('group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition hover:bg-surface-2', state === 'current' && 'bg-brand-500/5 ring-1 ring-brand-500/40')}>
                   <span className={clsx('relative grid h-9 w-9 place-items-center rounded-full border-2 bg-surface transition', state === 'done' && 'border-success text-success', state === 'current' && 'border-brand-500 text-brand-600 shadow-[0_0_0_6px_rgba(240,118,43,0.15)]', (state === 'next' || state === 'none') && 'border-line text-muted')}><meta.icon className="h-4 w-4" />{state === 'current' && !reducedMotion && <motion.span className="absolute inset-0 rounded-full border-2 border-brand-500" animate={{ scale: [1, 1.5], opacity: [0.7, 0] }} transition={{ repeat: Infinity, duration: 1.8 }} />}</span>
                   <span className={clsx('text-sm font-semibold', state === 'current' ? 'text-fg' : 'text-muted')}>{t(`journey.stage.${s}`)}</span>
                   <span className="text-[11px] text-muted">{t(`journey.stageBody.${s}`)}</span>
                   {state === 'current' && <Badge tone="brand" dot>{t('journey.youAreHere')}</Badge>}
                 </Link>
-              </motion.li>
+              </li>
             );
           })}
         </ol>

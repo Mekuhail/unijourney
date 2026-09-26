@@ -3,9 +3,7 @@ import { NavLink, Link } from 'react-router';
 import { motion } from 'motion/react';
 import clsx from 'clsx';
 import { CheckCircle2, AlertTriangle, XCircle, Lock, LayoutDashboard, Map, ListChecks, CalendarDays, UserCheck, FileText, BookOpenCheck, Check , GitBranch} from 'lucide-react';
-import CountUp from '@/components/reactbits/CountUp';
 import { useI18n } from '@/i18n';
-import { useTheme } from '@/lib/theme';
 import { weekdayName, fmtTime } from '@/lib/format';
 import type { Check as PlanCheck, ExcuseCheck, Meeting, DayLoad } from './api';
 import { minutesOf, TEACHING_DAYS } from './api';
@@ -36,7 +34,6 @@ export function AcademicsNav() {
 
 // ---------------------------------------------------------------- stat tile
 export function StatTile({ value, label, hint, icon, tone = 'brand', suffix, to }: { value: number; label: ReactNode; hint?: ReactNode; icon?: ReactNode; tone?: 'brand' | 'gold' | 'success' | 'warn' | 'danger' | 'info'; suffix?: string; to?: string }) {
-  const { reducedMotion } = useTheme();
   const c = { brand: 'text-brand-600', gold: 'text-gold-700', success: 'text-success', warn: 'text-warn', danger: 'text-danger', info: 'text-info' }[tone];
   const body = (
     <div className="card h-full p-4 transition hover:border-brand-400">
@@ -44,7 +41,7 @@ export function StatTile({ value, label, hint, icon, tone = 'brand', suffix, to 
         <div className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</div>
         {icon && <span className={clsx('grid h-8 w-8 place-items-center rounded-xl bg-line/60', c)}>{icon}</span>}
       </div>
-      <div className={clsx('num mt-2 text-3xl font-bold', c)}>{reducedMotion ? value : <CountUp to={value} duration={1.2} />}{suffix && <span className="ms-1 text-base font-semibold text-muted">{suffix}</span>}</div>
+      <div className={clsx('num mt-2 text-3xl font-bold', c)}>{value}{suffix && <span className="ms-1 text-base font-semibold text-muted">{suffix}</span>}</div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}
     </div>
   );

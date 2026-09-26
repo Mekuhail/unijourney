@@ -6,8 +6,6 @@ import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, Button, Card, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPill } from '@/components/ui';
 import SpotlightCard from '@/components/reactbits/SpotlightCard';
-import CountUp from '@/components/reactbits/CountUp';
-import { useTheme } from '@/lib/theme';
 import type { Club, EventItem } from '../types';
 import { EventCard } from '../lib';
 
@@ -20,7 +18,6 @@ const TILES = [
 
 export function CampusHub() {
   const { t, l } = useI18n();
-  const { reducedMotion } = useTheme();
   const nav = useNavigate();
   const events = useQuery(() => api<EventItem[]>('/campus/events', { query: { from: '2026-09-27' } }), [], { refreshOn: ['calendar', 'campus'] });
   const clubs = useQuery(() => api<Club[]>('/campus/clubs'), [], { refreshOn: ['campus'] });
@@ -49,7 +46,7 @@ export function CampusHub() {
         {[{ k: 'clubs', v: stats.clubs, label: t('campus.clubs.title') }, { k: 'events', v: stats.events, label: t('campus.hub.upcoming') }, { k: 'going', v: stats.going, label: t('status.going') }].map((s) => (
           <Card key={s.k} className="flex items-center justify-between">
             <span className="text-sm text-muted">{s.label}</span>
-            <span className="num text-2xl font-bold text-brand-600">{reducedMotion ? s.v : <CountUp to={s.v} duration={1} />}</span>
+            <span className="num text-2xl font-bold text-brand-600">{s.v}</span>
           </Card>
         ))}
       </div>
