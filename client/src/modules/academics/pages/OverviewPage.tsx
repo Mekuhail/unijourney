@@ -4,7 +4,6 @@ import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { api } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
-import { useTheme } from '@/lib/theme';
 import { fmtTime, weekdayName, fmtDate } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { AbsenceBar, AbsenceLegend } from '@/components/ui/AbsenceBar';
@@ -14,7 +13,6 @@ import type { Overview } from '../api';
 
 export function OverviewPage() {
   const { t, l, locale } = useI18n();
-  const { reducedMotion, resolved } = useTheme();
   const q = useQuery(() => api<Overview>('/academics/overview'), [], { refreshOn: ['academics', 'calendar', 'persona'] });
   if (q.error) return <div><AcademicsNav /><ErrorState error={q.error} onRetry={q.refetch} /></div>;
   if (!q.data) return <div><AcademicsNav /><div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28" />)}</div></div>;
@@ -26,10 +24,10 @@ export function OverviewPage() {
     <div>
       <PageHeader title={t('nav.academics')} subtitle={d.student.program ? `${l(d.student.program.en, d.student.program.ar)} · ${t('academics.overview.level', { level: d.student.level })} · ${l(d.term.label.en, d.term.label.ar)}` : t('academics.overview.noProgram')} />
       <AcademicsNav />
-      <section className={clsx('relative mb-6 overflow-hidden rounded-3xl border border-line p-6', resolved === 'dark' ? 'bg-gradient-to-br from-brand-900/40 via-surface to-surface' : 'bg-gradient-to-br from-brand-50 via-surface to-gold-100/40')}>
+      <section className="mb-6 rounded-3xl border border-line bg-surface p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-600">{t('academics.overview.degreeProgress')}</div>
+            <h2 className="text-base font-semibold">{t('academics.overview.degreeProgress')}</h2>
             <div className="mt-1 text-3xl font-bold"><span className="num">{pct}%</span><span className="ms-2 text-base font-medium text-muted">{t('academics.overview.ofCredits', { earned: d.credits.earned, required: d.credits.required })}</span></div>
             <Progress label={t('academics.overview.degreeProgress')} value={d.credits.earned} max={d.credits.required} className="mt-3 max-w-md" />
             {d.credits.estimate && <div className="mt-2 text-xs text-muted">{t('academics.overview.estimate', { terms: d.credits.estimate.terms_remaining })} · {d.credits.estimate.assumptions}</div>}

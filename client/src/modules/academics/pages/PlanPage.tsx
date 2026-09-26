@@ -23,7 +23,7 @@ function CoursePill({ c, onSelect, selected }: { c: PlanCourse; onSelect: (code:
       </div>
       <div className="truncate text-xs text-muted">{c.code ? l(c.title_en, c.title_ar) : c.candidates?.length ? t('academics.plan.candidates', { n: c.candidates.length }) : t('academics.plan.noCandidates')}</div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide"><span className="h-1.5 w-1.5 rounded-full" style={{ background: DOT[c.status] }} />{t(`status.${c.status}`)}</span>
+        <span className="inline-flex items-center gap-1 text-xs font-semibold"><span className="h-1.5 w-1.5 rounded-full" style={{ background: DOT[c.status] }} />{t(`status.${c.status}`)}</span>
         {c.grade && <span className="num rounded bg-line/70 px-1 text-xs">{c.grade}</span>}
         {c.term && <span className="num text-xs text-muted">{termLabel(c.term, 'en')}</span>}
         {c.status === 'blocked' && c.reasons.length > 0 && <span className="text-xs text-danger">{c.reasons.join('; ')}</span>}
@@ -97,7 +97,7 @@ export function PlanPage() {
       {sel && (
         <Callout tone="info" title={`${sel.code} · ${l(sel.title_en, sel.title_ar)}`}>
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span>{t(`status.${sel.status}`)}{sel.reasons.length ? ` — ${sel.reasons.join('; ')}` : ''}</span>
+            <span>{t(`status.${sel.status}`)}{sel.reasons.length ? ` · ${sel.reasons.join('; ')}` : ''}</span>
             <Link to={`/academics/courses/${encodeURIComponent(sel.code!)}`} className="font-semibold text-brand-600 hover:underline">{t('academics.plan.courseDetails')}</Link>
             <Link to={`/campus/resources?course=${encodeURIComponent(sel.code!)}`} className="font-semibold text-brand-600 hover:underline">{t('academics.course.resources')}</Link>
           </div>

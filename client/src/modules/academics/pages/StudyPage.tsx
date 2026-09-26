@@ -48,7 +48,7 @@ function TaskRow({ t: task, onPatch, onDelete, busy }: { t: StudyTask; onPatch: 
           <Button size="icon" variant="ghost" title={t('common.delete')} aria-label={t('common.delete')} onClick={onDelete} disabled={busy}><Trash2 className="h-4 w-4 text-danger" /></Button>
         </div>
       </div>
-      {logOpen && <ol className="mt-2 space-y-0.5 border-t border-line pt-2 text-xs text-muted">{task.history.slice().reverse().map((h, i) => <li key={i}><span className="num">{fmtDateTime(h.at, locale)}</span> · {h.action}{'from' in h && h.from !== undefined ? ` ${String(h.from ?? '—')} → ${String(h.to ?? '—')}` : ''}{'minutes' in h ? ` +${String(h.minutes)} min` : ''}{'why' in h ? ` — ${String(h.why)}` : ''}</li>)}</ol>}
+      {logOpen && <ol className="mt-2 space-y-0.5 border-t border-line pt-2 text-xs text-muted">{task.history.slice().reverse().map((h, i) => <li key={i}><span className="num">{fmtDateTime(h.at, locale)}</span> · {h.action}{'from' in h && h.from !== undefined ? ` ${String(h.from ?? '—')} → ${String(h.to ?? '—')}` : ''}{'minutes' in h ? ` +${String(h.minutes)} min` : ''}{'why' in h ? ` · ${String(h.why)}` : ''}</li>)}</ol>}
     </li>
   );
 }
@@ -60,10 +60,10 @@ function ProposalModal({ p, onClose, onApply, onDiscard, busy }: { p: StudyPropo
       {p && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('academics.study.changes')} ({p.changes.length})</div>{p.changes.length === 0 ? <div className="text-sm text-muted">{t('academics.study.noChanges')}</div> : <ul className="space-y-1.5 text-sm">{p.changes.map((c) => <li key={c.taskId} className="rounded-xl border border-line p-2"><div className="font-semibold">{c.title}</div><div className="num text-xs">{c.from ? fmtDate(c.from, locale) : t('status.unscheduled')} <ArrowRight className="inline h-3.5 w-3.5 rtl:rotate-180" aria-label={t('common.to')} /> <span className="font-semibold text-success">{c.to ? fmtDate(c.to, locale) : '—'}</span></div><div className="text-xs text-muted">{c.why}</div></li>)}</ul>}</div>
-            <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('academics.study.infeasible')} ({p.infeasible.length})</div>{p.infeasible.length === 0 ? <div className="text-sm text-muted">{t('academics.study.noInfeasible')}</div> : <ul className="space-y-1.5 text-sm">{p.infeasible.map((c) => <li key={c.taskId} className="rounded-xl border border-danger/30 bg-danger/5 p-2"><div className="font-semibold">{c.title}</div><div className="text-xs text-danger">{c.why}</div><div className="text-xs text-muted">{c.suggestion}</div></li>)}</ul>}</div>
+            <div><div className="mb-1 text-xs font-semibold text-muted">{t('academics.study.changes')} ({p.changes.length})</div>{p.changes.length === 0 ? <div className="text-sm text-muted">{t('academics.study.noChanges')}</div> : <ul className="space-y-1.5 text-sm">{p.changes.map((c) => <li key={c.taskId} className="rounded-xl border border-line p-2"><div className="font-semibold">{c.title}</div><div className="num text-xs">{c.from ? fmtDate(c.from, locale) : t('status.unscheduled')} <ArrowRight className="inline h-3.5 w-3.5 rtl:rotate-180" aria-label={t('common.to')} /> <span className="font-semibold text-success">{c.to ? fmtDate(c.to, locale) : '—'}</span></div><div className="text-xs text-muted">{c.why}</div></li>)}</ul>}</div>
+            <div><div className="mb-1 text-xs font-semibold text-muted">{t('academics.study.infeasible')} ({p.infeasible.length})</div>{p.infeasible.length === 0 ? <div className="text-sm text-muted">{t('academics.study.noInfeasible')}</div> : <ul className="space-y-1.5 text-sm">{p.infeasible.map((c) => <li key={c.taskId} className="rounded-xl border border-danger/30 bg-danger/5 p-2"><div className="font-semibold">{c.title}</div><div className="text-xs text-danger">{c.why}</div><div className="text-xs text-muted">{c.suggestion}</div></li>)}</ul>}</div>
           </div>
-          <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('academics.study.beforeAfter')}</div><DayLoadBars before={p.before_state.loads} after={p.after_state.loads} /></div>
+          <div><div className="mb-1 text-xs font-semibold text-muted">{t('academics.study.beforeAfter')}</div><DayLoadBars before={p.before_state.loads} after={p.after_state.loads} /></div>
           <div className="text-xs text-muted">{t('academics.study.lockedNote')}</div>
         </div>
       )}
@@ -129,7 +129,7 @@ export function StudyPage() {
           {groups.length === 0 && <EmptyState title={t('academics.study.noTasks')} body={t('academics.study.noTasksBody')} />}
           {groups.map((g) => (
             <div key={g.key}>
-              <div className={clsx('mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide', g.tone === 'danger' ? 'text-danger' : 'text-muted')}><span>{g.label}</span><span className="num">{g.tasks.reduce((s, x) => s + x.effort_min, 0)} min</span></div>
+              <div className={clsx('mb-2 flex items-center justify-between text-xs font-semibold', g.tone === 'danger' ? 'text-danger' : 'text-muted')}><span>{g.label}</span><span className="num">{g.tasks.reduce((s, x) => s + x.effort_min, 0)} min</span></div>
               <ul className="space-y-2">{g.tasks.map((task) => <TaskRow key={task.id} t={task} busy={busy} onPatch={(b) => void patchTask(task.id, b)} onDelete={() => void deleteTask(task.id)} />)}</ul>
             </div>
           ))}

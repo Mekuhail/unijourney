@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import type { MapCanvasProps } from './MapCanvas';
 import { BOUNDARY_COLOR, ROUTE_COLOR } from './MapCanvas';
-import { CATEGORY_COLOR, TILES, categoryOf, labelTier, pinHtml, shortLabel, tileUrl } from './style';
+import { CATEGORY_COLOR, TILES, categoryOf, labelTier, pinHtml, placeName, shortLabel, tileUrl } from './style';
 import { getPublicConfig } from '@/lib/publicConfig';
 
 /** Greedy label de-cluttering: keep the most important labels, hide any that would overlap an already placed one. */
@@ -104,7 +104,7 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
       const isSel = emph.has(loc.id);
       const hostOfSel = buildingOfEmph.has(loc.id);
       if (hidden.has(cat) && !isSel && !hostOfSel) continue;
-      const name = locale === 'ar' ? loc.name_ar : loc.name_en;
+      const name = placeName(locale === 'ar' ? loc.name_ar : loc.name_en);
       const color = CATEGORY_COLOR[cat];
       if (loc.polygon && loc.polygon.length >= 3) {
         const parking = cat === 'parking';

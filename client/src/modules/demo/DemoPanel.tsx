@@ -165,7 +165,7 @@ export function DemoPanel() {
             <SectionTitle>Adapters</SectionTitle>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="text-start text-xs uppercase tracking-wide text-muted"><th className="py-2 pe-3 text-start">Adapter</th><th className="py-2 pe-3 text-start">Provider</th><th className="py-2 pe-3 text-start">Real?</th><th className="py-2 text-start">Note</th></tr></thead>
+                <thead><tr className="text-start text-xs text-muted"><th className="py-2 pe-3 text-start">Adapter</th><th className="py-2 pe-3 text-start">Provider</th><th className="py-2 pe-3 text-start">Real?</th><th className="py-2 text-start">Note</th></tr></thead>
                 <tbody>{status?.adapters.map((a) => <tr key={a.name} className="border-t border-line align-top"><td className="py-2 pe-3 font-medium">{a.name}</td><td className="py-2 pe-3 font-mono text-xs">{a.provider}</td><td className="py-2 pe-3">{a.real ? <Badge tone="success">real</Badge> : <Badge tone="gold">simulated</Badge>}</td><td className="py-2 text-muted">{a.note}</td></tr>)}</tbody>
               </table>
             </div>
@@ -174,7 +174,7 @@ export function DemoPanel() {
             <SectionTitle>Real vs simulated by area</SectionTitle>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="text-xs uppercase tracking-wide text-muted"><th className="py-2 pe-3 text-start">Area</th><th className="py-2 pe-3 text-start">Working locally</th><th className="py-2 pe-3 text-start">Simulated</th><th className="py-2 text-start">Future integration</th></tr></thead>
+                <thead><tr className="text-xs text-muted"><th className="py-2 pe-3 text-start">Area</th><th className="py-2 pe-3 text-start">Working locally</th><th className="py-2 pe-3 text-start">Simulated</th><th className="py-2 text-start">Future integration</th></tr></thead>
                 <tbody>{INTEGRATIONS.map((r) => <tr key={r.area} className="border-t border-line align-top"><td className="py-2 pe-3 font-medium">{r.area}</td><td className="py-2 pe-3">{r.working}</td><td className="py-2 pe-3 text-muted">{r.simulated}</td><td className="py-2 text-muted">{r.future}</td></tr>)}</tbody>
               </table>
             </div>

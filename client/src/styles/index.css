@@ -102,7 +102,8 @@
   --warn: #7d5a00;
   --danger: #a8352f;
   --info: #2358b5;
-  --shadow-soft: 0 10px 30px -12px rgb(30 27 24 / 0.18);
+  /* Elevation for floating layers only (menus, dialogs, toasts, map controls). Cards are flat. */
+  --shadow-soft: 0 1px 2px rgb(30 27 24 / 0.06), 0 6px 16px -8px rgb(30 27 24 / 0.22);
   color-scheme: light;
 }
 .dark {
@@ -121,7 +122,7 @@
   --warn: #e2a82f;
   --danger: #ee7f77;
   --info: #6c9cf0;
-  --shadow-soft: 0 12px 34px -14px rgb(0 0 0 / 0.7);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 18px -10px rgb(0 0 0 / 0.7);
   color-scheme: dark;
 }
 
@@ -149,7 +150,7 @@ body {
 /* Utility classes used across modules */
 /* Floating surfaces (toasts, map controls): solid, no blur */
 .glass { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 1.25rem; box-shadow: var(--shadow-soft); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 1.25rem; }
 .card-2 { background: var(--surface-2); border: 1px solid var(--line); border-radius: 1rem; }
 .scroll-thin { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--muted) 40%, transparent) transparent; }
 .num { font-variant-numeric: tabular-nums; }

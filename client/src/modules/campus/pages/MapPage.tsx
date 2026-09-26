@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { ArrowLeftRight, Footprints, Accessibility, Navigation, ExternalLink, Info, Search, X, CalendarDays, Maximize2, Layers, MapPin, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
+import { placeName } from '../map/style';
 import { useQuery } from '@/lib/useQuery';
 import { api, errorMessage } from '@/lib/api';
 import { useSession } from '@/lib/session';
@@ -34,6 +35,7 @@ function PinGlyph({ loc, size = 22 }: { loc: MapLocation; size?: number }) {
 
 export function MapPage() {
   const { t, l, locale } = useI18n();
+  const ln = (en: string, ar?: string | null) => placeName(l(en, ar));
   const { user } = useSession();
   const { resolved, reducedMotion } = useTheme();
   const toast = useToast();
@@ -96,7 +98,7 @@ export function MapPage() {
   const options = useMemo(() => [...locations].sort((a, b) => (a.building_name_en ?? a.name_en).localeCompare(b.building_name_en ?? b.name_en)), [locations]);
   const counts = useMemo(() => { const c = new Map<Category, number>(); for (const x of locations) if (!x.building_id) c.set(categoryOf(x), (c.get(categoryOf(x)) ?? 0) + 1); return c; }, [locations]);
   const popular = useMemo(() => (POPULAR[campusId] ?? []).map((id) => byId.get(id)).filter(Boolean) as MapLocation[], [campusId, byId]);
-  const label = (x: MapLocation) => x.building_id ? `${l(x.name_en, x.name_ar)} — ${l(x.building_name_en, x.building_name_ar)}` : l(x.name_en, x.name_ar);
+  const label = (x: MapLocation) => x.building_id ? `${ln(x.name_en, x.name_ar)} · ${ln(x.building_name_en ?? '', x.building_name_ar)}` : ln(x.name_en, x.name_ar);
   const fromLoc = from ? byId.get(from) : null, toLoc = to ? byId.get(to) : null;
   const gmapsUrl = fromLoc && toLoc ? `https://www.google.com/maps/dir/?api=1&origin=${fromLoc.lat},${fromLoc.lng}&destination=${toLoc.lat},${toLoc.lng}&travelmode=walking` : toLoc ? `https://www.google.com/maps/dir/?api=1&destination=${toLoc.lat},${toLoc.lng}&travelmode=walking` : null;
   const onSelect = useCallback((id: string) => { setSelected(id); setSearch(''); }, []);
@@ -119,7 +121,7 @@ export function MapPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:h-[calc(100dvh-11rem)] lg:min-h-[620px] lg:grid-cols-[380px_minmax(0,1fr)]">
         {/* ---------------- Map ---------------- */}
-        <section className="relative order-1 min-h-0 overflow-hidden rounded-[1.25rem] border border-line bg-surface-2 shadow-[var(--shadow-soft)] lg:order-2" aria-label={t('map.title')}>
+        <section className="relative order-1 min-h-0 overflow-hidden rounded-[1.25rem] border border-line bg-surface-2 lg:order-2" aria-label={t('map.title')}>
           {(campuses.loading || locs.loading) && !campus && <Skeleton className="h-[58dvh] min-h-[340px] w-full lg:h-full" />}
           {campuses.error ? <div className="p-4"><ErrorState error={campuses.error} onRetry={() => void campuses.refetch()} /></div> : null}
           {campus && (
@@ -159,7 +161,7 @@ export function MapPage() {
                 ) : d ? (
                   <>
                     <PinGlyph loc={d} size={28} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold">{l(d.name_en, d.name_ar)}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold">{ln(d.name_en, d.name_ar)}</span>
                     <Button size="sm" icon={<Navigation className="h-4 w-4" />} onClick={() => goHere(d.id)}>{t('map.goHere')}</Button>
                   </>
                 ) : null}
@@ -195,7 +197,7 @@ export function MapPage() {
                     <button type="button" role="option" aria-selected={selected === x.id} onClick={() => onSelect(x.id)} className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-start hover:bg-line/50 focus-visible:bg-line/50">
                       <PinGlyph loc={x} />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">{l(x.name_en, x.name_ar)}</span>
+                        <span className="block truncate text-sm font-medium">{ln(x.name_en, x.name_ar)}</span>
                         <span className="block truncate text-xs text-muted">{x.building_id ? t('map.inside', { b: l(x.building_name_en, x.building_name_ar) }) : t(`map.cat.${categoryOf(x)}`)}</span>
                       </span>
                     </button>
@@ -214,7 +216,7 @@ export function MapPage() {
                         <div className="flex items-start gap-3">
                           <PinGlyph loc={d} size={36} />
                           <div className="min-w-0 flex-1">
-                            <h2 className="text-lg font-semibold leading-snug">{l(d.name_en, d.name_ar)}</h2>
+                            <h2 className="text-lg font-semibold leading-snug">{ln(d.name_en, d.name_ar)}</h2>
                             <p className="text-xs text-muted">
                               {d.building_name_en ? `${t('map.inside', { b: l(d.building_name_en, d.building_name_ar) })} · ${d.floor ? t('map.floorN', { n: d.floor }) : t('map.ground')}` : t(`map.cat.${categoryOf(d)}`)}
                             </p>
@@ -231,7 +233,7 @@ export function MapPage() {
                         {d.rooms.length > 0 && (
                           <div>
                             <h3 className="mb-1.5 text-xs font-semibold text-muted">{t('map.roomsHere')}</h3>
-                            <div className="flex flex-wrap gap-1.5">{d.rooms.map((rm) => <button key={rm.id} type="button" onClick={() => setSelected(rm.id)} className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs hover:border-brand-400">{l(rm.name_en, rm.name_ar)}</button>)}</div>
+                            <div className="flex flex-wrap gap-1.5">{d.rooms.map((rm) => <button key={rm.id} type="button" onClick={() => setSelected(rm.id)} className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs hover:border-brand-400">{ln(rm.name_en, rm.name_ar)}</button>)}</div>
                           </div>
                         )}
                         {d.upcoming_events.length > 0 && (
@@ -254,7 +256,7 @@ export function MapPage() {
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                     <div className="relative min-w-0 space-y-2 ps-5">
                       <span className="absolute start-1 top-3 h-2.5 w-2.5 rounded-full bg-success" aria-hidden />
-                      <span className="absolute start-[8px] top-6 h-[calc(100%-2.5rem)] border-s-2 border-dotted border-line" aria-hidden />
+                      <span className="absolute start-[8px] top-6 h-[calc(100%-2.5rem)] border-s border-dotted border-line" aria-hidden />
                       <span className="absolute bottom-3 start-1 h-2.5 w-2.5 rounded-sm bg-danger" aria-hidden />
                       <Select id="map-from" className="min-w-0 truncate" value={from ?? ''} onChange={(e) => setQ({ from: e.target.value || null })} aria-label={t('campus.map.from')}><option value="">{t('map.pickStart')}</option>{options.map((x) => <option key={x.id} value={x.id}>{label(x)}</option>)}</Select>
                       <Select className="min-w-0 truncate" value={to ?? ''} onChange={(e) => setQ({ to: e.target.value || null })} aria-label={t('campus.map.to')}><option value="">{t('map.pickEnd')}</option>{options.map((x) => <option key={x.id} value={x.id}>{label(x)}</option>)}</Select>
@@ -306,7 +308,7 @@ export function MapPage() {
                         <li key={x.id}>
                           <button type="button" onClick={() => onSelect(x.id)} className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-start text-sm hover:bg-line/50">
                             <PinGlyph loc={x} />
-                            <span className="min-w-0 flex-1 truncate">{l(x.name_en, x.name_ar)}</span>
+                            <span className="min-w-0 flex-1 truncate">{ln(x.name_en, x.name_ar)}</span>
                             <MapPin className="h-3.5 w-3.5 shrink-0 text-muted" />
                           </button>
                         </li>

@@ -71,7 +71,7 @@ function OptionCard({ o, chosen, onChoose, busy }: { o: PlanOption; chosen: bool
   return (
     <div className={clsx('h-full rounded-2xl border bg-surface p-4', chosen ? 'border-brand-500 ring-2 ring-brand-500/40' : 'border-line')}>
       <div className="flex items-start justify-between gap-2">
-        <div><div className="text-xs font-semibold uppercase tracking-wide text-brand-600">{t('academics.register.option')} {o.id}</div><div className="font-semibold">{l(o.label_en, o.label_ar)}</div></div>
+        <div className="font-semibold"><span className="text-muted">{t('academics.register.option')} {o.id} · </span>{l(o.label_en, o.label_ar)}</div>
         <div className="text-end"><div className="num text-2xl font-bold">{o.credits}</div><div className="text-xs uppercase text-muted">{t('common.credits')}</div></div>
       </div>
       <ul className="mt-3 space-y-1 text-xs">{o.courses.map((c) => <li key={c.section_id} className="flex items-center justify-between gap-2"><span className="truncate"><span className="font-semibold">{c.code}</span> <span className="text-muted">sec {c.section_no} · {c.instructor}</span></span><span className="num shrink-0 text-muted">{c.meetings.map((m) => `${weekdayName(m.day, 'en').slice(0, 2)}`).join('/')} {c.meetings[0]?.start}</span></li>)}</ul>
@@ -311,7 +311,7 @@ function AddModal({ open, eligibility, onClose, onPick }: { open: boolean; eligi
   const e = eligibility.find((x) => x.code === code);
   return (
     <Modal open={open} onClose={onClose} title={t('academics.register.addCourse')} description={t('academics.register.addHint')}>
-      <Select value={code} onChange={(ev) => setCode(ev.target.value)}><option value="">{t('academics.register.chooseCourse')}</option>{eligibility.map((x) => <option key={x.code} value={x.code} disabled={!x.eligible}>{x.code} · {l(x.title_en, x.title_ar)}{x.eligible ? '' : ` — ${x.reasons[0]}`}</option>)}</Select>
+      <Select value={code} onChange={(ev) => setCode(ev.target.value)}><option value="">{t('academics.register.chooseCourse')}</option>{eligibility.map((x) => <option key={x.code} value={x.code} disabled={!x.eligible}>{x.code} · {l(x.title_en, x.title_ar)}{x.eligible ? '' : ` · ${x.reasons[0]}`}</option>)}</Select>
       {e && <ul className="mt-3 space-y-2">{e.sections.map((s) => <SectionRow key={s.id} s={s} onPick={() => void onPick(s.id)} />)}</ul>}
     </Modal>
   );

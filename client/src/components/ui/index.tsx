@@ -28,7 +28,7 @@ const variantCls: Record<Variant, string> = {
 };
 const sizeCls: Record<Size, string> = { sm: 'h-8 touch:h-11 px-3 text-xs touch:text-sm gap-1.5', md: 'h-10 touch:h-11 px-4 text-sm gap-2', lg: 'h-12 px-6 text-base gap-2', icon: 'h-10 w-10 shrink-0 touch:h-11 touch:w-11 p-0' };
 
-const baseBtn = 'inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap';
+const baseBtn = 'inline-flex items-center justify-center rounded-xl font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap';
 
 /** A router link that looks like a Button (never nest a <button> inside an <a>). */
 export function ButtonLink({ to, variant = 'primary', size = 'md', icon, className, children, ...rest }: { to: string; variant?: Variant; size?: Size; icon?: ReactNode; className?: string; children?: ReactNode } & Omit<ComponentProps<typeof Link>, 'to' | 'className' | 'children'>) {
@@ -138,7 +138,7 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
   return (
     <label className="flex cursor-pointer items-start gap-3">
       <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={clsx('relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-brand-500' : 'bg-line')}>
-        <span className={clsx('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', checked ? 'start-[22px]' : 'start-0.5')} />
+        <span className={clsx('absolute start-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200', checked && 'translate-x-5 rtl:-translate-x-5')} />
       </button>
       <span className="text-sm">
         <span className="font-medium">{label}</span>
@@ -221,7 +221,7 @@ export function Tabs<T extends string>({ value, onChange, items, className, labe
     requestAnimationFrame(() => row.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus());
   };
   return (
-    <div className={clsx('min-w-0 max-w-full rounded-2xl border border-line bg-surface-2 p-1', className)}>
+    <div className={clsx('min-w-0 max-w-full rounded-2xl bg-surface-2 p-1', className)}>
       <div ref={row} role="tablist" aria-label={label} onKeyDown={onKey} className="scroll-row flex gap-1 overflow-x-auto">
         {items.map((it) => {
           const active = it.value === value;
@@ -282,7 +282,7 @@ export function Progress({ value, max = 100, className, tone: t = 'brand', label
   const c = { brand: 'bg-brand-500', success: 'bg-success', warn: 'bg-warn', danger: 'bg-danger', gold: 'bg-gold-500' }[t];
   return (
     <div className={clsx('h-2 w-full overflow-hidden rounded-full bg-line', className)} role="progressbar" aria-label={label} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-      <div className={clsx('h-full rounded-full transition-[width] duration-500 ease-out', c)} style={{ width: `${pct}%` }} />
+      <div className={clsx('h-full rounded-full', c)} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -330,7 +330,7 @@ export function CopyId({ value, className }: { value: string; className?: string
   return (
     <button type="button" onClick={() => { void navigator.clipboard?.writeText(value); setDone(true); setTimeout(() => setDone(false), 1500); }} className={clsx('inline-flex items-center gap-2 rounded-lg border border-dashed border-gold-500/70 bg-gold-100/60 px-3 py-1.5 font-mono text-sm font-semibold tracking-wider text-gold-700 dark:bg-gold-700/20 dark:text-gold-300', className)} title={t('common.copy')}>
       {value}
-      <span className="text-xs font-sans font-medium uppercase tracking-wide">{done ? t('common.copied') : t('common.copy')}</span>
+      <span className="text-xs font-sans font-medium">{done ? t('common.copied') : t('common.copy')}</span>
     </button>
   );
 }

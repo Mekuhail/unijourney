@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { importLibrary, setOptions } from '@googlemaps/js-api-loader';
 import type { MapCanvasProps } from './MapCanvas';
 import { BOUNDARY_COLOR, ROUTE_COLOR } from './MapCanvas';
-import { CATEGORY_COLOR, categoryOf, pinDataUrl } from './style';
+import { CATEGORY_COLOR, categoryOf, pinDataUrl, placeName } from './style';
 
 const DARK_STYLES: google.maps.MapTypeStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#1e1b18' }] },
@@ -76,7 +76,7 @@ export default function GoogleCanvas({ campus, locations, route, selected, onSel
       const isSel = emph.has(loc.id);
       const hostOfSel = buildingOfEmph.has(loc.id);
       if (hidden.has(cat) && !isSel && !hostOfSel) continue;
-      const name = locale === 'ar' ? loc.name_ar : loc.name_en;
+      const name = placeName(locale === 'ar' ? loc.name_ar : loc.name_en);
       const color = CATEGORY_COLOR[cat];
       if (loc.polygon && loc.polygon.length >= 3) {
         const poly = new google.maps.Polygon({ map: m, paths: loc.polygon.map(([lat, lng]) => ({ lat, lng })), strokeColor: color, strokeWeight: isSel || hostOfSel ? 2.5 : 1.25, fillColor: color, fillOpacity: isSel || hostOfSel ? 0.32 : cat === 'parking' ? 0.08 : 0.16 });

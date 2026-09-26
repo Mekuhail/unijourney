@@ -45,7 +45,7 @@ export function PersonaSwitcher({ open, onClose }: { open: boolean; onClose: () 
           if (!items.length) return null;
           return (
             <div key={g.label}>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted">{g.label}</div>
+              <div className="mb-2 text-xs font-semibold text-muted">{g.label}</div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {items.map((p) => {
                   const active = user?.id === p.id;

@@ -92,7 +92,7 @@ function RequestControl({ r, points }: { r: LostFoundRequest; points: LfLocation
         ...(r.handover ? [{ k: t('campus.staff.lf.handoverVerifiedBy'), v: String((r.handover as { verified_by?: string }).verified_by ?? '').replace(/_/g, ' ') }] : [])
       ]} />
       <div>
-        <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted">{t('campus.staff.lf.file')}</div>
+        <div className="mb-1 text-xs font-semiboldr text-muted">{t('campus.staff.lf.file')}</div>
         {r.document ? (
           <div className="space-y-2">
             {isImage && <img src={r.document.url} alt={r.document.filename} className="max-h-40 rounded-xl border border-line" />}
@@ -108,7 +108,7 @@ function RequestControl({ r, points }: { r: LostFoundRequest; points: LfLocation
         {r.status !== 'closed' && <Button variant="outline" size="sm" icon={<XCircle className="h-4 w-4" />} onClick={() => setCloseOpen(true)}>{t('campus.staff.lf.closeRequest')}</Button>}
         {r.email_id && <Button variant="ghost" size="sm" icon={<Mail className="h-4 w-4" />} onClick={() => nav('/notifications')}>{t('campus.staff.lf.openEmail')}</Button>}
       </div>
-      <ol className="space-y-1 border-s-2 border-line ps-3 text-xs">{r.timeline.map((ti, i) => <li key={i}><span className="num text-muted">{fmtDateTime(ti.at, locale)}</span> · <StatusPill status={ti.status} />{ti.note && <span className="ms-1 text-muted">{ti.note}</span>}</li>)}</ol>
+      <ol className="space-y-1 border-s border-line ps-3 text-xs">{r.timeline.map((ti, i) => <li key={i}><span className="num text-muted">{fmtDateTime(ti.at, locale)}</span> · <StatusPill status={ti.status} />{ti.note && <span className="ms-1 text-muted">{ti.note}</span>}</li>)}</ol>
       <MarkFoundModal key={`f-${r.id}`} r={r} open={foundOpen} onClose={() => setFoundOpen(false)} points={points} />
       <HandoverModal key={`h-${r.id}`} r={r} open={handoverOpen} onClose={() => setHandoverOpen(false)} />
       <ConfirmDialog open={closeOpen} onClose={() => setCloseOpen(false)} onConfirm={() => act('close', {}, t('campus.staff.lf.closedDone'))} title={t('campus.staff.lf.closeRequest')} body={r.public_id} loading={busy === 'close'} danger />

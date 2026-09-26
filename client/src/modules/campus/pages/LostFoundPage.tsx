@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Search, FilePlus2, ListChecks, CheckCircle2, Route, Mail, ArrowLeft, Paperclip, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
+import { placeName } from '../map/style';
 import { useQuery } from '@/lib/useQuery';
 import { api, apiUpload, errorMessage } from '@/lib/api';
 import { refreshAll } from '@/lib/bus';
@@ -45,11 +46,12 @@ function StatusSteps({ status }: { status: string }) {
 
 export function RequestDetails({ r }: { r: LostFoundRequest }) {
   const { t, l, locale } = useI18n();
+  const ln = (en: string, ar?: string | null) => placeName(l(en, ar));
   const nav = useNavigate();
   const found = r.status === 'found' || r.status === 'ready_for_collection';
   const rows: Array<[string, React.ReactNode]> = [
     [t('campus.lf.requestId'), <CopyId key="id" value={r.public_id} />],
-    [t('campus.lf.name'), r.owner ? l(r.owner.name_en, r.owner.name_ar) : '—'],
+    [t('campus.lf.name'), r.owner ? ln(r.owner.name_en, r.owner.name_ar) : '—'],
     [t('campus.lf.item'), <span key="item">{r.item} <Badge tone="neutral">{t(`campus.lf.categories.${r.category}`)}</Badge></span>],
     [t('campus.lf.description'), r.description || '—'],
     [t('common.location'), r.last_location ? l(r.last_location.name_en, r.last_location.name_ar) : r.last_location_text],
@@ -80,13 +82,13 @@ export function RequestDetails({ r }: { r: LostFoundRequest }) {
         <table className="w-full text-sm">
           <caption className="sr-only">{t('campus.lf.details')}</caption>
           <tbody>
-            {rows.map(([k, v], i) => <tr key={i} className="border-b border-line last:border-0"><th scope="row" className="w-40 bg-surface-2 px-3 py-2 text-start text-xs font-semibold uppercase tracking-wide text-muted">{k}</th><td className="px-3 py-2">{v}</td></tr>)}
+            {rows.map(([k, v], i) => <tr key={i} className="border-b border-line last:border-0"><th scope="row" className="w-40 bg-surface-2 px-3 py-2 text-start text-xs font-semibold text-muted">{k}</th><td className="px-3 py-2">{v}</td></tr>)}
           </tbody>
         </table>
       </div>
       <div>
-        <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted">{t('campus.lf.timeline')}</div>
-        <ol className="space-y-1.5 border-s-2 border-gold-300 ps-4">
+        <div className="mb-1.5 text-xs font-semiboldr text-muted">{t('campus.lf.timeline')}</div>
+        <ol className="space-y-1.5 border-s border-line ps-4">
           {r.timeline.map((ti, i) => <li key={i} className="text-sm"><span className="num text-xs text-muted">{fmtDateTime(ti.at, locale)}</span> · <StatusPill status={ti.status} />{ti.note && <span className="ms-2 text-muted">{ti.note}</span>}</li>)}
         </ol>
       </div>
@@ -96,6 +98,7 @@ export function RequestDetails({ r }: { r: LostFoundRequest }) {
 
 function NewRequestForm({ onSubmitted }: { onSubmitted: (r: LostFoundRequest) => void }) {
   const { t, l } = useI18n();
+  const ln = (en: string, ar?: string | null) => placeName(l(en, ar));
   const { user } = useSession();
   const [form, setForm] = useState({ item: '', category: 'other', lost_date: '2026-09-26', last_location_id: '', last_location_text: '', contact_email: user?.email ?? '', description: '' });
   const [file, setFile] = useState<File | null>(null);
@@ -116,11 +119,11 @@ function NewRequestForm({ onSubmitted }: { onSubmitted: (r: LostFoundRequest) =>
   const campusLocs = (locs.data?.locations ?? []).filter((x) => !user || x.campus_id === user.campus_id);
   return (
     <form onSubmit={(e) => void submit(e)} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <Field label={t('campus.lf.name')}><Input value={user ? l(user.name_en, user.name_ar) : ''} readOnly disabled /></Field>
+      <Field label={t('campus.lf.name')}><Input value={user ? ln(user.name_en, user.name_ar) : ''} readOnly disabled /></Field>
       <Field label={t('campus.lf.item')} required><Input value={form.item} onChange={(e) => setForm({ ...form, item: e.target.value })} placeholder="Black backpack" /></Field>
       <Field label={t('campus.lf.category')}><Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{(locs.data?.categories ?? ['other']).map((c) => <option key={c} value={c}>{t(`campus.lf.categories.${c}`)}</option>)}</Select></Field>
       <Field label={t('campus.lf.dateLost')} required><Input type="date" value={form.lost_date} max="2026-09-27" onChange={(e) => setForm({ ...form, lost_date: e.target.value })} /></Field>
-      <Field label={t('campus.lf.lastPlace')}><Select value={form.last_location_id} onChange={(e) => setForm({ ...form, last_location_id: e.target.value })}><option value="">—</option>{campusLocs.map((x) => <option key={x.id} value={x.id}>{l(x.name_en, x.name_ar)}</option>)}</Select></Field>
+      <Field label={t('campus.lf.lastPlace')}><Select value={form.last_location_id} onChange={(e) => setForm({ ...form, last_location_id: e.target.value })}><option value="">—</option>{campusLocs.map((x) => <option key={x.id} value={x.id}>{ln(x.name_en, x.name_ar)}</option>)}</Select></Field>
       <Field label={t('campus.lf.lastPlaceOther')}><Input value={form.last_location_text} onChange={(e) => setForm({ ...form, last_location_text: e.target.value })} /></Field>
       <Field label={t('campus.lf.email')} required><Input type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} /></Field>
       <Field label={t('campus.lf.photo')}><input type="file" accept="image/png,image/jpeg,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block min-h-11 w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-gold-500 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white" /></Field>
@@ -169,13 +172,14 @@ function StatusLookup({ initialId }: { initialId: string }) {
       {result && 'restricted' in result && (
         <Card><Callout tone="warn">{t('campus.lf.restricted')}</Callout><div className="mt-3 flex items-center gap-3 text-sm"><CopyId value={result.public_id} /><StatusPill status={result.status} /><span className="num text-xs text-muted">{fmtDateTime(result.updated_at, locale)}</span></div></Card>
       )}
-      {result && !('restricted' in result) && <Card><div className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">{t('campus.lf.details')}</div><RequestDetails r={result} /></Card>}
+      {result && !('restricted' in result) && <Card><div className="mb-3 text-sm font-semiboldr text-muted">{t('campus.lf.details')}</div><RequestDetails r={result} /></Card>}
     </div>
   );
 }
 
 export function LostFoundPage() {
   const { t, l, locale } = useI18n();
+  const ln = (en: string, ar?: string | null) => placeName(l(en, ar));
   const [params, setParams] = useSearchParams();
   const tab = (params.get('tab') as Tab) || 'new';
   const [submitted, setSubmitted] = useState<LostFoundRequest | null>(null);

@@ -36,7 +36,7 @@ export function Tracker() {
         <div className="scroll-thin -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-3">
           {byCol.map((col) => (
             <section key={col.key} className="card-2 flex w-[82vw] shrink-0 snap-start flex-col p-2 sm:w-60" aria-label={t(`career.col.${col.key}`)}>
-              <header className="mb-2 flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-wide text-muted"><span>{t(`career.col.${col.key}`)}</span><span className="rounded-full bg-line px-1.5 text-xs">{col.items.length}</span></header>
+              <header className="mb-2 flex items-center justify-between px-1 text-xs font-semibold text-muted"><span>{t(`career.col.${col.key}`)}</span><span className="rounded-full bg-line px-1.5 text-xs">{col.items.length}</span></header>
               <div className="flex flex-col gap-2">
                 {col.items.map((a) => (
                   <M.article key={a.id} layout className="card p-3 text-sm">

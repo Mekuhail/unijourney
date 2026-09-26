@@ -128,7 +128,7 @@ export function PrereqChainsPage() {
         onKeyDown={(ev) => onKey(ev, c.code, termIdx, slotIdx)}
         aria-pressed={isSel}
         title={`${c.code} · ${l(c.title_en, c.title_ar)}`}
-        className={clsx('relative w-full rounded-xl border bg-surface px-2.5 py-2 text-start transition-all duration-200', CAT_TONE[c.category] ?? 'border-line',
+        className={clsx('relative w-full rounded-xl border bg-surface px-2.5 py-2 text-start transition-[border-color,box-shadow,opacity] duration-200', CAT_TONE[c.category] ?? 'border-line',
           isAct && 'ring-2 ring-brand-500 border-brand-500 shadow-md',
           !isAct && inUp && 'ring-2 ring-gold-500 border-gold-500',
           !isAct && inDown && 'ring-2 ring-info border-info',
@@ -225,7 +225,7 @@ export function PrereqChainsPage() {
                   {d.terms.map((term, ti) => (
                     <div key={`${term.year}-${term.sem}`} className="w-[176px] shrink-0">
                       <div className="mb-2 rounded-lg bg-surface-2 px-2 py-1 text-center">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-muted">{t('prereqs.year', { n: term.year })}</div>
+                        <div className="text-xs font-semibold text-muted">{t('prereqs.year', { n: term.year })}</div>
                         <div className="text-xs font-semibold">{term.sem === 3 ? t('prereqs.summer') : t('prereqs.semester', { n: term.sem })} · <span className="num text-muted">{term.credits}{t('prereqs.credits')}</span></div>
                       </div>
                       <div className="space-y-2">{term.slots.map((c, si) => node(c, ti, si))}</div>

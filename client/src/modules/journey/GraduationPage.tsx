@@ -32,7 +32,7 @@ export function GraduationPage() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             {[{ k: 'earned', v: d.audit.earned, tone: 'text-success' }, { k: 'inProgress', v: d.audit.in_progress, tone: 'text-brand-600' }, { k: 'planned', v: d.audit.planned, tone: 'text-muted' }, { k: 'remaining', v: d.audit.remaining, tone: d.audit.remaining ? 'text-warn' : 'text-success' }].map((s, i) => (
               <div key={s.k} className="card p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted">{t(`journey.stat.${s.k}`)}</div>
+                <div className="text-xs font-semibold text-muted">{t(`journey.stat.${s.k}`)}</div>
                 <div className={clsx('num mt-1 text-3xl font-bold', s.tone)}>{s.v}<span className="ms-1 text-sm font-medium text-muted">/ {d.audit.total_required}</span></div>
               </div>
             ))}

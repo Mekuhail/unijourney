@@ -493,7 +493,7 @@ export function Portfolio() {
 
   return (
     <div className="space-y-6">
-      <section aria-labelledby="about-h" className="overflow-hidden rounded-3xl border border-line bg-[linear-gradient(135deg,#1e1b18,#2a2622_55%,#3a2a1a)] p-5 text-white shadow-[var(--shadow-soft)] sm:p-6">
+      <section aria-labelledby="about-h" className="overflow-hidden rounded-3xl border border-line bg-[linear-gradient(135deg,#1e1b18,#2a2622_55%,#3a2a1a)] p-5 text-white sm:p-6">
         <div className="flex flex-wrap items-start gap-4">
           {user && <Avatar name={user.name_en} color={user.avatar_color} size={64} className="ring-2 ring-gold-300/60" />}
           <div className="min-w-0 flex-1">

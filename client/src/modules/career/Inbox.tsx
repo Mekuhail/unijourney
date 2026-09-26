@@ -42,7 +42,7 @@ export function Inbox() {
       {!!q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
       {q.loading && !q.data && <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}</div>}
       {q.data && items.length === 0 && <EmptyState icon={<InboxIcon className="h-6 w-6" />} title={t('career.noEmails')} body={t('career.noEmailsBody')} action={<Button onClick={() => void simulate()}>{t('career.simulateEmail')}</Button>} />}
-      {pending.length > 0 && <div className="text-xs font-semibold uppercase tracking-wide text-muted">{t('career.pendingReview')} · {pending.length}</div>}
+      {pending.length > 0 && <div className="text-xs font-semibold text-muted">{t('career.pendingReview')} · {pending.length}</div>}
       <ul className="space-y-3">
         {items.map((e) => {
           const conf = Math.round(e.confidence * 100);

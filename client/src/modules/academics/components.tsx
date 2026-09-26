@@ -24,7 +24,7 @@ export function AcademicsNav() {
   const { pathname } = useLocation();
   const row = useEdgeFade<HTMLElement>(pathname);
   return (
-    <div className="mb-5 rounded-2xl border border-line bg-surface-2 p-1">
+    <div className="mb-5 rounded-2xl bg-surface-2 p-1">
       <nav ref={row} aria-label={t('nav.academics')} className="scroll-row flex gap-1 overflow-x-auto">
         {SUB.map((s) => (
           <NavLink key={s.to} to={s.to} end={s.end} className={({ isActive }) => clsx('relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors touch:min-h-11', isActive ? 'text-fg' : 'text-muted hover:text-fg')}>
@@ -42,7 +42,7 @@ export function StatTile({ value, label, hint, icon, tone = 'brand', suffix, to 
   const body = (
     <div className="card h-full p-4 transition hover:border-brand-400">
       <div className="flex items-start justify-between gap-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</div>
+        <div className="text-xs font-semibold text-muted">{label}</div>
         {icon && <span className={clsx('grid h-8 w-8 place-items-center rounded-xl bg-line/60', c)}>{icon}</span>}
       </div>
       <div className={clsx('num mt-2 text-3xl font-bold', c)}>{value}{suffix && <span className="ms-1 text-base font-semibold text-muted">{suffix}</span>}</div>
@@ -153,9 +153,9 @@ export function DayLoadBars({ before, after, days = 14 }: { before?: DayLoad[]; 
           <div key={l.date} className="grid grid-cols-[92px_1fr] items-center gap-2 text-xs">
             <div className={clsx('num', l.unavailable && 'text-muted line-through')}>{weekdayName(l.weekday, locale)} {fmtDate(l.date, locale, { year: undefined })}{l.unavailable && <Lock className="ms-1 inline h-3 w-3" />}</div>
             <div className="relative h-5 rounded-md bg-line/50" title={`${t('academics.study.capacity')}: ${l.capacity} · ${t('academics.study.calendarLoad')}: ${l.calendar_min}`}>
-              <div className="absolute inset-y-0 start-0 rounded-md border-e-2 border-muted/50" style={{ width: `${(l.capacity / max) * 100}%` }} />
+              <span aria-hidden className="absolute inset-y-0 w-0.5 -translate-x-1/2 rounded bg-muted/60 rtl:translate-x-1/2" style={{ insetInlineStart: `${(l.capacity / max) * 100}%` }} />
               {b && b.task_min !== l.task_min && <div className={clsx('absolute inset-y-1 start-0 rounded-md opacity-40', b.over ? 'bg-danger' : 'bg-muted')} style={{ width: `${(b.task_min / max) * 100}%` }} />}
-              <div className={clsx('absolute inset-y-1 start-0 rounded-md transition-[width] duration-500', l.over ? 'bg-danger' : 'bg-success')} style={{ width: `${(l.task_min / max) * 100}%` }} />
+              <div className={clsx('absolute inset-y-1 start-0 rounded-md', l.over ? 'bg-danger' : 'bg-success')} style={{ width: `${Math.min(100, (l.task_min / max) * 100)}%` }} />
               <span className="num absolute inset-y-0 end-1.5 flex items-center text-xs font-semibold">{l.task_min}/{l.capacity}{l.over && ' !'}</span>
             </div>
           </div>

@@ -104,12 +104,12 @@ export function ClubDetailPage() {
         </div>
         <div className="space-y-4">
           <Card>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">{t('campus.clubs.lead')}</div>
+            <div className="mb-2 text-xs font-semiboldr text-muted">{t('campus.clubs.lead')}</div>
             {c.lead ? <div className="flex items-center gap-3"><Avatar name={c.lead.name_en} color={c.lead.avatar_color} /><div><div className="text-sm font-semibold">{l(c.lead.name_en, c.lead.name_ar)}</div><div className="text-xs text-muted">{c.lead.program_id?.toUpperCase()} · {t(`shell.${c.lead.campus_id}`)}</div></div></div> : <div className="text-sm text-muted">{t('campus.clubs.noLead')}</div>}
-            {c.tracks.length > 0 && <><div className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-wider text-muted">{t('campus.clubs.tracks')}</div><div className="flex flex-wrap gap-1">{c.tracks.map((tr) => <Badge key={tr} tone="brand">{tr}</Badge>)}</div></>}
+            {c.tracks.length > 0 && <><div className="mb-1.5 mt-4 text-xs font-semiboldr text-muted">{t('campus.clubs.tracks')}</div><div className="flex flex-wrap gap-1">{c.tracks.map((tr) => <Badge key={tr} tone="brand">{tr}</Badge>)}</div></>}
           </Card>
           <Card>
-            <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted"><span>{t('campus.clubs.roster')}</span><span className="num">{c.member_count}</span></div>
+            <div className="mb-2 flex items-center justify-between text-xs font-semiboldr text-muted"><span>{t('campus.clubs.roster')}</span><span className="num">{c.member_count}</span></div>
             <ul className="space-y-2">
               {c.members.map((m) => (
                 <li key={m.id} className="flex items-center gap-2 text-sm">

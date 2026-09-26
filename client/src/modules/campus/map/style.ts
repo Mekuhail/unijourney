@@ -60,9 +60,14 @@ export function gateNumber(loc: Pick<MapLocation, 'name_en'>): string {
   return loc.name_en.match(/Gate\s*(\d+)/i)?.[1] ?? '';
 }
 
-/** Short on-map label: text before " — " or " (" so long names stay legible at street zoom. */
+/** Display form of a place name: the data uses " — " between parts; the UI shows a middle dot. */
+export function placeName(name: string): string {
+  return name.replace(/ — /g, ' · ');
+}
+
+/** Short on-map label: text before the first separator or " (" so long names stay legible at street zoom. */
 export function shortLabel(name: string): string {
-  return name.split(' — ')[0].split(' (')[0].trim();
+  return name.split(/ — | · /)[0].split(' (')[0].trim();
 }
 
 /** Places that deserve a permanent label, and the zoom at which it appears. */
