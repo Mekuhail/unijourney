@@ -146,7 +146,7 @@ coreRouter.post('/demo/clock', h((req, res) => {
 }));
 
 coreRouter.get('/config/public', h((_req, res) => {
-  ok(res, { googleMapsKey: config.googleMapsKey || null, demoMode: config.demoMode });
+  ok(res, { googleMapsKey: config.googleMapsKey || null, cartoKey: config.cartoKey || null, demoMode: config.demoMode });
 }));
 
 // ---- today aggregate ---------------------------------------------------

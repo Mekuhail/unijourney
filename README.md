@@ -22,7 +22,9 @@ domain/API tests, `npm run typecheck` checks both projects, `npm run build && np
 
 Optional `.env` (see `.env.example`): `ANTHROPIC_API_KEY` enables model-backed intent parsing/explanations (the
 deterministic assistant is the default), `GOOGLE_MAPS_API_KEY` switches the campus map from OpenStreetMap tiles to
-Google Maps.
+Google Maps, `CARTO_API_KEY` removes the watermark from the street basemap. Keys stay in `.env` (gitignored) or
+platform secrets; see "Secrets and keys" in `docs/RUN.md`. After cloning, run `git config core.hooksPath .githooks`
+to enable the secret-scanning pre-commit hook.
 
 ## Demo
 

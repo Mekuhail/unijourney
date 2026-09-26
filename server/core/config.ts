@@ -7,6 +7,11 @@ function env(name: string, fallback: string): string {
 }
 
 export const ROOT = process.cwd();
+
+// Local secrets live in a gitignored .env at the repo root (production uses platform secrets, e.g. `flyctl secrets set`).
+const envFile = path.join(ROOT, '.env');
+if (fs.existsSync(envFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(envFile);
+
 export const config = {
   port: Number(env('API_PORT', '8787')),
   dataDir: path.resolve(ROOT, env('DATA_DIR', './data')),
@@ -16,6 +21,8 @@ export const config = {
   anthropicKey: env('ANTHROPIC_API_KEY', ''),
   anthropicModel: env('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
   googleMapsKey: env('GOOGLE_MAPS_API_KEY', ''),
+  /** CARTO Basemaps raster key. Browser-visible by design (it goes on tile URLs); restrict it by referrer in the CARTO dashboard. */
+  cartoKey: env('CARTO_API_KEY', ''),
   isProd: process.env.NODE_ENV === 'production'
 };
 

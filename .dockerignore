@@ -1,9 +1,21 @@
+# Keep secrets, VCS metadata and local state out of the image build context.
+.git
+.githooks
 node_modules
-data
 dist
+data
+coverage
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets
+credentials*.json
 .npmrc
-*.log
+.fly
+.fly-app
 PUBLIC_URL.txt
 .claude
-.fly-app
+*.log

@@ -25,6 +25,18 @@ npm start              # serve the built client from the API server (http://loca
 | `DEMO_CLOCK` | 2026-09-27T09:00:00+03:00 | Frozen "now" (Asia/Riyadh); empty = real clock |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | — / claude-haiku-4-5-20251001 | Optional model-backed intent parsing/explanations |
 | `GOOGLE_MAPS_API_KEY` | — | Google Maps tiles on the campus map (OpenStreetMap otherwise) |
+| `CARTO_API_KEY` | — | CARTO Basemaps street tiles without the "API key required" watermark |
+
+## Secrets and keys
+- Local values go in `.env` at the repo root (copy `.env.example`). The server loads it at start; `.env` and every
+  `.env.*` except the example are gitignored and excluded from the Docker build context.
+- Production values are platform secrets, never files: `flyctl secrets set CARTO_API_KEY=... -a <app>` (add
+  `--stage` to apply on the next deploy).
+- Keys that must reach the browser (`CARTO_API_KEY`, `GOOGLE_MAPS_API_KEY`) are served at runtime by
+  `/api/config/public`, never compiled into client code. Restrict them to your domains in the provider dashboards.
+- A pre-commit hook blocks secret files and common key formats. Enable it once per clone:
+  `git config core.hooksPath .githooks`.
+- If a key is ever committed or pasted somewhere public, rotate it at the provider; deleting the commit is not enough.
 
 ## Data
 The first start seeds `data/unijourney.db`. Uploaded files live in `data/uploads/` and are served only through

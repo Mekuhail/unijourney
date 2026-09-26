@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import type { MapCanvasProps } from './MapCanvas';
 import { BOUNDARY_COLOR, ROUTE_COLOR } from './MapCanvas';
-import { CATEGORY_COLOR, TILES, categoryOf, labelTier, pinHtml, shortLabel } from './style';
+import { CATEGORY_COLOR, TILES, categoryOf, labelTier, pinHtml, shortLabel, tileUrl } from './style';
+import { getPublicConfig } from '@/lib/publicConfig';
 
 /** Greedy label de-cluttering: keep the most important labels, hide any that would overlap an already placed one. */
 function declutter(container: HTMLElement | null) {
@@ -32,6 +33,8 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
   const layers = useRef<{ boundary: L.LayerGroup; shapes: L.LayerGroup; pins: L.LayerGroup; route: L.LayerGroup } | null>(null);
   const lastCampus = useRef<string | null>(null);
   const boundaryBounds = useRef<L.LatLngBounds | null>(null);
+  const [cartoKey, setCartoKey] = useState<string | null | undefined>(undefined);
+  useEffect(() => { let live = true; void getPublicConfig().then((c) => { if (live) setCartoKey(c.cartoKey); }); return () => { live = false; }; }, []);
 
   // Map instance
   useEffect(() => {
@@ -56,13 +59,13 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
   // Basemap: themed street tiles or satellite imagery
   useEffect(() => {
     const m = map.current;
-    if (!m) return;
+    if (!m || cartoKey === undefined) return; // wait for the server config so tiles are requested once, with the key
     const t = basemap === 'satellite' ? TILES.satellite : dark ? TILES.dark : TILES.light;
     tiles.current?.remove();
-    tiles.current = L.tileLayer(t.url, { attribution: t.attribution, subdomains: t.subdomains || 'abc', maxNativeZoom: t.maxNativeZoom, maxZoom: 20 }).addTo(m);
+    tiles.current = L.tileLayer(tileUrl(t, cartoKey), { attribution: t.attribution, subdomains: t.subdomains || 'abc', maxNativeZoom: t.maxNativeZoom, maxZoom: 20 }).addTo(m);
     tiles.current.bringToBack();
     el.current?.classList.toggle('uj-sat', basemap === 'satellite');
-  }, [basemap, dark]);
+  }, [basemap, dark, cartoKey]);
 
   // Campus boundary + initial fit
   useEffect(() => {

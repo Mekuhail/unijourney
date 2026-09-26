@@ -112,8 +112,15 @@ export function pinDataUrl(loc: Pick<MapLocation, 'kind' | 'tags' | 'id' | 'name
 
 export type Basemap = 'map' | 'satellite';
 
+const CARTO_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
 export const TILES = {
-  light: { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains: 'abcd', maxNativeZoom: 20 },
-  dark: { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains: 'abcd', maxNativeZoom: 20 },
+  light: { url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: CARTO_ATTR, subdomains: '', maxNativeZoom: 20 },
+  dark: { url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', attribution: CARTO_ATTR, subdomains: '', maxNativeZoom: 20 },
   satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics', subdomains: '', maxNativeZoom: 19 }
 } as const;
+
+/** CARTO basemaps need an API key on every tile request; it comes from the server config, never from source. */
+export function tileUrl(t: (typeof TILES)[keyof typeof TILES], cartoKey: string | null): string {
+  return cartoKey && t.url.includes('basemaps.cartocdn.com') ? `${t.url}?key=${encodeURIComponent(cartoKey)}` : t.url;
+}
