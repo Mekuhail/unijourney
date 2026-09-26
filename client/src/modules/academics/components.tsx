@@ -155,7 +155,7 @@ export function DayLoadBars({ before, after, days = 14 }: { before?: DayLoad[]; 
             <div className="relative h-5 rounded-md bg-line/50" title={`${t('academics.study.capacity')}: ${l.capacity} · ${t('academics.study.calendarLoad')}: ${l.calendar_min}`}>
               <div className="absolute inset-y-0 start-0 rounded-md border-e-2 border-muted/50" style={{ width: `${(l.capacity / max) * 100}%` }} />
               {b && b.task_min !== l.task_min && <div className={clsx('absolute inset-y-1 start-0 rounded-md opacity-40', b.over ? 'bg-danger' : 'bg-muted')} style={{ width: `${(b.task_min / max) * 100}%` }} />}
-              <M.div initial={{ width: 0 }} animate={{ width: `${(l.task_min / max) * 100}%` }} className={clsx('absolute inset-y-1 start-0 rounded-md', l.over ? 'bg-danger' : 'bg-success')} />
+              <div className={clsx('absolute inset-y-1 start-0 rounded-md transition-[width] duration-500', l.over ? 'bg-danger' : 'bg-success')} style={{ width: `${(l.task_min / max) * 100}%` }} />
               <span className="num absolute inset-y-0 end-1.5 flex items-center text-xs font-semibold">{l.task_min}/{l.capacity}{l.over && ' !'}</span>
             </div>
           </div>

@@ -1,11 +1,15 @@
 # Test evidence
 
-Run on 2026-09-25 (Asia/Riyadh) with `npm test` (vitest 3, Node v25.2.1, in-memory SQLite, fixtures reseeded per file).
+Run on 2026-09-26 (Asia/Riyadh) with `npm test` (vitest 3, Node v25.2.1, in-memory SQLite, fixtures reseeded per file).
 
 ```
-Test Files  17 passed (17)
-Tests  91 passed (91)
+Test Files  19 passed (19)
+Tests  162 passed (162)
 ```
+
+New in the portfolio release: `tests/career.portfolio.test.ts` (evidence-weighted skills, consent gating, LinkedIn
+export import and erase, LinkedIn URL rules, JSON Resume export, co-op credit-hour eligibility, cross-student isolation,
+competition lifecycle and calendar entries, verified awards, LinkedIn ZIP parsing, GitHub summary with a mocked API).
 
 ## Tests by file
 

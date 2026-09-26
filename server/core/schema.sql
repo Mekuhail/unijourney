@@ -651,6 +651,92 @@ CREATE TABLE IF NOT EXISTS career_profiles (
   updated_at TEXT NOT NULL
 );
 
+-- ---------------------------------------------------------------- portfolio (career)
+-- Items carry their source (manual, linkedin_export, github, university, competition) and a verification level
+-- (self, link, issuer, university). Visibility is per item; everything is private unless the student shares it.
+CREATE TABLE IF NOT EXISTS portfolio_items (
+  id TEXT PRIMARY KEY,
+  student_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,           -- project|experience|certificate|award|volunteer|language|education
+  title TEXT NOT NULL,
+  org TEXT NOT NULL DEFAULT '',
+  start_date TEXT,
+  end_date TEXT,
+  description TEXT NOT NULL DEFAULT '',
+  url TEXT,
+  credential_id TEXT,
+  skills TEXT NOT NULL DEFAULT '[]',
+  source TEXT NOT NULL DEFAULT 'manual',
+  source_ref TEXT,
+  verification TEXT NOT NULL DEFAULT 'self',
+  visibility TEXT NOT NULL DEFAULT 'private',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_portfolio_student ON portfolio_items(student_id, kind);
+
+-- Linked accounts. LinkedIn stores only the public profile URL; GitHub stores a cached public summary (no tokens).
+CREATE TABLE IF NOT EXISTS external_accounts (
+  student_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,       -- linkedin|github
+  handle TEXT NOT NULL,
+  url TEXT NOT NULL,
+  verified INTEGER NOT NULL DEFAULT 0,
+  method TEXT NOT NULL DEFAULT 'url',   -- url|oidc_simulated|public_api
+  last_synced_at TEXT,
+  data TEXT NOT NULL DEFAULT 'null',
+  error TEXT,
+  PRIMARY KEY(student_id, provider)
+);
+
+-- Consent per purpose (Saudi PDPL): documented, specific, and as easy to withdraw as to give.
+CREATE TABLE IF NOT EXISTS portfolio_consents (
+  student_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL,        -- matching|staff_view
+  text_version TEXT NOT NULL,
+  granted_at TEXT,
+  withdrawn_at TEXT,
+  PRIMARY KEY(student_id, purpose)
+);
+
+-- ---------------------------------------------------------------- competitions (career)
+CREATE TABLE IF NOT EXISTS competitions (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  organiser TEXT NOT NULL,
+  kind TEXT NOT NULL,           -- hackathon|programming|case|design|cyber|ai_data
+  scope TEXT NOT NULL,          -- yu|saudi|international|online
+  format TEXT NOT NULL,         -- onsite|online|hybrid
+  city TEXT NOT NULL DEFAULT '',
+  registration_opens TEXT,
+  registration_deadline TEXT NOT NULL,
+  starts_at TEXT NOT NULL,
+  ends_at TEXT NOT NULL,
+  team_min INTEGER NOT NULL DEFAULT 1,
+  team_max INTEGER NOT NULL DEFAULT 1,
+  eligibility TEXT NOT NULL DEFAULT '',
+  prizes TEXT NOT NULL DEFAULT '',
+  fee TEXT NOT NULL DEFAULT '',
+  url TEXT,
+  skills TEXT NOT NULL DEFAULT '[]',
+  description TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT 'yu',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS competition_entries (
+  id TEXT PRIMARY KEY,
+  competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+  student_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,         -- interested|registered|team_formed|submitted|result
+  team_name TEXT,
+  result TEXT,
+  portfolio_item_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(competition_id, student_id)
+);
+
 -- ---------------------------------------------------------------- graduation
 CREATE TABLE IF NOT EXISTS graduation_requests (
   id TEXT PRIMARY KEY,

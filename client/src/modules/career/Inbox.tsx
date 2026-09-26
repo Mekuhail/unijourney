@@ -66,7 +66,7 @@ export function Inbox() {
                   {e.ambiguous && isPending && (
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                       <span>{t('career.chooseApplication')}:</span>
-                      <Select className="!w-auto" value={choice[e.id] ?? ''} onChange={(ev) => setChoice({ ...choice, [e.id]: ev.target.value })}><option value="">{t('career.select')}</option>{e.candidates.map((c) => <option key={c.id} value={c.id}>{c.company} – {c.title} ({t(`status.${c.status}`)})</option>)}</Select>
+                      <Select aria-label={t('career.chooseApplication')} className="!w-auto" value={choice[e.id] ?? ''} onChange={(ev) => setChoice({ ...choice, [e.id]: ev.target.value })}><option value="">{t('career.select')}</option>{e.candidates.map((c) => <option key={c.id} value={c.id}>{c.company} – {c.title} ({t(`status.${c.status}`)})</option>)}</Select>
                     </div>
                   )}
                   {!e.suggested_application && !e.ambiguous && isPending && <div className="mt-2 text-xs text-muted">{t('career.noMatch')}</div>}

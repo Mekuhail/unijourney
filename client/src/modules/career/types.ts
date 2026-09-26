@@ -2,7 +2,10 @@ export type AppStatus = 'saved' | 'preparing' | 'applied' | 'assessment' | 'inte
 export const APP_STATUSES: AppStatus[] = ['saved', 'preparing', 'applied', 'assessment', 'interview', 'offer', 'rejected', 'withdrawn'];
 export const STATUS_RANK: Record<AppStatus, number> = { saved: 0, preparing: 1, applied: 2, assessment: 3, interview: 4, offer: 5, rejected: 6, withdrawn: 6 };
 
-export interface Match { score: number; reasons: string[]; missing: string[]; eligible: boolean | null; eligibility_note: string }
+export interface Explain { key: string; params: Record<string, string | number>; text: string }
+export interface Match { score: number; reasons: string[]; missing: string[]; weak?: string[]; eligible: boolean | null; eligibility_note: string; explain?: Explain[]; eligibility?: Explain; breakdown?: Array<{ key: string; points: number; max: number }> }
+/** Localized explanation line with the server's English text as fallback. */
+export function explainText(t: (k: string, v?: Record<string, string | number>) => string, e: Explain): string { const v = t(e.key, e.params); return v === e.key ? e.text : v; }
 export interface Opportunity {
   id: string; source: string; source_id: string; url: string | null; normalized_url: string | null; title: string; company: string; type: string; location: string; city: string; remote: string; field: string;
   skills: string[]; eligibility: string; deadline: string | null; posted_at: string | null; last_checked_at: string | null; status: string; description: string; salary: string | null; demo_label: boolean; expired: boolean;

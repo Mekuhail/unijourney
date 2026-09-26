@@ -10,6 +10,7 @@ import { audit } from '../../core/audit.ts';
 import { demoOpportunitySource } from '../../adapters/opportunities.ts';
 import { getProfile, normalizeUrl, normSkill, rowToOpportunity, urlHash, type ApplicationRow, type Opportunity, type OpportunityRow } from './shared.ts';
 import { matchOpportunity } from './match.ts';
+import { skillEvidence } from './portfolio.ts';
 
 export const opportunitiesRouter = Router();
 
@@ -22,13 +23,14 @@ export function decorate(rows: OpportunityRow[], userId: string) {
   const user = getUser(userId);
   if (!user) throw notFound('User not found');
   const profile = getProfile(user);
+  const evidence = skillEvidence(user, profile); // once per request, shared by every posting
   const today = todayIso();
   const saved = new Set(db().all<{ opportunity_id: string }>('SELECT opportunity_id FROM saved_opportunities WHERE user_id = ?', userId).map((r) => r.opportunity_id));
   const apps = new Map(db().all<ApplicationRow>('SELECT id, opportunity_id, status FROM applications WHERE student_id = ? AND opportunity_id IS NOT NULL', userId).map((a) => [a.opportunity_id as string, a]));
   return rows.map((r) => {
     const o = rowToOpportunity(r, today);
     const a = apps.get(o.id);
-    return { ...o, match: matchOpportunity(o, user, profile), saved: saved.has(o.id), applicationId: a?.id ?? null, applicationStatus: a?.status ?? null };
+    return { ...o, match: matchOpportunity(o, user, profile, evidence), saved: saved.has(o.id), applicationId: a?.id ?? null, applicationStatus: a?.status ?? null };
   });
 }
 

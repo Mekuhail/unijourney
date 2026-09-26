@@ -27,6 +27,7 @@
     "cross-env": "10.1.0",
     "date-fns": "4.4.0",
     "express": "5.2.1",
+    "fflate": "0.8.2",
     "leaflet": "^1.9.4",
     "lucide-react": "1.48.0",
     "motion": "12.43.0",

@@ -3,7 +3,7 @@
 Farq hackathon · Student Journey track. One student workspace from **admission to graduation and career**: a course
 registration agent with final approval, exact-session absence excuses with Sehhaty-style evidence, an adaptive study
 planner, clubs and events, learning resources, real campus navigation (Riyadh + Khobar), the YU Claimed lost & found
-flow, career discovery and tracking, admission/onboarding and a graduation audit — all sharing one profile, calendar,
+flow, career discovery and tracking with a portfolio (LinkedIn export import, GitHub) and a separate competitions tab, admission/onboarding and a graduation audit — all sharing one profile, calendar,
 notification inbox, document store and approval center. English/Arabic with RTL, Asia/Riyadh time, Sunday–Thursday week.
 
 > Demonstration context only. Every person, record, policy and outcome is **synthetic**. EduGate, Sehhaty, email and job
@@ -17,7 +17,7 @@ npm run dev          # API http://localhost:8787 · UI http://localhost:5173
 ```
 
 Requires Node.js **22.13+** (built-in `node:sqlite`, no native builds). The database is created and seeded on first
-start at `data/unijourney.db`. `npm run reset` rebuilds the fixtures (also from the Demo panel). `npm test` runs 91
+start at `data/unijourney.db`. `npm run reset` rebuilds the fixtures (also from the Demo panel). `npm test` runs 162
 domain/API tests, `npm run typecheck` checks both projects, `npm run build && npm start` serves the production build.
 
 Optional `.env` (see `.env.example`): `ANTHROPIC_API_KEY` enables model-backed intent parsing/explanations (the

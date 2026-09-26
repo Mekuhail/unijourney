@@ -13,6 +13,9 @@ export function adapterStatus() {
     { name: 'MailboxAdapter (hiring emails)', provider: 'demo', real: false, note: 'Synthetic hiring emails classified by deterministic rules with a review queue for ambiguous matches. Gmail is not connected; a real provider needs scoped read-only consent per user.' },
     { name: 'NotificationAdapter (email)', provider: 'demo-outbox', real: false, note: 'Emails are rendered and stored in an outbox for preview. Nothing is sent.' },
     { name: 'MapAdapter', provider: config.googleMapsKey ? 'google-tiles + osm-graph' : 'osm-tiles + osm-graph', real: true, note: 'Riyadh campus footprints/paths from OpenStreetMap (ODbL). Khobar geometry is approximate and labelled. Routing runs on the local graph; accessibility attributes are unverified.' },
+    { name: 'GitHubAdapter (portfolio)', provider: 'github-rest-public', real: true, note: 'Public repositories and languages through the GitHub REST API (no OAuth, no stored tokens, 60 requests/hour without GITHUB_TOKEN). Summary cached per student.' },
+    { name: 'LinkedInAdapter (portfolio)', provider: 'export-import + simulated-oidc', real: false, note: 'Imports the member data export ZIP in the browser after item-by-item review. "Verify with LinkedIn" is simulated; the real OpenID Connect product returns only name, email and photo. No scraping.' },
+    { name: 'CompetitionFeedAdapter', provider: 'seeded + codeforces-public', real: true, note: 'University competitions are seeded; upcoming Codeforces rounds come live from the public contest.list API, cached for an hour. Organiser registration stays on the organiser site.' },
     { name: 'AIIntentAdapter', provider: config.anthropicKey ? `anthropic:${config.anthropicModel}` : 'deterministic-rules', real: !!config.anthropicKey, note: 'Parses preferences and study tasks and explains proposals. Business rules are always enforced outside the model; the demo works with no key.' }
   ];
 }

@@ -9,9 +9,10 @@ import { todayDict } from '../modules/today/i18n';
 import { prereqsDict } from '../modules/prereqs/i18n';
 import { mapDict } from '../modules/campus/mapI18n';
 import { polishDict } from './polish';
+import { careerPortfolioDict } from '../modules/career/i18nPortfolio';
 
 type Dict = Record<string, string>;
-const dicts: Array<{ en: Dict; ar: Dict }> = [coreDict, todayDict, academicsDict, campusDict, careerDict, journeyDict, prereqsDict, mapDict, polishDict];
+const dicts: Array<{ en: Dict; ar: Dict }> = [coreDict, todayDict, academicsDict, campusDict, careerDict, journeyDict, prereqsDict, mapDict, careerPortfolioDict, polishDict];
 const merged: Record<Locale, Dict> = {
   en: Object.assign({}, ...dicts.map((d) => d.en)),
   ar: Object.assign({}, ...dicts.map((d) => d.ar))

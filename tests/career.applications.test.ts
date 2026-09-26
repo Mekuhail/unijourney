@@ -12,17 +12,17 @@ afterAll(async () => { await s.close(); });
 describe('career tracker', () => {
   it('creates at most one application per (student, opportunity)', async () => {
     const c = s.as('u_student');
-    const a = await c.post<App>('/career/applications', { opportunityId: 'opp_farq_hackathon' });
+    const a = await c.post<App>('/career/applications', { opportunityId: 'opp_duneforge_intern' });
     expect(a.status).toBe(201);
     expect(a.body.data!.duplicate).toBe(false);
     expect(a.body.data!.status).toBe('saved');
-    const b = await c.post<App>('/career/applications', { opportunityId: 'opp_farq_hackathon' });
+    const b = await c.post<App>('/career/applications', { opportunityId: 'opp_duneforge_intern' });
     expect(b.status).toBe(200);
     expect(b.body.data!.duplicate).toBe(true);
     expect(b.body.data!.id).toBe(a.body.data!.id);
-    expect(db().count('applications', 'student_id = ? AND opportunity_id = ?', 'u_student', 'opp_farq_hackathon')).toBe(1);
+    expect(db().count('applications', 'student_id = ? AND opportunity_id = ?', 'u_student', 'opp_duneforge_intern')).toBe(1);
     // a different student can track the same opportunity independently
-    const other = await s.as('u_student2').post<App>('/career/applications', { opportunityId: 'opp_farq_hackathon' });
+    const other = await s.as('u_student2').post<App>('/career/applications', { opportunityId: 'opp_duneforge_intern' });
     expect(other.status).toBe(201);
   });
 

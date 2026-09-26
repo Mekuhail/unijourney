@@ -43,7 +43,7 @@ export function JourneyHome() {
         <SectionTitle>{t('journey.timeline')}</SectionTitle>
         <ol className="relative grid gap-3 md:grid-cols-6">
           <div className="absolute inset-x-6 top-7 hidden h-1 rounded bg-line md:block" aria-hidden>
-            <M.div className="h-full rounded bg-gradient-to-r from-brand-500 to-gold-500" initial={{ width: 0 }} animate={{ width: idx < 0 ? '0%' : `${(idx / (STAGES.length - 1)) * 100}%` }} transition={{ duration: reducedMotion ? 0 : 1.1, ease: 'easeOut' }} />
+            <div className="h-full rounded bg-brand-500 transition-[width] duration-500" style={{ width: idx < 0 ? '0%' : `${(idx / (STAGES.length - 1)) * 100}%` }} />
           </div>
           {STAGES.map((s, i) => {
             const meta = STAGE_META[s];

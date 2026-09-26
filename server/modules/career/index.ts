@@ -5,9 +5,12 @@ import { applicationsRouter } from './routes-applications.ts';
 import { emailsRouter } from './routes-emails.ts';
 import { profileRouter } from './routes-profile.ts';
 import { seedCareer } from './seed.ts';
+import { portfolioRouter } from './portfolio.ts';
+import { competitionsRouter } from './competitions.ts';
 
 /**
- * Career module: discovery (seeded demo feed + manual links), per-student tracker with attested "applied", interviews on
+ * Career module: discovery (seeded demo feed + manual links), competitions (own lifecycle), a portfolio with evidence-
+ * weighted skills (LinkedIn export import, GitHub public API), per-student tracker with attested "applied", interviews on
  * the shared calendar, synthetic hiring-email review and the graduation → career handoff. All records are owner-scoped;
  * staff roles have no access to career data.
  */
@@ -16,6 +19,8 @@ careerRouter.use(opportunitiesRouter);
 careerRouter.use(applicationsRouter);
 careerRouter.use(emailsRouter);
 careerRouter.use(profileRouter);
+careerRouter.use(portfolioRouter);
+careerRouter.use(competitionsRouter);
 
 export const careerModule: AppModule = {
   name: 'career',

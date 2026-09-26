@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { freshDb, startServer, type TestServer } from './helpers.ts';
 import { db } from '../server/core/db.ts';
 
-interface Opp { id: string; title: string; type: string; city: string; skills: string[]; expired: boolean; status: string; saved: boolean; applicationId: string | null; normalized_url: string | null; match: { score: number; reasons: string[]; missing: string[]; eligible: boolean | null } }
+interface Opp { id: string; title: string; type: string; city: string; skills: string[]; expired: boolean; status: string; saved: boolean; applicationId: string | null; normalized_url: string | null; match: { score: number; reasons: string[]; missing: string[]; weak: string[]; eligible: boolean | null; breakdown: Array<{ key: string; points: number; max: number }>; explain: Array<{ key: string }> } }
 interface ListRes { items: Opp[]; total: number; facets: { types: string[] } }
 
 let s: TestServer;
@@ -19,8 +19,12 @@ describe('career discovery', () => {
     const stc = items.find((o) => o.id === 'opp_stc_swe_intern')!;
     expect(stc).toBeTruthy();
     expect(stc.match.score).toBeGreaterThan(40);
-    expect(stc.match.reasons.some((x) => x.startsWith('Skills you list'))).toBe(true);
-    expect(stc.match.missing).toEqual(['REST APIs']);
+    // v2: skills are scored by evidence. REST APIs is covered only by an in-progress course (SWE 322), so it is "weak", not missing.
+    expect(stc.match.reasons.some((x) => x.startsWith('Skills with evidence'))).toBe(true);
+    expect(stc.match.missing).toEqual([]);
+    expect(stc.match.weak).toEqual(['Git', 'REST APIs']); // Git is only self-declared; REST APIs only an in-progress course
+    expect(stc.match.breakdown.reduce((a, b) => a + b.points, 0)).toBe(stc.match.score);
+    expect(stc.match.explain.every((e) => e.key.startsWith('match.'))).toBe(true);
     expect(stc.match.eligible).toBe(true); // "level 5 or above" and Sara is level 6
     expect(stc.applicationId).toBeTruthy();
     // sorted by match score descending
@@ -36,7 +40,7 @@ describe('career discovery', () => {
     const exp = all.body.data!.items.find((o) => o.id === 'opp_stc_expired')!;
     expect(exp.expired).toBe(true);
     expect(exp.status).toBe('expired');
-    expect(all.body.data!.total).toBeGreaterThanOrEqual(14);
+    expect(all.body.data!.total).toBeGreaterThanOrEqual(13); // competitions live in their own table since the portfolio release
   });
 
   it('eligibility is null when the posting has conditions the profile cannot verify', async () => {

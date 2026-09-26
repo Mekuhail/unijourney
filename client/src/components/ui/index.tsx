@@ -282,7 +282,7 @@ export function Progress({ value, max = 100, className, tone: t = 'brand', label
   const c = { brand: 'bg-brand-500', success: 'bg-success', warn: 'bg-warn', danger: 'bg-danger', gold: 'bg-gold-500' }[t];
   return (
     <div className={clsx('h-2 w-full overflow-hidden rounded-full bg-line', className)} role="progressbar" aria-label={label} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-      <M.div className={clsx('h-full rounded-full', c)} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
+      <div className={clsx('h-full rounded-full transition-[width] duration-500 ease-out', c)} style={{ width: `${pct}%` }} />
     </div>
   );
 }
