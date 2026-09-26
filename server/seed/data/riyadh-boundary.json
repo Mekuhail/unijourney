@@ -1,0 +1,63 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-09-25T19:10:18Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "way",
+  "id": 221634202,
+  "bounds": {
+    "minlat": 24.8606062,
+    "minlon": 46.5888749,
+    "maxlat": 24.8649647,
+    "maxlon": 46.5952631
+  },
+  "geometry": [
+    { "lat": 24.8649241, "lon": 46.5942322 },
+    { "lat": 24.8649647, "lon": 46.5941097 },
+    { "lat": 24.8644605, "lon": 46.5929337 },
+    { "lat": 24.8643691, "lon": 46.5929811 },
+    { "lat": 24.8643085, "lon": 46.5928318 },
+    { "lat": 24.8642885, "lon": 46.5927873 },
+    { "lat": 24.8642742, "lon": 46.5927504 },
+    { "lat": 24.8642102, "lon": 46.5925973 },
+    { "lat": 24.8643025, "lon": 46.5925477 },
+    { "lat": 24.8635847, "lon": 46.5908557 },
+    { "lat": 24.8635234, "lon": 46.5908780 },
+    { "lat": 24.8632834, "lon": 46.5902969 },
+    { "lat": 24.8633312, "lon": 46.5902670 },
+    { "lat": 24.8627497, "lon": 46.5888749 },
+    { "lat": 24.8606062, "lon": 46.5899723 },
+    { "lat": 24.8628338, "lon": 46.5952125 },
+    { "lat": 24.8629152, "lon": 46.5952631 },
+    { "lat": 24.8637593, "lon": 46.5948191 },
+    { "lat": 24.8637855, "lon": 46.5947307 },
+    { "lat": 24.8638576, "lon": 46.5946946 },
+    { "lat": 24.8639405, "lon": 46.5946532 },
+    { "lat": 24.8640034, "lon": 46.5946218 },
+    { "lat": 24.8640757, "lon": 46.5946575 },
+    { "lat": 24.8649241, "lon": 46.5942322 }
+  ],
+  "tags": {
+    "addr:city": "Riyadh",
+    "addr:housenumber": "7010",
+    "addr:postcode": "13541",
+    "addr:street": "King Fahad Road",
+    "amenity": "university",
+    "name": "جامعة اليمامة",
+    "name:ar": "جامعة اليمامة",
+    "name:en": "Al Yamamah University",
+    "short_name": "YU",
+    "website": "https://www.alyamamah.edu.sa/",
+    "website_1": "http://yu.edu.sa/",
+    "wikidata": "Q4703347",
+    "wikipedia:en": "Al-Yamamah Private University"
+  }
+}
+
+  ]
+}

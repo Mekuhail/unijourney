@@ -1,0 +1,9 @@
+node_modules
+data
+dist
+.env
+.npmrc
+*.log
+PUBLIC_URL.txt
+.claude
+.fly-app

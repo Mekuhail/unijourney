@@ -1,0 +1,13 @@
+# Render blueprint (free plan works; data resets on redeploy because free services have no disk — the demo reseeds itself).
+# Push this folder to a GitHub repo, then Render → New → Blueprint → pick the repo.
+services:
+  - type: web
+    name: unijourney
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATA_DIR
+        value: /tmp/unijourney-data
