@@ -198,7 +198,7 @@ export function LostFoundDesk() {
   const setQ = (patch: Record<string, string | null>) => { const p = new URLSearchParams(params); for (const [k, v] of Object.entries(patch)) { if (v) p.set(k, v); else p.delete(k); } setParams(p, { replace: true }); };
   return (
     <div>
-      <PageHeader eyebrow={`${t('nav.staff')} · YU Claimed`} title={t('campus.staff.lf.title')} subtitle={t('campus.staff.lf.subtitle')} />
+      <PageHeader crumbs={[{ to: '/staff', label: t('nav.staff') }]} title={t('campus.staff.lf.title')} subtitle={t('campus.staff.lf.subtitle')} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_420px]">
         <section>
           <SectionTitle>{t('campus.staff.lf.recent')}</SectionTitle>

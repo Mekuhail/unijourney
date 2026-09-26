@@ -11,7 +11,7 @@ import { refreshAll } from '@/lib/bus';
 import { useQuery } from '@/lib/useQuery';
 import { fmtDate, fmtDateTime, fmtTime } from '@/lib/format';
 import { StatusDialog } from './StatusDialog';
-import { STATUS_RANK, TYPE_LABEL, type ApplicationDetail, type Conflict, type Interview, type PrepareDraft } from './types';
+import { STATUS_RANK, oppTypeLabel, type ApplicationDetail, type Conflict, type Interview, type PrepareDraft } from './types';
 
 export function ApplicationPage() {
   const { id } = useParams();
@@ -49,8 +49,7 @@ export function ApplicationPage() {
 
   return (
     <div>
-      <Link to="/career?tab=tracker" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-fg min-h-11"><ArrowLeft className="h-4 w-4 rtl:rotate-180" />{t('career.backToTracker')}</Link>
-      <PageHeader eyebrow={`${t('nav.career')} · ${TYPE_LABEL[a.type] ?? a.type}`} title={a.title} subtitle={<span className="flex flex-wrap items-center gap-2">{a.company}<StatusPill status={a.status} />{a.applied_at && <Badge tone="brand">{t('career.appliedOn')} {fmtDate(a.applied_at, locale)} · {t('career.attestedBy')} {a.attested_by}</Badge>}</span>}
+      <PageHeader crumbs={[{ to: '/career', label: t('nav.career') }, { to: '/career?tab=tracker', label: t('career.tab.tracker') }]} meta={<Badge tone="brand">{oppTypeLabel(t, a.type)}</Badge>} title={a.title} subtitle={<span className="flex flex-wrap items-center gap-2">{a.company}<StatusPill status={a.status} />{a.applied_at && <Badge tone="brand">{t('career.appliedOn')} {fmtDate(a.applied_at, locale)} · {t('career.attestedBy')} {a.attested_by}</Badge>}</span>}
         actions={<><Button variant="outline" icon={<Wand2 className="h-4 w-4" />} onClick={() => setPrepareOpen(true)}>{t('career.prepare')}</Button><Button variant="outline" icon={<CalendarPlus className="h-4 w-4" />} onClick={() => setInterviewOpen(true)}>{t('career.addInterview')}</Button><Button onClick={() => setStatusOpen(true)}>{t('career.changeStatus')}</Button></>} />
 
       {conflicts && conflicts.length > 0 && (
@@ -115,7 +114,7 @@ export function ApplicationPage() {
             <SectionTitle>{t('common.details')}</SectionTitle>
             <KeyValue items={[
               { k: t('career.company'), v: a.company },
-              { k: t('career.type'), v: TYPE_LABEL[a.type] ?? a.type },
+              { k: t('career.type'), v: oppTypeLabel(t, a.type) },
               { k: t('career.source'), v: a.opportunity ? <Badge tone="gold">{a.opportunity.source}</Badge> : t('career.manualEntry') },
               { k: 'URL', v: a.url ? <a className="inline-flex items-center gap-1 text-brand-600 hover:underline touch:min-h-11" href={a.url} target="_blank" rel="noreferrer">{t('career.sourceLink')}<ExternalLink className="h-3.5 w-3.5" /></a> : '—' },
               { k: t('career.created'), v: fmtDate(a.created_at, locale) }

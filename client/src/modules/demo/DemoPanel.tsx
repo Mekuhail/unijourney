@@ -96,7 +96,7 @@ export function DemoPanel() {
 
   return (
     <div>
-      <PageHeader eyebrow={t('nav.demo')} title={t('nav.demo')} subtitle="Explicit demo controls, the integration boundary (real vs simulated), configurable policies with provenance, and the six-minute judge tour." actions={<Button variant="danger" icon={<RotateCcw className="h-4 w-4" />} onClick={() => setResetOpen(true)}>{t('shell.reset')}</Button>} />
+      <PageHeader title={t('nav.demo')} subtitle={t('demo.subtitle')} actions={<Button variant="danger" icon={<RotateCcw className="h-4 w-4" />} onClick={() => setResetOpen(true)}>{t('shell.reset')}</Button>} />
       <Tabs value={tab} onChange={setTab} className="mb-5" items={[{ value: 'tour', label: t('shell.tour'), icon: <ListChecks className="h-4 w-4" /> }, { value: 'controls', label: 'Controls', icon: <FlaskConical className="h-4 w-4" /> }, { value: 'integrations', label: 'Real vs simulated', icon: <Plug className="h-4 w-4" /> }, { value: 'policies', label: 'Policies', icon: <Scale className="h-4 w-4" /> }, { value: 'attribution', label: 'Attribution', icon: <BookMarked className="h-4 w-4" /> }]} />
 
       {tab === 'tour' && (

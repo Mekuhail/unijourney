@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
-import { Badge } from '@/components/ui';
+import { CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
+import { useI18n } from '@/i18n';
 
 /** Match score ring (0–100). Colour reflects the band; the number is the score, not an eligibility verdict. */
 export function MatchRing({ score, size = 52, label }: { score: number; size?: number; label?: ReactNode }) {
@@ -31,8 +32,10 @@ export function SkillChip({ children, tone = 'neutral', onRemove }: { children: 
   );
 }
 
+/** Eligibility as a status line (not a button): icon + text, with the rule shown when it is unclear. */
 export function EligibilityBadge({ eligible, note }: { eligible: boolean | null; note?: string }) {
-  if (eligible === true) return <Badge tone="success" className="whitespace-nowrap" dot>Eligible (stated rule)</Badge>;
-  if (eligible === false) return <Badge tone="danger" className="whitespace-nowrap" dot>Not eligible</Badge>;
-  return <Badge tone="neutral" className="whitespace-nowrap" dot>{note ? 'Check eligibility' : 'Eligibility unknown'}</Badge>;
+  const { t } = useI18n();
+  if (eligible === true) return <span className="inline-flex items-center gap-1.5 text-sm font-medium text-success"><CheckCircle2 className="h-4 w-4" aria-hidden />{t('career.eligible')}</span>;
+  if (eligible === false) return <span className="inline-flex items-center gap-1.5 text-sm font-medium text-danger"><XCircle className="h-4 w-4" aria-hidden />{t('career.notEligible')}</span>;
+  return <span className="inline-flex items-start gap-1.5 text-sm text-muted"><HelpCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /><span>{note ? t('career.eligibilityCheck', { rule: note }) : t('career.eligibilityUnknown')}</span></span>;
 }

@@ -5,7 +5,6 @@ import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, Button, Card, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPill, SectionLink } from '@/components/ui';
-import SpotlightCard from '@/components/reactbits/SpotlightCard';
 import type { Club, EventItem } from '../types';
 import { EventCard } from '../lib';
 
@@ -27,17 +26,17 @@ export function CampusHub() {
 
   return (
     <div>
-      <PageHeader eyebrow={t('campus.hub.eyebrow')} title={t('campus.hub.title')} subtitle={t('campus.hub.subtitle')} actions={<Button variant="gold" icon={<IdCard className="h-4 w-4" />} onClick={() => nav('/campus/card')}>{t('campus.hub.card')}</Button>} />
+      <PageHeader title={t('campus.hub.title')} subtitle={t('campus.hub.subtitle')} actions={<Button variant="gold" icon={<IdCard className="h-4 w-4" />} onClick={() => nav('/campus/card')}>{t('campus.hub.card')}</Button>} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {TILES.map((tile) => (
-          <Link key={tile.to} to={tile.to} className="block focus-visible:outline-none">
-            <SpotlightCard className="!border-line !bg-surface !p-5 h-full transition hover:!border-brand-400" spotlightColor={tile.color}>
+          <Link key={tile.to} to={tile.to} className="block rounded-[1.25rem]">
+            <div className="card h-full p-5 transition hover:border-brand-400">
               <tile.icon className="h-6 w-6 text-brand-500" />
               <div className="mt-3 font-semibold">{t(`campus.hub.${tile.key}`)}</div>
               <div className="mt-1 text-sm text-muted">{t(`campus.hub.${tile.key}Body`)}</div>
               <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600">{t('common.open')} <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" /></div>
-            </SpotlightCard>
+            </div>
           </Link>
         ))}
       </div>
@@ -70,7 +69,7 @@ export function CampusHub() {
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: c.color }}><Users className="h-5 w-5" /></span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold">{l(c.name_en, c.name_ar)}</span>
-                    <span className="block text-xs text-muted">{c.member_count} {t('campus.clubs.members')} · {c.upcoming_events} {t('campus.clubs.upcoming')}</span>
+                    <span className="block text-xs text-muted">{t('campus.clubs.memberCount', { n: c.member_count })} · {t('campus.clubs.upcomingCount', { n: c.upcoming_events })}</span>
                   </span>
                   <StatusPill status={c.my_membership!.status} />
                   {c.my_membership!.role === 'lead' && <Badge tone="gold">{t('campus.clubs.lead')}</Badge>}

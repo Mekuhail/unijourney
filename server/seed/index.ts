@@ -8,7 +8,7 @@ import { seedCore } from './core.ts';
 import type { SeedContext } from './context.ts';
 
 /** Bump when fixtures change so existing databases (e.g. the Fly.io volume) are rebuilt on the next start. */
-export const SEED_VERSION = '2026-09-26.campus-map-v3';
+export const SEED_VERSION = '2026-09-26.polish-v4';
 
 /** Seeds synthetic demo fixtures. Returns true when seeding ran. */
 export function seedAll(opts: { reset: boolean }): boolean {

@@ -28,11 +28,11 @@ describe('career tracker', () => {
 
   it('keeps distinct manual applications to the same company distinct', async () => {
     const c = s.as('u_student');
-    const a = await c.post<App>('/career/applications', { company: 'Same Co (demo)', title: 'Role A', type: 'internship' });
-    const b = await c.post<App>('/career/applications', { company: 'Same Co (demo)', title: 'Role B', type: 'internship' });
+    const a = await c.post<App>('/career/applications', { company: 'Same Co', title: 'Role A', type: 'internship' });
+    const b = await c.post<App>('/career/applications', { company: 'Same Co', title: 'Role B', type: 'internship' });
     expect(a.status).toBe(201); expect(b.status).toBe(201);
     expect(a.body.data!.id).not.toBe(b.body.data!.id);
-    const missing = await c.post('/career/applications', { company: 'Same Co (demo)' });
+    const missing = await c.post('/career/applications', { company: 'Same Co' });
     expect(missing.status).toBe(400);
   });
 

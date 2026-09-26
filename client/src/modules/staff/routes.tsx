@@ -25,7 +25,7 @@ function StaffIndex() {
   const mine = QUEUES.filter((q) => hasRole(...q.roles));
   return (
     <div>
-      <PageHeader eyebrow={t('nav.staff')} title={t('nav.staff')} subtitle={user ? `${user.department ?? 'Queues available to your roles'} · server-enforced role checks` : ''} />
+      <PageHeader title={t('nav.staff')} subtitle={user ? `${user.department ?? 'Queues available to your roles'} · server-enforced role checks` : ''} />
       {mine.length === 0 && <EmptyState icon={<ShieldCheck className="h-6 w-6" />} title="No staff queues for this persona" body="Switch to a reviewer, club lead, security or admissions persona from the demo control." />}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {mine.map((q) => (

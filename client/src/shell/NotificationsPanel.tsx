@@ -24,7 +24,7 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[90] bg-ink-950/40 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <motion.div className="fixed inset-0 z-[var(--z-overlay)] bg-ink-950/45" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
           <motion.aside role="dialog" aria-label={t('nav.notifications')} className="absolute inset-y-0 end-0 flex w-[min(100vw,400px)] flex-col bg-surface shadow-2xl" initial={{ x: locale === 'ar' ? -40 : 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: locale === 'ar' ? -40 : 40, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}>
             <div className="flex items-center justify-between border-b border-line px-4 py-3">
               <h2 className="flex items-center gap-2 font-semibold"><Bell className="h-4 w-4 text-brand-500" />{t('nav.notifications')}</h2>

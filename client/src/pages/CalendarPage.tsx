@@ -88,7 +88,7 @@ export function CalendarPage() {
   const q = useQuery(() => api<CalendarEntry[]>('/calendar'), [], { refreshOn: ['calendar'] });
   return (
     <div>
-      <PageHeader eyebrow={t('nav.calendar')} title={t('nav.calendar')} subtitle="One shared calendar: classes, exams, club events, interviews, study tasks and deadlines. Asia/Riyadh, Sunday–Thursday teaching week." actions={<div className="flex flex-wrap gap-1.5">{Object.entries(kindTone).map(([k, c]) => <Badge key={k} tone="neutral"><span className={clsx('h-2 w-2 rounded-full', c)} />{k}</Badge>)}</div>} />
+      <PageHeader title={t('nav.calendar')} subtitle={t('calendar.subtitle')} actions={<div className="flex flex-wrap gap-1.5">{Object.entries(kindTone).map(([k, c]) => <Badge key={k} tone="neutral"><span aria-hidden className={clsx('h-2 w-2 rounded-full', c)} />{t(`kind.${k}`)}</Badge>)}</div>} />
       {q.data && q.data.length === 0 && <EmptyState icon={<CalendarDays className="h-6 w-6" />} title={t('common.empty')} />}
       {q.data && <WeekCalendar entries={q.data} anchor={a} onAnchor={setAnchor} />}
     </div>

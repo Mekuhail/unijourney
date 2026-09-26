@@ -93,7 +93,7 @@ export async function resolvePreferences(input: Preferences, knownCourses: Set<s
 }
 
 export async function createProposal(user: User, term: string, input: Preferences): Promise<{ proposal: ProposalView; eligibility: EligibleCourse[] }> {
-  if (!REGISTRABLE_TERMS().includes(term)) throw unprocessable(`Registration is only open for ${REGISTRABLE_TERMS().join(', ')} (demo).`);
+  if (!REGISTRABLE_TERMS().includes(term)) throw unprocessable(`Registration is only open for ${REGISTRABLE_TERMS().join(', ')}.`);
   const ctx = studentContext(user.id);
   if (!ctx.programId) throw unprocessable('No program on record for this account.');
   const known = new Set(analyzeEligibility(ctx, term, {}).map((e) => e.code));

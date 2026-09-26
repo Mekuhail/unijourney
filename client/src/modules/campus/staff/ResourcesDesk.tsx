@@ -54,7 +54,7 @@ export function ResourcesDesk() {
   const openReports = (q.data?.reports ?? []).filter((r) => r.status === 'open');
   return (
     <div>
-      <PageHeader eyebrow={t('nav.staff')} title={t('campus.staff.res.title')} subtitle={t('campus.staff.res.subtitle')} />
+      <PageHeader crumbs={[{ to: '/staff', label: t('nav.staff') }]} title={t('campus.staff.res.title')} subtitle={t('campus.staff.res.subtitle')} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <section>
           <SectionTitle>{t('campus.staff.res.queue')}</SectionTitle>

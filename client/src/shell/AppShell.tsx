@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { motion } from 'motion/react';
-import { Bell, Languages, Moon, Sun, Monitor, ChevronDown, Menu as MenuIcon, X } from 'lucide-react';
+import { Bell, Languages, Moon, Sun, Monitor, Menu as MenuIcon, X, IdCard, Users, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -9,11 +9,10 @@ import { useTheme } from '@/lib/theme';
 import { Avatar } from '@/components/ui';
 import { Brand } from './Brand';
 import { NAV, STAFF_NAV, DEMO_NAV, type NavItem } from './nav';
-import { DemoClockChip } from './DemoClock';
+import { DemoPill } from './DemoClock';
 import { PersonaSwitcher } from './PersonaSwitcher';
 import { NotificationsPanel } from './NotificationsPanel';
-import ClickSpark from '@/components/reactbits/ClickSpark';
-import { Menu, MenuRadio } from '@/components/ui/Menu';
+import { Menu, MenuRadio, MenuItem, MenuGroup, MenuSeparator } from '@/components/ui/Menu';
 
 function useNavItems(): NavItem[] {
   const { hasRole } = useSession();
@@ -45,7 +44,7 @@ function SideNav() {
 export function AppShell() {
   const { t, locale, setLocale, l } = useI18n();
   const { user, unread, demoMode } = useSession();
-  const { theme, setTheme, resolved, reducedMotion } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [personaOpen, setPersonaOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -53,7 +52,6 @@ export function AppShell() {
   const items = useNavItems();
   useEffect(() => setMenuOpen(false), [loc.pathname]);
 
-  const ThemeIcon = theme === 'system' ? Monitor : resolved === 'dark' ? Moon : Sun;
   const bottomItems = items.filter((it) => it.to !== '/prereqs' && it.to !== '/staff').slice(0, 5);
   const iconBtn = 'grid h-11 w-11 place-items-center rounded-full border border-line hover:border-brand-400';
 
@@ -77,22 +75,9 @@ export function AppShell() {
     <div className="flex min-h-full">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[var(--z-skip)] focus:rounded-lg focus:bg-brand-500 focus:px-3 focus:py-2 focus:text-ink-950">{t('shell.skipToContent')}</a>
       {/* Sidebar (desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-line bg-surface/70 p-4 backdrop-blur lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-line bg-surface p-4 lg:flex">
         <div className="mb-6 px-1"><Brand /></div>
         <SideNav />
-        <div className="mt-auto space-y-3">
-          {user && (
-            <button onClick={() => setPersonaOpen(true)} className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface-2 p-3 text-start transition hover:border-brand-400" title={t('shell.switchPersona')}>
-              <Avatar name={user.name_en} color={user.avatar_color} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold">{l(user.name_en, user.name_ar)}</span>
-                <span className="block truncate text-xs text-muted">{user.department ?? (user.student_no ? `#${user.student_no}` : user.stage)}</span>
-              </span>
-              {demoMode && <ChevronDown className="h-4 w-4 text-muted" />}
-            </button>
-          )}
-          <div className="px-1 text-xs leading-relaxed text-muted">All people, records and outcomes are synthetic demo data.</div>
-        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -101,18 +86,41 @@ export function AppShell() {
           <button type="button" className="grid h-11 w-11 place-items-center rounded-xl lg:hidden" onClick={() => setMenuOpen((v) => !v)} aria-label={t('shell.menu')} aria-expanded={menuOpen} aria-controls="mobile-nav">{menuOpen ? <X className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}</button>
           <div className="lg:hidden"><Brand compact /></div>
           <div className="ms-auto flex items-center gap-1 sm:gap-1.5">
-            <DemoClockChip />
-            <button type="button" onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')} className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-line px-2.5 text-sm font-semibold hover:border-brand-400 sm:px-3" aria-label={t('shell.languageSwitch')}><Languages className="h-4 w-4" /><span lang={locale === 'ar' ? 'en' : 'ar'} className="hidden sm:inline">{t('shell.language')}</span></button>
-            <Menu label={`${t('shell.theme')}: ${t(`shell.theme.${theme}`)}`} buttonClassName={iconBtn} button={<ThemeIcon className="h-4 w-4" />}>
-              <MenuRadio icon={<Monitor className="h-4 w-4" />} checked={theme === 'system'} onSelect={() => setTheme('system')}>{t('shell.theme.system')}</MenuRadio>
-              <MenuRadio icon={<Sun className="h-4 w-4" />} checked={theme === 'light'} onSelect={() => setTheme('light')}>{t('shell.theme.light')}</MenuRadio>
-              <MenuRadio icon={<Moon className="h-4 w-4" />} checked={theme === 'dark'} onSelect={() => setTheme('dark')}>{t('shell.theme.dark')}</MenuRadio>
-            </Menu>
+            {demoMode && <DemoPill />}
+            <button type="button" onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')} className="hidden h-11 items-center justify-center gap-1.5 rounded-full border border-line px-3 text-sm font-semibold hover:border-brand-400 sm:inline-flex" aria-label={t('shell.languageSwitch')}><Languages className="h-4 w-4" aria-hidden /><span lang={locale === 'ar' ? 'en' : 'ar'}>{t('shell.language')}</span></button>
             <button type="button" onClick={() => setNotifOpen(true)} className={clsx('relative', iconBtn)} aria-label={`${t('nav.notifications')} (${unread})`}>
               <Bell className="h-4 w-4" />
               {unread > 0 && <span className="absolute -end-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-xs font-bold text-ink-950">{unread > 99 ? '99+' : unread}</span>}
             </button>
-            {user && <button type="button" onClick={() => setPersonaOpen(true)} className="grid h-11 w-11 place-items-center rounded-full lg:hidden" aria-label={t('shell.switchPersona')}><Avatar name={user.name_en} color={user.avatar_color} size={34} /></button>}
+            {user && (
+              <Menu label={t('shell.account')} buttonClassName="grid h-11 w-11 place-items-center rounded-full" button={<Avatar name={user.name_en} color={user.avatar_color} size={34} />} panelClassName="w-72">
+                <div className="flex items-center gap-3 px-3 pb-2 pt-1.5">
+                  <Avatar name={user.name_en} color={user.avatar_color} size={40} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">{l(user.name_en, user.name_ar)}</span>
+                    <span className="block truncate text-xs text-muted">{user.department ?? (user.student_no ? `#${user.student_no}` : user.stage)}</span>
+                  </span>
+                </div>
+                <MenuSeparator />
+                <MenuItem icon={<IdCard className="h-4 w-4" />} to="/campus/card">{t('shell.profile')}</MenuItem>
+                {demoMode && <MenuItem icon={<Users className="h-4 w-4" />} onSelect={() => setPersonaOpen(true)}>{t('shell.switchPersonaDemo')}</MenuItem>}
+                <MenuSeparator />
+                <div className="sm:hidden">
+                  <MenuGroup label={t('shell.languageLabel')}>
+                    <MenuRadio checked={locale === 'en'} onSelect={() => setLocale('en')}><span lang="en">English</span></MenuRadio>
+                    <MenuRadio checked={locale === 'ar'} onSelect={() => setLocale('ar')}><span lang="ar">العربية</span></MenuRadio>
+                  </MenuGroup>
+                  <MenuSeparator />
+                </div>
+                <MenuGroup label={t('shell.theme')}>
+                  <MenuRadio icon={<Monitor className="h-4 w-4" />} checked={theme === 'system'} onSelect={() => setTheme('system')}>{t('shell.theme.system')}</MenuRadio>
+                  <MenuRadio icon={<Sun className="h-4 w-4" />} checked={theme === 'light'} onSelect={() => setTheme('light')}>{t('shell.theme.light')}</MenuRadio>
+                  <MenuRadio icon={<Moon className="h-4 w-4" />} checked={theme === 'dark'} onSelect={() => setTheme('dark')}>{t('shell.theme.dark')}</MenuRadio>
+                </MenuGroup>
+                <MenuSeparator />
+                <MenuItem icon={<LogOut className="h-4 w-4" />} disabled hint={t('shell.signOutDemo')}>{t('shell.signOut')}</MenuItem>
+              </Menu>
+            )}
           </div>
         </header>
         {menuOpen && (
@@ -143,6 +151,5 @@ export function AppShell() {
     </div>
   );
 
-  if (reducedMotion) return content;
-  return <ClickSpark sparkColor={resolved === 'dark' ? '#F58A47' : '#F0762B'} sparkSize={8} sparkRadius={18} sparkCount={8} duration={380}>{content}</ClickSpark>;
+  return content;
 }

@@ -32,7 +32,7 @@ function AdmissionsQueue() {
   const decide = () => act(async () => { if (!sel) return; const r = await api<AdmApp>(`/admission/review/applications/${sel.id}/decision`, { body: { decision, note } }); toast.success(t('journey.decisionRecorded'), t(`status.${r.status}`)); setSel(null); setNote(''); });
   return (
     <div>
-      <PageHeader eyebrow={t('nav.staff')} title={t('journey.staff.admissions')} subtitle={t('journey.staff.admissionsSubtitle')} actions={<Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t('common.all')}</option>{['submitted', 'under_review', 'needs_information', 'admitted', 'rejected', 'enrolled'].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}</Select>} />
+      <PageHeader crumbs={[{ to: '/staff', label: t('nav.staff') }]} title={t('journey.staff.admissions')} subtitle={t('journey.staff.admissionsSubtitle')} actions={<Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t('common.all')}</option>{['submitted', 'under_review', 'needs_information', 'admitted', 'rejected', 'enrolled'].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}</Select>} />
       {!!q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
       {q.loading && !q.data && <Skeleton className="h-48" />}
       {q.data && q.data.items.length === 0 && <EmptyState icon={<FileCheck className="h-6 w-6" />} title={t('journey.staff.emptyQueue')} body={t('journey.staff.emptyQueueBody')} />}
@@ -86,7 +86,7 @@ function GraduationQueue() {
   const sel = detail.data;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.staff')} title={t('journey.staff.graduation')} subtitle={t('journey.staff.graduationSubtitle')} actions={<Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t('common.all')}</option>{['submitted', 'under_review', 'approved', 'rejected'].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}</Select>} />
+      <PageHeader crumbs={[{ to: '/staff', label: t('nav.staff') }]} title={t('journey.staff.graduation')} subtitle={t('journey.staff.graduationSubtitle')} actions={<Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t('common.all')}</option>{['submitted', 'under_review', 'approved', 'rejected'].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}</Select>} />
       {!!q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
       {q.loading && !q.data && <Skeleton className="h-48" />}
       {q.data && q.data.items.length === 0 && <EmptyState icon={<GraduationCap className="h-6 w-6" />} title={t('journey.staff.emptyQueue')} body={t('journey.staff.emptyGradBody')} />}

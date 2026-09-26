@@ -119,7 +119,7 @@ graduationRouter.post('/requests', h((req, res) => {
   const receipt = { ref: publicRef('GRD'), submitted_at: now, simulated: true, label: 'Demo submission' };
   db().tx(() => {
     db().insert('graduation_requests', { id, student_id: u.id, status: 'submitted', audit_snapshot: j(a.audit), reviewer_id: null, reviewer_note: null, receipt: j(receipt), submitted_at: now, decided_at: null, created_at: now });
-    notify(u.id, { module: 'graduation', kind: 'submitted', title: 'Graduation request submitted (demo)', body: `Reference ${receipt.ref}. The registrar will review your audit snapshot.`, link: '/journey/graduation' });
+    notify(u.id, { module: 'graduation', kind: 'submitted', title: 'Graduation request submitted', body: `Reference ${receipt.ref}. The registrar will review your audit snapshot.`, link: '/journey/graduation' });
     sendEmail({ toUserId: u.id, toAddress: u.email, subject: `[Demo] Graduation request ${receipt.ref}`, module: 'graduation', text: `Simulated receipt ${receipt.ref}: graduation request received on ${now} with ${a.audit.earned}/${a.audit.total_required} credits earned.`, html: `<p><strong>Simulated receipt</strong> <code>${receipt.ref}</code>: graduation request received on ${now} with ${a.audit.earned}/${a.audit.total_required} credits earned.</p>` });
     for (const r of db().all<{ id: string }>(`SELECT id FROM users WHERE roles LIKE '%registrar%'`)) notify(r.id, { module: 'graduation', kind: 'queue', title: 'New graduation request', body: `${u.name_en} (${u.student_no ?? 'no student no.'})`, link: '/staff/journey/graduation' });
   });

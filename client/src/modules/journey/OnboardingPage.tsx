@@ -19,7 +19,7 @@ export function OnboardingPage() {
   };
   return (
     <div>
-      <PageHeader eyebrow={t('nav.journey')} title={t('journey.onboarding')} subtitle={t('journey.onboardingSubtitle')} actions={q.data?.complete && <Badge tone="success" dot>{t('journey.allDone')}</Badge>} />
+      <PageHeader crumbs={[{ to: '/journey', label: t('nav.journey') }]} title={t('journey.onboarding')} subtitle={t('journey.onboardingSubtitle')} actions={q.data?.complete && <Badge tone="success" dot>{t('journey.allDone')}</Badge>} />
       {!!q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
       {q.loading && !q.data && <Skeleton className="h-64" />}
       {q.data && !q.data.exists && <EmptyState icon={<Compass className="h-6 w-6" />} title={t('journey.noOnboarding')} body={t('journey.noOnboardingBody')} action={<ButtonLink to="/journey/admission" variant="outline">{t('journey.mod.admission')}</ButtonLink>} />}

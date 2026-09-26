@@ -22,7 +22,7 @@ function CareerHub() {
   const setTab = (v: Tab) => { const p = new URLSearchParams(params); p.set('tab', v); setParams(p, { replace: true }); };
   return (
     <div>
-      <PageHeader eyebrow={t('nav.career')} title={t('career.title')} subtitle={t('career.subtitle')} actions={<Badge tone="gold">{t('career.demoFeedLabel')}</Badge>} />
+      <PageHeader title={t('career.title')} subtitle={t('career.subtitle')} />
       {handoff && <div className="mb-6"><HandoffPanel onClose={params.get('handoff') === '1' ? () => { const p = new URLSearchParams(params); p.delete('handoff'); setParams(p, { replace: true }); } : undefined} /></div>}
       <Tabs className="mb-5 w-fit max-w-full" value={tab} onChange={setTab} items={[
         { value: 'discover', label: t('career.tab.discover'), icon: <Compass className="h-4 w-4" /> },

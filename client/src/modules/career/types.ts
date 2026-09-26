@@ -33,3 +33,5 @@ export interface Handoff { stage: string; applications: { total: number; byStatu
 export interface PrepareDraft { label: string; simulated: boolean; provider: string; fields: Record<string, string | number>; cover_note: string; missing_skills: string[] }
 
 export const TYPE_LABEL: Record<string, string> = { internship: 'Internship', coop: 'Co-op', entry: 'Entry-level', research: 'Research', competition: 'Competition' };
+/** Localized opportunity type (falls back to the raw value for unknown types). */
+export function oppTypeLabel(t: (k: string) => string, type: string): string { const k = `career.oppType.${type}`; const v = t(k); return v === k ? (TYPE_LABEL[type] ?? type) : v; }

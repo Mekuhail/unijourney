@@ -11,9 +11,6 @@ import { useTheme } from '@/lib/theme';
 import { fmtDateTime, weekdayName } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button, Card, SectionTitle, Skeleton, ErrorState, Callout, Field, Input, Textarea, Toggle, Select, StatusPill, Badge, Modal, KeyValue, CopyId, ButtonLink } from '@/components/ui';
-import SpotlightCard from '@/components/reactbits/SpotlightCard';
-import ShinyText from '@/components/reactbits/ShinyText';
-import Magnet from '@/components/reactbits/Magnet';
 import { AcademicsNav, ChecksList, FlowSteps, WeekGrid, meetingsToBlocks, type FlowStep } from '../components';
 import { termLabel, type Proposal, type EligibleCourse, type PlanOption, type SectionView, type SubmitResult, type Preferences } from '../api';
 
@@ -61,7 +58,7 @@ function PreferencesForm({ initial, eligibility, onGenerate, busy }: { initial: 
         </div>
       )}
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Magnet padding={40} magnetStrength={4}><Button onClick={submit} loading={busy} icon={<Sparkles className="h-4 w-4" />}>{t('academics.register.generate')}</Button></Magnet>
+        <Button onClick={submit} loading={busy} icon={<Sparkles className="h-4 w-4" />}>{t('academics.register.generate')}</Button>
         <span className="text-xs text-muted">{t('academics.register.generateHint')}</span>
       </div>
     </Card>
@@ -72,7 +69,7 @@ function OptionCard({ o, chosen, onChoose, busy }: { o: PlanOption; chosen: bool
   const { t, l } = useI18n();
   const fails = o.checks.filter((c) => c.status === 'fail').length, warns = o.checks.filter((c) => c.status === 'warn').length;
   return (
-    <SpotlightCard className={clsx('!rounded-2xl !border-line !bg-surface !p-4 h-full', chosen && '!border-brand-500 ring-2 ring-brand-500/40')} spotlightColor="rgba(240, 118, 43, 0.16)">
+    <div className={clsx('h-full rounded-2xl border bg-surface p-4', chosen ? 'border-brand-500 ring-2 ring-brand-500/40' : 'border-line')}>
       <div className="flex items-start justify-between gap-2">
         <div><div className="text-xs font-semibold uppercase tracking-wide text-brand-600">{t('academics.register.option')} {o.id}</div><div className="font-semibold">{l(o.label_en, o.label_ar)}</div></div>
         <div className="text-end"><div className="num text-2xl font-bold">{o.credits}</div><div className="text-xs uppercase text-muted">{t('common.credits')}</div></div>
@@ -86,7 +83,7 @@ function OptionCard({ o, chosen, onChoose, busy }: { o: PlanOption; chosen: bool
       </div>
       {o.tradeoffs.length > 0 && <ul className="mt-2 list-disc space-y-0.5 ps-4 text-xs text-muted">{o.tradeoffs.map((x, i) => <li key={i}>{x}</li>)}</ul>}
       <div className="mt-3"><Button size="sm" variant={chosen ? 'secondary' : 'primary'} onClick={onChoose} disabled={chosen || busy}>{chosen ? t('academics.register.chosen') : t('academics.register.choose')}</Button></div>
-    </SpotlightCard>
+    </div>
   );
 }
 
@@ -98,8 +95,7 @@ function ReceiptPanel({ p }: { p: Proposal }) {
   return (
     <Card className="border-gold-500/50">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-semibold"><ReceiptIcon className="h-5 w-5 text-gold-700" />{reducedMotion ? <span>{t('academics.register.receiptTitle')}</span> : <ShinyText text={t('academics.register.receiptTitle')} color="var(--fg)" shineColor="#c8975b" speed={3} />}</div>
-        <Badge tone="gold">{t('academics.register.demoAdapter')}</Badge>
+        <div className="flex items-center gap-2 font-semibold"><ReceiptIcon className="h-5 w-5 text-gold-700" /><span>{t('academics.register.receiptTitle')}</span></div>
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <KeyValue items={[{ k: t('academics.register.portalRef'), v: <CopyId value={r.portalRef} /> }, { k: t('common.status'), v: <StatusPill status={r.status === 'committed' ? 'submitted' : r.status} /> }, { k: t('academics.register.operationId'), v: <span className="font-mono text-xs">{r.operationId}</span> }, { k: t('academics.register.committedAt'), v: fmtDateTime(r.committedAt, locale) }]} />
@@ -170,7 +166,7 @@ export function RegisterPage() {
   const editable = !!p && ['needs_review', 'approved', 'draft'].includes(p.status);
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.register.title')} subtitle={t('academics.register.subtitle', { term: termLabel('2026-2', locale) })} actions={<Button variant="outline" size="sm" onClick={() => setParams({ new: '1' })} icon={<Plus className="h-4 w-4" />}>{t('academics.register.newProposal')}</Button>} />
+      <PageHeader crumbs={[{ to: '/academics', label: t('nav.academics') }]} title={t('academics.register.title')} subtitle={t('academics.register.subtitle', { term: termLabel('2026-2', locale) })} actions={<Button variant="outline" size="sm" onClick={() => setParams({ new: '1' })} icon={<Plus className="h-4 w-4" />}>{t('academics.register.newProposal')}</Button>} />
       <AcademicsNav />
       <div className="mb-4"><FlowSteps steps={steps} /></div>
       {(!p || params.get('new')) && <PreferencesForm initial={{}} eligibility={eligibility} onGenerate={generate} busy={busy} />}
@@ -185,7 +181,26 @@ export function RegisterPage() {
             </div>
             {p.preferences.understood && p.preferences.understood.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{p.preferences.understood.map((u, i) => <Badge key={i} tone="brand">{u}</Badge>)}{p.preferences.unparsed?.map((u, i) => <Badge key={`u${i}`} tone="neutral" className="line-through">{u}</Badge>)}</div>}
             {p.preferences.ai && <div className="mt-1 text-xs text-muted">{p.preferences.ai}</div>}
-            <p className="mt-2 text-sm text-muted">{p.rationale}</p>
+            {p.sections.length > 0 && (
+              <ul className="mt-3 divide-y divide-line rounded-xl border border-line" aria-label={t('academics.register.whyCourses')}>
+                {p.sections.map((s) => {
+                  const e = eligibility?.find((x) => x.code === s.course_code);
+                  const courseChecks = p.checks.filter((c) => c.status !== 'pass' && JSON.stringify(c.details ?? '').includes(s.course_code));
+                  return (
+                    <li key={s.id} className="flex flex-wrap items-start gap-x-3 gap-y-1 px-3 py-2 text-sm">
+                      <span className="w-20 shrink-0 font-mono font-semibold">{s.course_code}</span>
+                      <span className="flex shrink-0 gap-1">
+                        <Badge tone={e?.required ? 'brand' : 'neutral'}>{e?.required ? t('academics.register.required') : t('academics.register.elective')}</Badge>
+                        {s.seats_left <= 2 && <Badge tone={s.seats_left === 0 ? 'danger' : 'warn'}>{s.seats_left === 0 ? t('academics.register.full') : t('academics.register.fewSeats')}</Badge>}
+                        {courseChecks.some((c) => c.status === 'fail') && <Badge tone="danger">{t('status.blocked')}</Badge>}
+                      </span>
+                      <span className="min-w-0 flex-1 text-muted">{e?.reasons?.[0] ?? l(s.title_en, s.title_ar)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {p.rationale && <details className="mt-2 text-sm"><summary className="flex min-h-11 cursor-pointer items-center font-medium text-brand-600 sm:min-h-8">{t('academics.register.howChosen')}</summary><p className="mt-1 max-w-[70ch] text-muted">{p.rationale}</p></details>}
             {p.error && p.status === 'needs_review' && <div className="mt-2"><Callout tone="danger" title={t('academics.register.revalidationFailed')}>{p.error}</Callout></div>}
           </Card>
           {p.status === 'outcome_unknown' && (

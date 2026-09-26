@@ -46,13 +46,23 @@ export function I18nProvider({ children, initial }: { children: ReactNode; initi
     }
   }, [locale]);
   const setLocale = useCallback((l: Locale) => setLocaleState(l), []);
+  const plural = useMemo(() => new Intl.PluralRules(locale === 'ar' ? 'ar' : 'en'), [locale]);
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
       let s = merged[locale][key] ?? merged.en[key] ?? key;
+      // Plural forms: "key#one", "key#two", "key#few", "key#many", "key#other" (and "key#zero") picked by Intl.PluralRules.
+      if (vars) {
+        const count = typeof vars.n === 'number' ? vars.n : (Object.values(vars).find((v) => typeof v === 'number') as number | undefined);
+        if (count !== undefined) {
+          const dict = merged[locale];
+          const form = (count === 0 ? dict[`${key}#zero`] : undefined) ?? dict[`${key}#${plural.select(count)}`] ?? dict[`${key}#other`];
+          if (form) s = form;
+        }
+      }
       if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
       return s;
     },
-    [locale]
+    [locale, plural]
   );
   const value = useMemo<I18n>(
     () => ({ locale, dir: locale === 'ar' ? 'rtl' : 'ltr', setLocale, t, l: (en, ar) => (locale === 'ar' && ar ? ar : (en ?? '')) }),

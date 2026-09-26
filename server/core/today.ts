@@ -23,19 +23,20 @@ export function buildToday(user: User) {
   const nextClass = classes.find((c) => c.end_at > nowIso) ?? null;
   const upcoming = weekEntries.filter((e) => ['event', 'interview', 'exam', 'deadline'].includes(e.kind) && e.end_at > nowIso).slice(0, 8).map(withLoc);
 
-  const pending: Array<{ kind: string; id: string; title: string; status: string; link: string; updated_at: string }> = [];
+  // `title` stays English for API compatibility; `params` (additive) lets clients render a localized title.
+  const pending: Array<{ kind: string; id: string; title: string; status: string; link: string; updated_at: string; params?: Record<string, string | number> }> = [];
   for (const p of d.all(`SELECT id, term, status, credits, updated_at FROM enrollment_proposals WHERE student_id = ? AND status IN ('draft','needs_review','approved','submitting','outcome_unknown','partial') ORDER BY updated_at DESC LIMIT 3`, user.id))
-    pending.push({ kind: 'enrollment', id: p.id, title: `Registration proposal · ${TERM_LABELS[p.term as string]?.en ?? p.term} · ${p.credits} cr`, status: p.status, link: `/academics/register?proposal=${p.id}`, updated_at: p.updated_at });
+    pending.push({ kind: 'enrollment', id: p.id, title: `Registration proposal · ${TERM_LABELS[p.term as string]?.en ?? p.term} · ${p.credits} cr`, status: p.status, link: `/academics/register?proposal=${p.id}`, updated_at: p.updated_at, params: { term: p.term as string, credits: Number(p.credits) } });
   for (const x of d.all(`SELECT id, type, status, updated_at FROM excuse_requests WHERE student_id = ? AND status IN ('draft','ready','approved','needs_information','outcome_unknown','submitting') ORDER BY updated_at DESC LIMIT 3`, user.id))
-    pending.push({ kind: 'excuse', id: x.id, title: `Absence excuse (${x.type})`, status: x.status, link: `/academics/excuses/${x.id}`, updated_at: x.updated_at });
+    pending.push({ kind: 'excuse', id: x.id, title: `Absence excuse (${x.type})`, status: x.status, link: `/academics/excuses/${x.id}`, updated_at: x.updated_at, params: { type: x.type as string } });
   for (const s of d.all(`SELECT id, kind, status, created_at FROM study_proposals WHERE student_id = ? AND status = 'preview' ORDER BY created_at DESC LIMIT 1`, user.id))
-    pending.push({ kind: 'study', id: s.id, title: `Study plan ${s.kind} proposal awaiting your decision`, status: 'preview', link: '/academics/study', updated_at: s.created_at });
+    pending.push({ kind: 'study', id: s.id, title: `Study plan ${s.kind} proposal awaiting your decision`, status: 'preview', link: '/academics/study', updated_at: s.created_at, params: { kind: s.kind as string } });
   for (const a of d.all(`SELECT id, status, updated_at FROM admission_applications WHERE applicant_id = ? AND status IN ('draft','needs_information','admitted') ORDER BY updated_at DESC LIMIT 1`, user.id))
     pending.push({ kind: 'admission', id: a.id, title: a.status === 'admitted' ? 'Admission offer — accept to start orientation' : 'Admission application', status: a.status, link: '/journey/admission', updated_at: a.updated_at });
   for (const g of d.all(`SELECT id, status, created_at FROM graduation_requests WHERE student_id = ? AND status IN ('draft','submitted','under_review') ORDER BY created_at DESC LIMIT 1`, user.id))
     pending.push({ kind: 'graduation', id: g.id, title: 'Graduation request', status: g.status, link: '/journey/graduation', updated_at: g.created_at });
   for (const e of d.all(`SELECT id, subject, created_at FROM hiring_emails WHERE student_id = ? AND review_status = 'pending' ORDER BY received_at DESC LIMIT 2`, user.id))
-    pending.push({ kind: 'email', id: e.id, title: `Hiring email needs review: ${e.subject}`, status: 'pending', link: '/career?tab=inbox', updated_at: e.created_at });
+    pending.push({ kind: 'email', id: e.id, title: `Hiring email needs review: ${e.subject}`, status: 'pending', link: '/career?tab=inbox', updated_at: e.created_at, params: { subject: e.subject as string } });
 
   const tasks = d.all(`SELECT id, title, course_code, effort_min, deadline, scheduled_date, status, locked, progress FROM study_tasks WHERE student_id = ? AND status != 'done' AND (scheduled_date = ? OR (deadline IS NOT NULL AND deadline <= ?)) ORDER BY COALESCE(scheduled_date, deadline) LIMIT 8`, user.id, today, addDays(today, 7));
   const overdueTasks = d.count('study_tasks', `student_id = ? AND status != 'done' AND deadline IS NOT NULL AND deadline < ?`, user.id, today);
@@ -50,7 +51,7 @@ export function buildToday(user: User) {
   }).filter((a) => a.absences > 0);
   const unexcusedAbsences = d.count('attendance_records', `student_id = ? AND status = 'absent' AND excuse_request_id IS NULL`, user.id);
 
-  const lostFound = d.all(`SELECT id, public_id, item, status, collection_location_id, updated_at FROM lost_found_requests WHERE owner_id = ? AND status NOT IN ('collected','closed') ORDER BY updated_at DESC LIMIT 3`, user.id).map((r) => ({ ...r, collection_location_en: r.collection_location_id ? (locNames.get(r.collection_location_id as string)?.name_en as string) ?? null : null }));
+  const lostFound = d.all(`SELECT id, public_id, item, status, collection_location_id, updated_at FROM lost_found_requests WHERE owner_id = ? AND status NOT IN ('collected','closed') ORDER BY updated_at DESC LIMIT 3`, user.id).map((r) => ({ ...r, collection_location_en: r.collection_location_id ? (locNames.get(r.collection_location_id as string)?.name_en as string) ?? null : null, collection_location_ar: r.collection_location_id ? (locNames.get(r.collection_location_id as string)?.name_ar as string) ?? null : null }));
   const applications = d.all(`SELECT id, company, title, status, deadline, updated_at FROM applications WHERE student_id = ? AND status NOT IN ('rejected','withdrawn') ORDER BY updated_at DESC LIMIT 4`, user.id);
   const savedOpps = d.count('saved_opportunities', 'user_id = ?', user.id);
   const clubs = d.all(`SELECT c.id, c.name_en, c.name_ar, m.status FROM memberships m JOIN clubs c ON c.id = m.club_id WHERE m.user_id = ? AND m.status IN ('active','pending')`, user.id);

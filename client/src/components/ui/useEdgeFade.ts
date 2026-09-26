@@ -5,24 +5,28 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
  * edge has more content (direction-aware for RTL), and keeps the active item in view.
  * `activeKey` should change whenever the active item changes.
  */
+/** Toggle data-fade-start / data-fade-end on a horizontal scroller; returns a cleanup function. */
+export function watchEdgeFade(el: HTMLElement): () => void {
+  const update = () => {
+    const max = el.scrollWidth - el.clientWidth;
+    const pos = Math.abs(el.scrollLeft); // RTL scrollLeft runs 0 → -max in current engines
+    el.toggleAttribute('data-fade-start', max > 2 && pos > 2);
+    el.toggleAttribute('data-fade-end', max > 2 && pos < max - 2);
+  };
+  update();
+  el.addEventListener('scroll', update, { passive: true });
+  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+  ro?.observe(el);
+  if (el.firstElementChild) ro?.observe(el.firstElementChild);
+  const mo = typeof MutationObserver !== 'undefined' ? new MutationObserver(update) : null; // items added after mount
+  mo?.observe(el, { childList: true, subtree: true, characterData: true });
+  return () => { el.removeEventListener('scroll', update); ro?.disconnect(); mo?.disconnect(); };
+}
+
 export function useEdgeFade<T extends HTMLElement>(activeKey?: unknown) {
   const ref = useRef<T>(null);
 
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const update = () => {
-      const max = el.scrollWidth - el.clientWidth;
-      const pos = Math.abs(el.scrollLeft); // RTL scrollLeft runs 0 → -max in current engines
-      el.toggleAttribute('data-fade-start', max > 2 && pos > 2);
-      el.toggleAttribute('data-fade-end', max > 2 && pos < max - 2);
-    };
-    update();
-    el.addEventListener('scroll', update, { passive: true });
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
-    ro?.observe(el);
-    return () => { el.removeEventListener('scroll', update); ro?.disconnect(); };
-  }, []);
+  useLayoutEffect(() => (ref.current ? watchEdgeFade(ref.current) : undefined), []);
 
   useEffect(() => {
     const el = ref.current;

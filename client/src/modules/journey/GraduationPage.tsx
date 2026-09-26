@@ -24,7 +24,7 @@ export function GraduationPage() {
   const d = q.data;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.journey')} title={t('journey.graduation')} subtitle={t('journey.graduationSubtitle')} actions={d && <Button disabled={!d.canRequest || !!d.request && ['submitted', 'under_review', 'approved'].includes(d.request.status)} loading={busy === 'request'} icon={<GraduationCap className="h-4 w-4" />} onClick={() => void run('request', async () => { const r = await api<{ receipt: { ref: string } }>('/graduation/requests', { body: {} }); toast.success(t('journey.requestSubmitted'), r.receipt.ref); })}>{t('journey.requestGraduation')}</Button>} />
+      <PageHeader crumbs={[{ to: '/journey', label: t('nav.journey') }]} title={t('journey.graduation')} subtitle={t('journey.graduationSubtitle')} actions={d && <Button disabled={!d.canRequest || !!d.request && ['submitted', 'under_review', 'approved'].includes(d.request.status)} loading={busy === 'request'} icon={<GraduationCap className="h-4 w-4" />} onClick={() => void run('request', async () => { const r = await api<{ receipt: { ref: string } }>('/graduation/requests', { body: {} }); toast.success(t('journey.requestSubmitted'), r.receipt.ref); })}>{t('journey.requestGraduation')}</Button>} />
       {!!q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
       {q.loading && !d && <div className="space-y-3"><Skeleton className="h-28" /><Skeleton className="h-64" /></div>}
       {d && (

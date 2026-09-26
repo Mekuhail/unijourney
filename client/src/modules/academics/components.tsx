@@ -3,9 +3,9 @@ import { NavLink, Link, useLocation } from 'react-router';
 import { useEdgeFade } from '@/components/ui/useEdgeFade';
 import { motion } from 'motion/react';
 import clsx from 'clsx';
-import { CheckCircle2, AlertTriangle, XCircle, Lock, LayoutDashboard, Map, ListChecks, CalendarDays, UserCheck, FileText, BookOpenCheck, Check, GitBranch, ChevronLeft } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Lock, LayoutDashboard, Map, ListChecks, CalendarDays, UserCheck, FileText, BookOpenCheck, Check, ChevronLeft } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { weekdayName, fmtTime } from '@/lib/format';
+import { weekdayName, fmtTime, fmtDate } from '@/lib/format';
 import type { Check as PlanCheck, ExcuseCheck, Meeting, DayLoad } from './api';
 import { minutesOf, TEACHING_DAYS } from './api';
 
@@ -17,8 +17,7 @@ const SUB = [
   { to: '/academics/timetable', key: 'academics.nav.timetable', icon: CalendarDays },
   { to: '/academics/attendance', key: 'academics.nav.attendance', icon: UserCheck },
   { to: '/academics/excuses', key: 'academics.nav.excuses', icon: FileText },
-  { to: '/academics/study', key: 'academics.nav.study', icon: BookOpenCheck },
-  { to: '/prereqs', key: 'nav.prereqs', icon: GitBranch }
+  { to: '/academics/study', key: 'academics.nav.study', icon: BookOpenCheck }
 ];
 export function AcademicsNav() {
   const { t } = useI18n();
@@ -103,7 +102,7 @@ export function WeekGrid({ blocks, highlightDay, compact, className }: { blocks:
             {blocks.filter((b) => b.day === d).map((b) => {
               const top = ((minutesOf(b.start) - START) / 60) * rowH, height = Math.max(18, ((minutesOf(b.end) - minutesOf(b.start)) / 60) * rowH);
               const cls = clsx('absolute inset-x-0.5 overflow-hidden rounded-lg border px-1.5 py-1 text-xs leading-tight shadow-sm transition', tone[b.tone ?? 'brand'], b.dashed && 'border-dashed', (b.to || b.onClick) && 'cursor-pointer hover:brightness-95 hover:shadow');
-              const inner = <><span className="block truncate font-semibold">{b.title}</span>{!compact && b.subtitle && <span className="block truncate opacity-80">{b.subtitle}</span>}<span className="num block opacity-70">{b.start}–{b.end}</span></>;
+              const inner = <><span className="block truncate font-semibold">{b.title}</span>{!compact && b.subtitle && <span className="block truncate">{b.subtitle}</span>}<span className="num block">{b.start}–{b.end}</span></>;
               return b.to ? <Link key={b.id} to={b.to} className={cls} style={{ top, height }} title={`${b.title} ${b.start}–${b.end}`}>{inner}</Link> : <div key={b.id} role={b.onClick ? 'button' : undefined} tabIndex={b.onClick ? 0 : undefined} onClick={b.onClick} onKeyDown={(e) => { if (b.onClick && (e.key === 'Enter' || e.key === ' ')) b.onClick(); }} className={cls} style={{ top, height }} title={`${b.title} ${b.start}–${b.end}`}>{inner}</div>;
             })}
           </div>
@@ -152,7 +151,7 @@ export function DayLoadBars({ before, after, days = 14 }: { before?: DayLoad[]; 
         const b = before?.find((x) => x.date === l.date);
         return (
           <div key={l.date} className="grid grid-cols-[92px_1fr] items-center gap-2 text-xs">
-            <div className={clsx('num', l.unavailable && 'text-muted line-through')}>{weekdayName(l.weekday, locale)} {l.date.slice(5)}{l.unavailable && <Lock className="ms-1 inline h-3 w-3" />}</div>
+            <div className={clsx('num', l.unavailable && 'text-muted line-through')}>{weekdayName(l.weekday, locale)} {fmtDate(l.date, locale, { year: undefined })}{l.unavailable && <Lock className="ms-1 inline h-3 w-3" />}</div>
             <div className="relative h-5 rounded-md bg-line/50" title={`${t('academics.study.capacity')}: ${l.capacity} · ${t('academics.study.calendarLoad')}: ${l.calendar_min}`}>
               <div className="absolute inset-y-0 start-0 rounded-md border-e-2 border-muted/50" style={{ width: `${(l.capacity / max) * 100}%` }} />
               {b && b.task_min !== l.task_min && <div className={clsx('absolute inset-y-1 start-0 rounded-md opacity-40', b.over ? 'bg-danger' : 'bg-muted')} style={{ width: `${(b.task_min / max) * 100}%` }} />}

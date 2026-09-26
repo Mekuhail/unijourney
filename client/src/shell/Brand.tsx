@@ -21,7 +21,7 @@ export function Brand({ compact }: { compact?: boolean }) {
       {!compact && (
         <span className="leading-tight">
           <span className="block text-base font-bold tracking-tight">{t('app.name')}</span>
-          <span className="block text-xs text-muted">Al Yamamah University · {t('app.demo')}</span>
+          <span className="block text-xs text-muted">{t('app.university')}</span>
         </span>
       )}
     </Link>

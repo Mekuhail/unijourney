@@ -22,7 +22,7 @@ export function NotificationsPage() {
   const markAll = async () => { await api('/notifications/all/read', { method: 'POST' }); refreshAll(); };
   return (
     <div>
-      <PageHeader eyebrow={t('nav.notifications')} title={t('nav.notifications')} subtitle="In-app notices and the simulated email outbox. Nothing here was sent to a real inbox." actions={!!q.data?.unread && <Button variant="outline" onClick={() => void markAll()}>{t('shell.markAllRead')}</Button>} />
+      <PageHeader title={t('nav.notifications')} subtitle={t('notifications.subtitle')} actions={!!q.data?.unread && <Button variant="outline" onClick={() => void markAll()}>{t('shell.markAllRead')}</Button>} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
         <div className="space-y-2">
           {q.data && q.data.items.length === 0 && <EmptyState icon={<Bell className="h-6 w-6" />} title={t('shell.noNotifications')} />}
@@ -33,15 +33,15 @@ export function NotificationsPage() {
                   <div className="font-semibold">{n.title}</div>
                   <div className="text-sm text-muted">{n.body}</div>
                 </div>
-                <Badge tone="neutral">{n.module}</Badge>
+                <Badge tone="neutral">{t(`module.${n.module}`)}</Badge>
               </div>
               <div className="mt-2 text-xs text-muted">{fmtDateTime(n.created_at, locale)}</div>
             </Link>
           ))}
         </div>
         <Card>
-          <div className="mb-3 flex items-center gap-2 font-semibold"><Mail className="h-4 w-4 text-gold-500" /> Email outbox <Badge tone="gold">{t('common.simulated')}</Badge></div>
-          {emails.data && emails.data.length === 0 && <div className="text-sm text-muted">No emails generated yet.</div>}
+          <div className="mb-3 flex items-center gap-2 font-semibold"><Mail className="h-4 w-4 text-gold-700" aria-hidden /> {t('notifications.outbox')}</div>
+          {emails.data && emails.data.length === 0 && <div className="text-sm text-muted">{t('notifications.noEmails')}</div>}
           <ul className="space-y-2">
             {emails.data?.map((e) => (
               <li key={e.id}>

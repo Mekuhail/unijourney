@@ -59,7 +59,7 @@ export function Inbox() {
                     <Badge tone={conf >= 80 ? 'success' : conf >= 60 ? 'warn' : 'neutral'}>{t('career.confidence')} {conf}%</Badge>
                     {e.ambiguous && <Badge tone="warn" dot>{t('career.ambiguous')}</Badge>}
                     <StatusPill status={e.review_status} />
-                    {e.suggested_status && <span className="text-xs text-muted">→ {t('career.suggests')} <strong className="text-fg">{t(`status.${e.suggested_status}`)}</strong></span>}
+                    {e.suggested_status && <span className="text-xs text-muted">{t('career.suggests')} <strong className="text-fg">{t(`status.${e.suggested_status}`)}</strong></span>}
                   </div>
                   <p className={clsx('mt-2 text-sm text-fg/85', expanded === e.id ? 'whitespace-pre-wrap' : 'line-clamp-2')}>{expanded === e.id ? e.body : e.snippet}</p>
                   {e.suggested_application && !e.ambiguous && <div className="mt-2 text-sm">{t('career.matchedApplication')}: <Link className="font-medium text-brand-600 hover:underline" to={`/career/applications/${e.suggested_application.id}`}>{e.suggested_application.company} – {e.suggested_application.title}</Link> <StatusPill status={e.suggested_application.status} className="ms-1" /> <span className="text-xs text-muted">({t(`career.method.${e.matched_by.method}`)})</span></div>}

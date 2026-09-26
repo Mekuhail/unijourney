@@ -8,6 +8,16 @@ export function fmtDate(iso: string | null | undefined, locale: Locale = 'en', o
   return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric', ...opts }).format(d);
 }
 
+/** Date range in the app's one date style: "12–14 Sept 2026", "30 Sept – 2 Oct 2026". */
+export function fmtDateRange(from: string | null | undefined, to: string | null | undefined, locale: Locale = 'en'): string {
+  if (!from) return fmtDate(to, locale);
+  if (!to || to === from) return fmtDate(from, locale);
+  const a = new Date(from.length === 10 ? `${from}T00:00:00+03:00` : from);
+  const b = new Date(to.length === 10 ? `${to}T00:00:00+03:00` : to);
+  const f = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' });
+  return typeof f.formatRange === 'function' ? f.formatRange(a, b) : `${fmtDate(from, locale)} – ${fmtDate(to, locale)}`;
+}
+
 export function fmtTime(iso: string | null | undefined, locale: Locale = 'en'): string {
   if (!iso) return '—';
   if (/^\d{2}:\d{2}$/.test(iso)) {

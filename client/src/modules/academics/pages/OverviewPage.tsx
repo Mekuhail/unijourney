@@ -9,8 +9,6 @@ import { fmtTime, weekdayName, fmtDate } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { AbsenceBar, AbsenceLegend } from '@/components/ui/AbsenceBar';
 import { Card, SectionTitle, Skeleton, ErrorState, EmptyState, Progress, StatusPill, Badge, Button, ButtonLink, SectionLink } from '@/components/ui';
-import GradientText from '@/components/reactbits/GradientText';
-import SpotlightCard from '@/components/reactbits/SpotlightCard';
 import { AcademicsNav, StatTile } from '../components';
 import type { Overview } from '../api';
 
@@ -27,13 +25,13 @@ export function OverviewPage() {
   for (const e of d.week.entries) { const wd = new Date(new Date(e.start_at).getTime() + 3 * 3600e3).getUTCDay(); if (!byDay.has(wd)) byDay.set(wd, []); byDay.get(wd)!.push(e); }
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} documentTitle={t('nav.academics')} title={t('academics.overview.hello', { name: first })} subtitle={d.student.program ? `${l(d.student.program.en, d.student.program.ar)} · ${t('academics.overview.level', { level: d.student.level })} · ${l(d.term.label.en, d.term.label.ar)}` : t('academics.overview.noProgram')} />
+      <PageHeader documentTitle={t('nav.academics')} title={t('academics.overview.hello', { name: first })} subtitle={d.student.program ? `${l(d.student.program.en, d.student.program.ar)} · ${t('academics.overview.level', { level: d.student.level })} · ${l(d.term.label.en, d.term.label.ar)}` : t('academics.overview.noProgram')} />
       <AcademicsNav />
       <section className={clsx('relative mb-6 overflow-hidden rounded-3xl border border-line p-6', resolved === 'dark' ? 'bg-gradient-to-br from-brand-900/40 via-surface to-surface' : 'bg-gradient-to-br from-brand-50 via-surface to-gold-100/40')}>
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-600">{t('academics.overview.degreeProgress')}</div>
-            <div className="mt-1 text-3xl font-bold">{reducedMotion ? <span>{pct}%</span> : <GradientText colors={['#f0762b', '#c8975b', '#f0762b']} animationSpeed={6} className="!mx-0">{pct}%</GradientText>}<span className="ms-2 text-base font-medium text-muted">{t('academics.overview.ofCredits', { earned: d.credits.earned, required: d.credits.required })}</span></div>
+            <div className="mt-1 text-3xl font-bold"><span className="num">{pct}%</span><span className="ms-2 text-base font-medium text-muted">{t('academics.overview.ofCredits', { earned: d.credits.earned, required: d.credits.required })}</span></div>
             <Progress label={t('academics.overview.degreeProgress')} value={d.credits.earned} max={d.credits.required} className="mt-3 max-w-md" />
             {d.credits.estimate && <div className="mt-2 text-xs text-muted">{t('academics.overview.estimate', { terms: d.credits.estimate.terms_remaining })} · {d.credits.estimate.assumptions}</div>}
           </div>
@@ -56,14 +54,14 @@ export function OverviewPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {d.nextActions.map((a, i) => (
                 <Link key={i} to={a.link} className="block">
-                  <SpotlightCard className="!rounded-2xl !border-line !bg-surface !p-4 h-full transition hover:!border-brand-400" spotlightColor="rgba(240, 118, 43, 0.18)">
+                  <div className="h-full rounded-2xl border border-line bg-surface p-4 transition hover:border-brand-400">
                     <div className="flex items-start justify-between gap-2">
                       <Badge tone={a.tone === 'danger' ? 'danger' : a.tone === 'warn' ? 'warn' : a.tone === 'success' ? 'success' : 'info'} dot>{t(`academics.action.${a.kind}`)}</Badge>
                       <ArrowRight className="h-4 w-4 shrink-0 text-muted rtl:rotate-180" />
                     </div>
                     <div className="mt-2 font-semibold">{a.title}</div>
                     <div className="mt-1 text-sm text-muted">{a.body}</div>
-                  </SpotlightCard>
+                  </div>
                 </Link>
               ))}
             </div>

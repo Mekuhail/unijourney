@@ -8,7 +8,7 @@ import { api, errorMessage } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
 import { refreshAll } from '@/lib/bus';
 import { useToast } from '@/components/ui/toast';
-import { fmtDate, fmtDateTime } from '@/lib/format';
+import { fmtDate, fmtDateTime, fmtDateRange } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, SectionTitle, Skeleton, ErrorState, EmptyState, StatusPill, Badge, Button, Textarea, Tabs, KeyValue, Callout } from '@/components/ui';
 import { ChecksList } from './components';
@@ -31,7 +31,7 @@ function Queue() {
   const items = (q.data ?? []).filter((e) => filter !== 'open' || ['submitted', 'under_review', 'needs_information'].includes(e.status));
   return (
     <div>
-      <PageHeader eyebrow={t('nav.staff')} title={t('academics.staff.title')} subtitle={t('academics.staff.subtitle')} />
+      <PageHeader crumbs={[{ to: '/staff', label: t('nav.staff') }]} title={t('academics.staff.title')} subtitle={t('academics.staff.subtitle')} />
       <Tabs value={filter} onChange={(v) => setParams({ status: v })} items={FILTERS.map((f) => ({ value: f, label: f === 'open' ? t('academics.staff.open') : t(`status.${f}`) }))} className="mb-4" />
       {q.error ? <ErrorState error={q.error} onRetry={q.refetch} /> : null}
       {!q.data && !q.error && <Skeleton className="h-40" />}
@@ -42,7 +42,7 @@ function Queue() {
             <Link to={`/staff/academics/excuses/${e.id}`} className="card block p-4 transition hover:border-brand-400">
               <div className="flex items-start justify-between gap-2"><div className="font-semibold">{l(e.student_name_en ?? '', e.student_name_ar)}</div><StatusPill status={e.status} /></div>
               <div className="mt-1 text-sm">{e.sessions.map((s) => `${s.course_code} · ${fmtDate(s.session_date, locale)} ${s.start_time}`).join(' + ')}</div>
-              <div className="mt-1 text-xs text-muted">{t(`academics.excuses.type.${e.type}`)} · {e.from_date} → {e.to_date} · {e.portal_request_id} · {t('academics.staff.files', { n: e.documents.length })}</div>
+              <div className="mt-1 text-xs text-muted">{t(`academics.excuses.type.${e.type}`)} · {fmtDateRange(e.from_date, e.to_date, locale)} · {e.portal_request_id} · {t('academics.staff.files', { n: e.documents.length })}</div>
               <div className="mt-2 flex flex-wrap gap-1">{e.checks.filter((c) => c.status !== 'pass').map((c) => <Badge key={c.id} tone={c.status === 'fail' ? 'danger' : 'warn'}>{c.label}</Badge>)}</div>
             </Link>
           </li>
@@ -74,7 +74,7 @@ function Detail() {
   const doc = e.documents[0];
   return (
     <div>
-      <PageHeader eyebrow={<Link to="/staff/academics/excuses" className="hover:underline">{t('academics.staff.title')}</Link>} title={`${l(e.student_name_en ?? '', e.student_name_ar)} · ${e.sessions.map((s) => s.course_code).join(', ')}`} subtitle={`${e.portal_request_id ?? ''} · ${t('academics.excuses.reviewedBy')} ${e.review_department}`} actions={<StatusPill status={e.status} />} />
+      <PageHeader crumbs={[{ to: '/staff', label: t('nav.staff') }, { to: '/staff/academics/excuses', label: t('academics.staff.title') }]} title={`${l(e.student_name_en ?? '', e.student_name_ar)} · ${e.sessions.map((s) => s.course_code).join(', ')}`} subtitle={`${e.portal_request_id ?? ''} · ${t('academics.excuses.reviewedBy')} ${e.review_department}`} actions={<StatusPill status={e.status} />} />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card>
@@ -88,7 +88,7 @@ function Detail() {
               <>
                 <div className="mb-2 flex flex-wrap items-center gap-2 text-sm"><span className="font-semibold">{doc.filename}</span><Badge tone="neutral">{doc.kind}</Badge><span className="text-xs text-muted">{Math.round(doc.size / 1024)} KB</span><a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-sm gap-1 font-semibold text-brand-600 hover:underline"><ExternalLink className="h-3 w-3" />{t('common.open')}</a></div>
                 {doc.mime.startsWith('image/') ? <img src={`/api/documents/${doc.id}/file`} alt={doc.filename} className="max-h-[480px] rounded-xl border border-line" /> : <iframe title={doc.filename} src={`/api/documents/${doc.id}/file`} className="h-[480px] w-full rounded-xl border border-line bg-white" />}
-                {e.extracted && <div className="mt-2 text-xs text-muted">{t('academics.staff.extracted')}: {e.extracted.fromDate?.value ?? '—'} → {e.extracted.toDate?.value ?? '—'} · {e.extracted.reference?.value ?? '—'} · {e.extracted.patientName?.value ?? '—'} · {t('academics.staff.extractionNote')}</div>}
+                {e.extracted && <div className="mt-2 text-xs text-muted">{t('academics.staff.extracted')}: {e.extracted.fromDate?.value ?? '—'} – {e.extracted.toDate?.value ?? '—'} · {e.extracted.reference?.value ?? '—'} · {e.extracted.patientName?.value ?? '—'} · {t('academics.staff.extractionNote')}</div>}
               </>
             )}
           </Card>

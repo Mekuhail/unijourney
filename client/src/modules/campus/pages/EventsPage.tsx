@@ -53,7 +53,7 @@ export function EventsPage() {
   const past = (q.data ?? []).filter((e) => e.is_past);
   return (
     <div>
-      <PageHeader eyebrow={t('campus.hub.eyebrow')} title={t('campus.events.title')} subtitle={t('campus.events.subtitle')} actions={<Button variant="outline" onClick={() => setPersonalOpen(true)}>{t('campus.events.addPersonal')}</Button>} />
+      <PageHeader crumbs={[{ to: '/campus', label: t('nav.campus') }]} title={t('campus.events.title')} subtitle={t('campus.events.subtitle')} actions={<Button variant="outline" onClick={() => setPersonalOpen(true)}>{t('campus.events.addPersonal')}</Button>} />
       <Tabs value={filter} onChange={setFilter} className="mb-4 w-fit max-w-full" items={[{ value: 'all', label: t('campus.events.all') }, { value: 'club', label: t('campus.events.club') }, { value: 'university', label: t('campus.events.university') }, { value: 'external', label: t('campus.events.external') }, { value: 'personal', label: t('campus.events.personal') }, { value: 'mine', label: t('campus.events.mine') }]} />
       {q.loading && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-36" />)}</div>}
       {q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : null}
@@ -130,8 +130,7 @@ export function EventDetailPage() {
 
   return (
     <div>
-      <Link to="/campus/events" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-fg min-h-11"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{t('campus.events.title')}</Link>
-      <PageHeader eyebrow={<span className="flex items-center gap-2"><KindBadge kind={e.kind} />{e.club && <Link to={`/campus/clubs/${e.club.id}`} className="hover:underline">{l(e.club.name_en, e.club.name_ar)}</Link>}{e.demo_label && e.kind === 'external' && <Badge tone="gold">{t('campus.events.demoListing')}</Badge>}</span>} title={l(e.title_en, e.title_ar)}
+      <PageHeader crumbs={[{ to: '/campus', label: t('nav.campus') }, { to: '/campus/events', label: t('campus.events.title') }]} meta={<><KindBadge kind={e.kind} />{e.club && <Link to={`/campus/clubs/${e.club.id}`} className="inline-flex min-h-11 items-center hover:underline sm:min-h-8">{l(e.club.name_en, e.club.name_ar)}</Link>}</>} title={l(e.title_en, e.title_ar)}
         actions={<div className="flex flex-wrap items-center gap-2">
           {e.kind === 'personal' ? <Button variant="outline" icon={<Trash2 className="h-4 w-4" />} onClick={() => void removePersonal()}>{t('campus.events.deletePersonal')}</Button>
             : e.is_past ? <Badge tone="neutral">{t('campus.events.pastEvent')}</Badge>

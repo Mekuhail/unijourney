@@ -20,7 +20,7 @@ export function AdmissionPage() {
   const mine = useQuery(() => api<{ items: AdmApp[]; active: AdmApp | null }>('/admission/applications/mine'), [], { refreshOn: ['journey', 'persona'] });
   return (
     <div>
-      <PageHeader eyebrow={t('nav.journey')} title={t('journey.admission')} subtitle={t('journey.admissionSubtitle')} actions={<Badge tone="gold">{t('journey.illustrative')}</Badge>} />
+      <PageHeader crumbs={[{ to: '/journey', label: t('nav.journey') }]} title={t('journey.admission')} subtitle={t('journey.admissionSubtitle')} actions={<Badge tone="gold">{t('journey.illustrative')}</Badge>} />
       {!!mine.error && <ErrorState error={mine.error} onRetry={() => void mine.refetch()} />}
       {mine.loading && !mine.data && <Skeleton className="h-72" />}
       {mine.data && !mine.data.active && <ProgramExplorer />}

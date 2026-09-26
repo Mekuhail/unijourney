@@ -1,40 +1,42 @@
 import { Link } from 'react-router';
-import { motion } from 'motion/react';
-import { CalendarClock, MapPin, ClipboardList, BookOpenCheck, Compass, Briefcase, Search, GraduationCap, FileText, Lock, ArrowRight, Sparkles, Users, Bell } from 'lucide-react';
+import { CalendarClock, MapPin, ClipboardList, BookOpenCheck, Briefcase, Search, GraduationCap, FileText, Lock, ArrowRight, Sparkles, UserCheck, Compass } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
-import { useTheme } from '@/lib/theme';
 import { useQuery } from '@/lib/useQuery';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { api } from '@/lib/api';
-import { fmtTime, fmtDate, minutesLabel } from '@/lib/format';
+import { fmtTime, fmtDate, minutesLabel, weekdayName } from '@/lib/format';
 import { Card, StatusPill, Skeleton, ErrorState, Progress, Badge, EmptyState, SectionTitle, SectionLink } from '@/components/ui';
 import { AbsenceBar, AbsenceLegend } from '@/components/ui/AbsenceBar';
-import { WeekCalendar } from '@/pages/CalendarPage';
-import Aurora from '@/components/reactbits/Aurora';
-import ShinyText from '@/components/reactbits/ShinyText';
-import SpotlightCard from '@/components/reactbits/SpotlightCard';
+import { useEdgeFade } from '@/components/ui/useEdgeFade';
 import type { CalendarEntry } from '@shared/types';
 
+type Entry = CalendarEntry & { location_name_en?: string | null; location_name_ar?: string | null };
+interface Pending { kind: string; id: string; title: string; status: string; link: string; params?: Record<string, string | number> }
 interface TodayData {
   today: string; now: string; local: { hour: number; weekday: number; date: string };
   term: { id: string; label: { en: string; ar: string }; next: string; nextLabel: { en: string; ar: string } };
   user: { stage: string; level: number; program: { name_en: string; name_ar: string } | null; campus_id: string; roles: string[] };
   stats: { classesToday: number; tasksDue: number; overdueTasks: number; pending: number; unread: number; creditsEarned: number; creditsEnrolled: number; unexcusedAbsences: number; savedOpportunities: number };
-  classes: Array<CalendarEntry & { location_name_en?: string | null; location_name_ar?: string | null }>;
-  nextClass: (CalendarEntry & { location_name_en?: string | null }) | null;
-  upcoming: Array<CalendarEntry & { location_name_en?: string | null; location_name_ar?: string | null }>;
-  pending: Array<{ kind: string; id: string; title: string; status: string; link: string }>;
+  classes: Entry[];
+  nextClass: Entry | null;
+  upcoming: Entry[];
+  pending: Pending[];
   tasks: Array<{ id: string; title: string; course_code: string | null; effort_min: number; deadline: string | null; scheduled_date: string | null; status: string; locked: boolean; progress: number }>;
   attendance: Array<{ course_code: string; absences: number; sessions: number; percent: number; level: 'ok' | 'warn' | 'danger' }>;
-  lostFound: Array<{ id: string; public_id: string; item: string; status: string; collection_location_id: string | null; collection_location_en: string | null }>;
+  lostFound: Array<{ id: string; public_id: string; item: string; status: string; collection_location_id: string | null; collection_location_en: string | null; collection_location_ar?: string | null }>;
   applications: Array<{ id: string; company: string; title: string; status: string; deadline: string | null }>;
   clubs: Array<{ id: string; name_en: string; name_ar: string; status: string }>;
   queues: Array<{ key: string; title: string; count: number; link: string }>;
   week: CalendarEntry[];
   policies: { absenceWarningPercent: number; absenceDenialPercent: number };
 }
+
+/** Riyadh-local calendar date of an ISO timestamp. */
+const localDate = (iso: string) => new Date(new Date(iso).getTime() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+const addDays = (d: string, n: number) => { const x = new Date(`${d}T00:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const weekdayOf = (d: string) => new Date(`${d}T00:00:00Z`).getUTCDay();
 
 function Stat({ label, value, to }: { label: string; value: number; to: string }) {
   return (
@@ -45,63 +47,123 @@ function Stat({ label, value, to }: { label: string; value: number; to: string }
   );
 }
 
+function pendingTitle(p: Pending, t: (k: string, v?: Record<string, string | number>) => string): string {
+  const v = p.params ?? {};
+  switch (p.kind) {
+    case 'enrollment': return typeof v.credits === 'number' ? t('today.pending.enrollment', { n: v.credits }) : p.title;
+    case 'excuse': return v.type ? t('today.pending.excuse', { type: t(`academics.excuses.type.${v.type}`) }) : p.title;
+    case 'study': return t('today.pending.study');
+    case 'admission': return p.status === 'admitted' ? t('today.pending.admissionOffer') : t('today.pending.admission');
+    case 'graduation': return t('today.pending.graduation');
+    case 'email': return v.subject ? t('today.pending.email', { subject: String(v.subject) }) : p.title;
+    default: return p.title;
+  }
+}
+
+/** Rest of the week from tomorrow, so nothing repeats today's schedule. Teaching days without entries say so. */
+function WeekAgenda({ entries, today }: { entries: CalendarEntry[]; today: string }) {
+  const { t, locale } = useI18n();
+  const days: string[] = [];
+  for (let d = addDays(today, 1); days.length < 6 && weekdayOf(d) !== 0; d = addDays(d, 1)) days.push(d);
+  const byDay = new Map<string, CalendarEntry[]>();
+  for (const e of entries) { const d = localDate(e.start_at); if (d > today) { if (!byDay.has(d)) byDay.set(d, []); byDay.get(d)!.push(e); } }
+  const shown = days.filter((d) => (byDay.get(d)?.length ?? 0) > 0 || weekdayOf(d) <= 4);
+  if (!shown.length) return <p className="text-sm text-muted">{t('today.weekEmpty')}</p>;
+  return (
+    <ol className="space-y-3">
+      {shown.map((d) => {
+        const list = (byDay.get(d) ?? []).sort((a, b) => a.start_at.localeCompare(b.start_at));
+        return (
+          <li key={d}>
+            <h3 className="mb-1 text-sm font-semibold">{weekdayName(weekdayOf(d), locale)} <span className="num font-normal text-muted">{fmtDate(d, locale, { year: undefined })}</span></h3>
+            {list.length === 0 ? <p className="text-sm text-muted">{t('calendar.noClasses')}</p> : (
+              <ul className="space-y-1">
+                {list.slice(0, 4).map((e) => (
+                  <li key={e.id}>
+                    <Link to={e.link ?? '/calendar'} className="flex min-h-11 items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm hover:border-brand-400">
+                      <span className="num w-20 shrink-0 text-muted">{fmtTime(e.start_at, locale)}</span>
+                      <span dir="auto" className="min-w-0 flex-1 truncate font-medium rtl:text-right">{e.title}</span>
+                      {e.kind !== 'class' && <Badge tone={e.kind === 'interview' ? 'info' : e.kind === 'exam' ? 'danger' : 'gold'}>{t(`kind.${e.kind}`)}</Badge>}
+                    </Link>
+                  </li>
+                ))}
+                {list.length > 4 && <li><SectionLink to="/calendar" className="ms-0">{t('calendar.more', { n: list.length - 4 })}</SectionLink></li>}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export function TodayPage() {
   const { t, locale, l } = useI18n();
   const { user, hasRole } = useSession();
-  const { reducedMotion, resolved } = useTheme();
   usePageTitle(t('nav.today'));
   const q = useQuery(() => api<TodayData>('/today'), [user?.id], { refreshOn: ['calendar', 'persona', 'clock'] });
+  const quickRow = useEdgeFade<HTMLUListElement>();
   const d = q.data;
   const hour = d?.local.hour ?? 9;
   const greet = hour < 12 ? t('today.morning') : hour < 17 ? t('today.afternoon') : t('today.evening');
   const first = user ? l(user.name_en, user.name_ar).split(' ')[0] : '';
   const isWeekend = d ? d.local.weekday === 5 || d.local.weekday === 6 : false;
+  const isStudent = hasRole('student');
   const isStaffOnly = !!user && !hasRole('student', 'applicant');
 
+  // Quick actions: one entry per destination. The study planner is reached from the tasks card, not from here.
   const actions = [
     hasRole('applicant') && { to: '/journey/admission', icon: FileText, label: t('today.action.admission') },
-    hasRole('student') && { to: '/academics/register', icon: ClipboardList, label: t('today.action.register') },
-    hasRole('student') && { to: '/academics/attendance', icon: CalendarClock, label: t('today.action.excuse') },
-    hasRole('student') && { to: '/academics/study', icon: BookOpenCheck, label: t('today.action.study') },
+    isStudent && { to: '/academics/register', icon: ClipboardList, label: t('today.action.register') },
+    isStudent && { to: '/academics/attendance', icon: CalendarClock, label: t('today.action.excuse') },
     { to: '/campus/map', icon: MapPin, label: t('today.action.map') },
     { to: '/campus/lost-found', icon: Search, label: t('today.action.lost') },
-    hasRole('student') && { to: '/career', icon: Briefcase, label: t('today.action.career') },
     user?.stage === 'graduating' && { to: '/journey/graduation', icon: GraduationCap, label: t('today.action.graduation') }
   ].filter(Boolean) as Array<{ to: string; icon: typeof MapPin; label: string }>;
 
+  const todays = d ? [...d.classes, ...d.upcoming.filter((u) => localDate(u.start_at) === d.today && u.kind !== 'class')].sort((a, b) => a.start_at.localeCompare(b.start_at)) : [];
+  const worst = d?.attendance.slice().sort((a, b) => b.percent - a.percent)[0];
+  const eventsSoon = d ? d.upcoming.filter((u) => localDate(u.start_at) > d.today && u.kind === 'event').length : 0;
+  const queueTitle = (key: string, fallback: string) => { const k = `today.queue.${key}`; const v = t(k); return v === k ? fallback : v; };
+
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-[1.75rem] border border-line bg-ink-900 p-6 text-white sm:p-8">
-        {!reducedMotion && (
-          <div className="absolute inset-0 opacity-70" aria-hidden>
-            <Aurora colorStops={['#F0762B', '#C8975B', '#2F6FDB']} amplitude={0.9} blend={0.6} speed={0.6} />
+      <header>
+        {d && (
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            <Badge tone="gold">{l(d.term.label.en, d.term.label.ar)}</Badge>
+            {d.user.program && <Badge tone="brand">{l(d.user.program.name_en, d.user.program.name_ar)}</Badge>}
+            <Badge tone="neutral">{d.user.campus_id === 'khobar' ? t('shell.khobar') : t('shell.riyadh')}</Badge>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-ink-950/40 to-transparent" aria-hidden />
-        <div className="relative">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <Badge tone="gold">{d ? (locale === 'ar' ? d.term.label.ar : d.term.label.en) : '…'}</Badge>
-            {d?.user.program && <Badge tone="brand">{l(d.user.program.name_en, d.user.program.name_ar)}</Badge>}
-            {user && <Badge tone="neutral" className="!bg-white/10 !text-white">{user.campus_id === 'khobar' ? 'Khobar' : 'Riyadh'} · {user.stage}</Badge>}
-          </div>
-          <h1 tabIndex={-1} className="mt-3 text-3xl font-bold tracking-tight focus:outline-none sm:text-4xl">{greet}, {first}</h1>
-          <div className="mt-1 text-sm text-white/80">
-            <ShinyText text={d ? `${fmtDate(d.today, locale, { weekday: 'long' })} · ${t('today.subtitle')}` : t('today.subtitle')} speed={3} color={resolved === 'dark' ? '#d9cfc4' : '#f3eee8'} shineColor="#ffd9bf" className="!text-sm" />
-          </div>
-        </div>
-      </section>
+        <h1 tabIndex={-1} className="text-3xl font-bold tracking-tight sm:text-4xl">{t('today.greeting', { greet, name: first })}</h1>
+        <p className="mt-1 max-w-[70ch] text-sm text-muted">{d ? `${fmtDate(d.today, locale, { weekday: 'long' })} · ` : ''}{t('today.subtitle')}</p>
+      </header>
+
+      {actions.length > 0 && (
+        <nav aria-label={t('today.quick')}>
+          <ul ref={quickRow} className="scroll-row -mx-1 flex gap-2 overflow-x-auto px-1 py-0.5">
+            {actions.map((a) => (
+              <li key={a.to} className="shrink-0">
+                <Link to={a.to} className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border border-line bg-surface px-4 text-sm font-medium transition hover:border-brand-400">
+                  <a.icon className="h-4 w-4 text-brand-600" aria-hidden />{a.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       {q.error ? <ErrorState error={q.error} onRetry={q.refetch} /> : null}
       {!d && !q.error && <div className="grid grid-cols-1 gap-4 md:grid-cols-2"><Skeleton className="h-48" /><Skeleton className="h-48" /></div>}
 
       {d && d.queues.length > 0 && (
-        <section>
-          <SectionTitle>{t('today.queues')}</SectionTitle>
+        <section aria-labelledby="today-queues">
+          <SectionTitle id="today-queues">{t('today.queues')}</SectionTitle>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {d.queues.map((qq) => (
-              <Link key={qq.key} to={qq.link} className="card flex items-center justify-between p-4 transition hover:border-brand-400">
-                <span className="font-medium">{qq.title}</span>
+              <Link key={qq.key} to={qq.link} className="card flex min-h-11 items-center justify-between p-4 transition hover:border-brand-400">
+                <span className="font-medium">{queueTitle(qq.key, qq.title)}</span>
                 <span className="num rounded-full bg-brand-500 px-2.5 py-0.5 text-sm font-bold text-ink-950">{qq.count}</span>
               </Link>
             ))}
@@ -110,26 +172,26 @@ export function TodayPage() {
       )}
 
       {d && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.25fr_1fr]">
           <div className="space-y-6">
             {!isStaffOnly && (
-              <Card>
-                <SectionTitle action={<SectionLink to="/academics/timetable">{t('common.view')}</SectionLink>}>{t('today.schedule')}</SectionTitle>
-                {d.classes.length === 0 && d.upcoming.filter((u) => u.start_at.slice(0, 10) === d.today).length === 0 ? (
+              <Card as="section" aria-labelledby="today-schedule">
+                <SectionTitle id="today-schedule" action={<SectionLink to="/academics/timetable">{t('today.timetable')}</SectionLink>}>{t('today.schedule')}</SectionTitle>
+                {todays.length === 0 ? (
                   <EmptyState icon={<CalendarClock className="h-6 w-6" />} title={t('today.noClasses')} body={isWeekend ? t('today.weekend') : undefined} />
                 ) : (
                   <ol className="relative space-y-2 border-s border-line ps-4">
-                    {[...d.classes, ...d.upcoming.filter((u) => u.start_at.slice(0, 10) === d.today && u.kind !== 'class')].sort((a, b) => a.start_at.localeCompare(b.start_at)).map((c) => {
+                    {todays.map((c) => {
                       const isNext = d.nextClass?.id === c.id;
                       return (
                         <li key={c.id} className={clsx('relative rounded-xl border p-3', isNext ? 'border-brand-400 bg-brand-50/60 dark:bg-brand-900/20' : 'border-line')}>
-                          <span className={clsx('absolute -start-[21px] top-4 h-2.5 w-2.5 rounded-full', isNext ? 'bg-brand-500' : c.end_at < d.now ? 'bg-line' : 'bg-gold-500')} />
+                          <span aria-hidden className={clsx('absolute -start-[21px] top-4 h-2.5 w-2.5 rounded-full', isNext ? 'bg-brand-500' : c.end_at < d.now ? 'bg-line' : 'bg-gold-500')} />
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                              <div className="num text-xs text-muted">{fmtTime(c.start_at, locale)} – {fmtTime(c.end_at, locale)} {isNext && <Badge tone="brand" className="ms-1">{t('today.next')}</Badge>}</div>
+                            <div className="min-w-0">
+                              <div className="num flex flex-wrap items-center gap-2 text-sm text-muted">{fmtTime(c.start_at, locale)} – {fmtTime(c.end_at, locale)} {isNext && <Badge tone="brand">{t('today.next')}</Badge>}{c.kind !== 'class' && <Badge tone="gold">{t(`kind.${c.kind}`)}</Badge>}</div>
                               <div className="font-semibold">{c.title}</div>
                             </div>
-                            {c.location_id && <Link to={`/campus/map?to=${c.location_id}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-line px-3 text-sm hover:border-brand-400 sm:min-h-9"><MapPin className="h-3.5 w-3.5 text-brand-500" />{l(c.location_name_en ?? c.location_text ?? '', c.location_name_ar)}</Link>}
+                            {c.location_id && <Link to={`/campus/map?to=${c.location_id}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-line px-3 text-sm hover:border-brand-400 sm:min-h-9"><MapPin className="h-4 w-4 text-brand-600" aria-hidden />{l(c.location_name_en ?? c.location_text ?? '', c.location_name_ar)}</Link>}
                           </div>
                         </li>
                       );
@@ -145,15 +207,15 @@ export function TodayPage() {
               <Stat label={t('today.stat.pending')} value={d.stats.pending} to="/approvals" />
             </div>
 
-            <Card>
-              <SectionTitle action={<SectionLink to="/approvals">{t('nav.approvals')}</SectionLink>}>{t('today.attention')}</SectionTitle>
-              {d.pending.length === 0 ? <div className="flex items-center gap-2 text-sm text-muted"><Sparkles className="h-4 w-4 text-gold-500" />{t('today.caughtUp')}</div> : (
+            <Card as="section" aria-labelledby="today-attention">
+              <SectionTitle id="today-attention" action={<SectionLink to="/approvals">{t('nav.approvals')}</SectionLink>}>{t('today.attention')}</SectionTitle>
+              {d.pending.length === 0 ? <p className="flex items-center gap-2 text-sm text-muted"><Sparkles className="h-4 w-4 text-gold-700" aria-hidden />{t('today.caughtUp')}</p> : (
                 <ul className="space-y-2">
                   {d.pending.map((p) => (
                     <li key={p.id}>
-                      <Link to={p.link} className="flex items-center justify-between gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand-400">
-                        <span className="font-medium">{p.title}</span>
-                        <span className="flex items-center gap-2"><StatusPill status={p.status} /><ArrowRight className="h-4 w-4 text-muted rtl:rotate-180" /></span>
+                      <Link to={p.link} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand-400">
+                        <span className="min-w-0 font-medium">{pendingTitle(p, t)}</span>
+                        <span className="flex shrink-0 items-center gap-2"><StatusPill status={p.status} /><ArrowRight className="h-4 w-4 text-muted rtl:rotate-180" aria-hidden /></span>
                       </Link>
                     </li>
                   ))}
@@ -161,20 +223,20 @@ export function TodayPage() {
               )}
             </Card>
 
-            {hasRole('student') && (
-              <Card>
-                <SectionTitle action={<SectionLink to="/academics/study">{t('today.action.study')}</SectionLink>}>{t('today.tasks')}</SectionTitle>
-                {d.stats.overdueTasks > 0 && <Link to="/academics/study?repair=missed" className="mb-3 block rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-fg hover:border-warn">{t('today.overdue', { n: d.stats.overdueTasks })}</Link>}
-                {d.tasks.length === 0 ? <div className="text-sm text-muted">{t('today.noTasks')}</div> : (
+            {isStudent && (
+              <Card as="section" aria-labelledby="today-tasks">
+                <SectionTitle id="today-tasks" action={<SectionLink to="/academics/study">{t('today.action.study')}</SectionLink>}>{t('today.tasks')}</SectionTitle>
+                {d.stats.overdueTasks > 0 && <Link to="/academics/study?repair=missed" className="mb-3 flex min-h-11 items-center rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-fg hover:border-warn">{t('today.overdue', { n: d.stats.overdueTasks })}</Link>}
+                {d.tasks.length === 0 ? <p className="text-sm text-muted">{t('today.noTasks')}</p> : (
                   <ul className="divide-y divide-line">
                     {d.tasks.map((tk) => (
                       <li key={tk.id} className="flex items-center gap-3 py-2 text-sm">
-                        {tk.locked ? <Lock className="h-4 w-4 text-gold-500" /> : <BookOpenCheck className="h-4 w-4 text-muted" />}
+                        {tk.locked ? <Lock className="h-4 w-4 shrink-0 text-gold-700" aria-label={t('calendar.fixed')} /> : <BookOpenCheck className="h-4 w-4 shrink-0 text-muted" aria-hidden />}
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">{tk.title}</span>
-                          <span className="text-xs text-muted">{tk.course_code ?? ''} · {minutesLabel(tk.effort_min, locale)} · {tk.scheduled_date ? fmtDate(tk.scheduled_date, locale) : t('status.unscheduled')}{tk.deadline ? ` · due ${fmtDate(tk.deadline, locale)}` : ''}</span>
+                          <span dir="auto" className="block truncate font-medium rtl:text-right">{tk.title}</span>
+                          <span className="text-xs text-muted">{[tk.course_code, minutesLabel(tk.effort_min, locale), tk.scheduled_date ? fmtDate(tk.scheduled_date, locale, { weekday: 'short', year: undefined }) : t('status.unscheduled'), tk.deadline ? t('today.due', { date: fmtDate(tk.deadline, locale, { year: undefined }) }) : null].filter(Boolean).join(' · ')}</span>
                         </span>
-                        <span className="w-16"><Progress label={tk.title} value={tk.progress} tone={tk.status === 'done' ? 'success' : 'brand'} /></span>
+                        <span className="w-16 shrink-0"><Progress label={tk.title} value={tk.progress} tone={tk.status === 'done' ? 'success' : 'brand'} /></span>
                       </li>
                     ))}
                   </ul>
@@ -184,95 +246,65 @@ export function TodayPage() {
           </div>
 
           <div className="space-y-6">
-            <section>
-              <SectionTitle>{t('today.quick')}</SectionTitle>
-              <div className="grid grid-cols-2 gap-3">
-                {actions.map((a, i) => (
-                  <div key={a.to}>
-                    <Link to={a.to} className="block h-full">
-                      <SpotlightCard className="!rounded-2xl !border-line !bg-surface !p-4 h-full transition hover:border-brand-400" spotlightColor="rgba(240, 118, 43, 0.25)">
-                        <a.icon className="mb-2 h-5 w-5 text-brand-500" />
-                        <div className="text-sm font-semibold">{a.label}</div>
-                      </SpotlightCard>
+            {!isStaffOnly && (
+              <Card as="section" aria-labelledby="today-week">
+                <SectionTitle id="today-week" action={<SectionLink to="/calendar">{t('nav.calendar')}</SectionLink>}>{t('today.restOfWeek')}</SectionTitle>
+                <WeekAgenda entries={d.week} today={d.today} />
+              </Card>
+            )}
+
+            <Card as="section" aria-labelledby="today-more">
+              <SectionTitle id="today-more">{t('today.more')}</SectionTitle>
+              <ul className="divide-y divide-line">
+                {isStudent && (
+                  <li>
+                    <Link to="/academics/attendance" className="flex min-h-11 items-start gap-3 py-3 hover:text-brand-600">
+                      <UserCheck className="mt-0.5 h-5 w-5 shrink-0 text-muted" aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{t('today.attendance')}</span>
+                        <span className="block text-sm text-muted">{worst ? t('today.attendanceWorst', { course: worst.course_code, p: String(worst.percent) }) : t('today.attendanceOk')}</span>
+                        {worst && <AbsenceBar label={worst.course_code} percent={worst.percent} warn={d.policies.absenceWarningPercent} deny={d.policies.absenceDenialPercent} level={worst.level} className="mt-2 max-w-xs" />}
+                        {worst && <AbsenceLegend className="mt-2" warn={d.policies.absenceWarningPercent} deny={d.policies.absenceDenialPercent} />}
+                      </span>
+                      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
                     </Link>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {hasRole('student') && d.attendance.length > 0 && (
-              <Card>
-                <SectionTitle action={<SectionLink to="/academics/attendance">{t('common.view')}</SectionLink>}>{t('today.attendance')}</SectionTitle>
-                <ul className="space-y-3">
-                  {d.attendance.map((a) => (
-                    <li key={a.course_code} className="text-sm">
-                      <div className="flex justify-between"><span className="font-medium">{a.course_code}</span><span className="num text-muted">{a.absences}/{a.sessions} · {a.percent}%</span></div>
-                      <AbsenceBar label={a.course_code} percent={a.percent} warn={d.policies.absenceWarningPercent} deny={d.policies.absenceDenialPercent} level={a.level} className="mt-1.5" />
-                    </li>
-                  ))}
-                </ul>
-                <AbsenceLegend className="mt-3" warn={d.policies.absenceWarningPercent} deny={d.policies.absenceDenialPercent} />
-              </Card>
-            )}
-
-            <Card>
-              <SectionTitle action={<SectionLink to="/campus">{t('common.view')}</SectionLink>}>{t('today.campus')}</SectionTitle>
-              <div className="space-y-3 text-sm">
-                {d.upcoming.length > 0 && (
-                  <div>
-                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('today.upcoming')}</div>
-                    <ul className="space-y-1.5">
-                      {d.upcoming.slice(0, 4).map((u) => (
-                        <li key={u.id}><Link to={u.link ?? '/calendar'} className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-line px-3 py-1.5 hover:border-brand-400"><span className="truncate"><Badge tone={u.kind === 'interview' ? 'info' : u.kind === 'exam' ? 'danger' : 'gold'} className="me-2">{u.kind}</Badge>{u.title}</span><span className="num shrink-0 text-xs text-muted">{fmtDate(u.start_at, locale, { weekday: 'short' })}</span></Link></li>
+                  </li>
+                )}
+                <li>
+                  <Link to="/campus" className="flex min-h-11 items-start gap-3 py-3 hover:text-brand-600">
+                    <Compass className="mt-0.5 h-5 w-5 shrink-0 text-muted" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">{t('today.campus')}</span>
+                      <span className="block text-sm text-muted">{[t('today.eventsSoon', { n: eventsSoon }), d.clubs.length ? t('today.clubsCount', { n: d.clubs.length }) : null].filter(Boolean).join(' · ')}</span>
+                      {d.lostFound.slice(0, 1).map((lf) => (
+                        <span key={lf.id} className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                          <span className="font-mono text-gold-700">{lf.public_id}</span>
+                          <StatusPill status={lf.status} />
+                          {lf.collection_location_en && <span className="text-muted">{t('today.collectFrom')} {l(lf.collection_location_en, lf.collection_location_ar)}</span>}
+                        </span>
                       ))}
-                    </ul>
-                  </div>
+                    </span>
+                    <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
+                  </Link>
+                </li>
+                {isStudent && (
+                  <li>
+                    <Link to="/career?tab=tracker" className="flex min-h-11 items-start gap-3 py-3 hover:text-brand-600">
+                      <Briefcase className="mt-0.5 h-5 w-5 shrink-0 text-muted" aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{t('today.career')}</span>
+                        <span className="block text-sm text-muted">{d.applications.length ? t('today.applicationsActive', { n: d.applications.length }) : t('today.savedCount', { n: d.stats.savedOpportunities })}</span>
+                        {d.applications[0] && <span className="mt-1 flex flex-wrap items-center gap-2 text-sm"><span dir="auto" className="truncate">{d.applications[0].company} · {d.applications[0].title}</span><StatusPill status={d.applications[0].status} /></span>}
+                      </span>
+                      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
+                    </Link>
+                  </li>
                 )}
-                {d.lostFound.length > 0 && (
-                  <div>
-                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('today.lostFound')}</div>
-                    {d.lostFound.map((lf) => (
-                      <Link key={lf.id} to={`/campus/lost-found/${lf.id}`} className="mb-1.5 flex min-h-11 items-center justify-between gap-2 rounded-xl border border-line px-3 py-1.5 hover:border-brand-400">
-                        <span className="truncate"><span className="font-mono text-xs text-gold-700">{lf.public_id}</span> · {lf.item}{lf.collection_location_en && <span className="text-muted"> · {t('today.collectFrom')} {lf.collection_location_en}</span>}</span>
-                        <StatusPill status={lf.status} />
-                      </Link>
-                    ))}
-                  </div>
-                )}
-                {d.clubs.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5"><Users className="h-4 w-4 text-muted" />{d.clubs.map((c) => <Link key={c.id} to={`/campus/clubs/${c.id}`} className="inline-flex min-h-11 items-center"><Badge tone={c.status === 'active' ? 'success' : 'warn'}>{l(c.name_en, c.name_ar)}</Badge></Link>)}</div>
-                )}
-                {d.upcoming.length === 0 && d.lostFound.length === 0 && d.clubs.length === 0 && <div className="text-muted">{t('common.empty')}</div>}
-              </div>
+              </ul>
             </Card>
-
-            {hasRole('student') && (
-              <Card>
-                <SectionTitle action={<SectionLink to="/career">{t('common.view')}</SectionLink>}>{t('today.career')}</SectionTitle>
-                {d.applications.length === 0 ? <div className="text-sm text-muted">{d.stats.savedOpportunities} {t('today.saved')}</div> : (
-                  <ul className="space-y-1.5 text-sm">
-                    {d.applications.map((a) => (
-                      <li key={a.id}><Link to={`/career/applications/${a.id}`} className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-line px-3 py-1.5 hover:border-brand-400"><span className="truncate"><span className="font-medium">{a.company}</span> · {a.title}</span><StatusPill status={a.status} /></Link></li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-            )}
           </div>
         </div>
       )}
-
-      {d && !isStaffOnly && (
-        <section>
-          <SectionTitle action={<SectionLink to="/calendar">{t('nav.calendar')}</SectionLink>}>{t('today.week')}</SectionTitle>
-          <WeekCalendar entries={d.week} anchor={d.today} compact />
-        </section>
-      )}
-
-      <div className="flex items-center justify-between rounded-2xl border border-dashed border-gold-500/50 bg-gold-100/40 p-4 text-sm dark:bg-gold-700/10">
-        <span className="flex items-center gap-2"><Bell className="h-4 w-4 text-gold-700" />Judges: a guided six-minute walkthrough lives in the demo panel.</span>
-        <SectionLink to="/demo?tour=1">{t('today.tour')}</SectionLink>
-      </div>
     </div>
   );
 }

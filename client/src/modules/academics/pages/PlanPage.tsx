@@ -88,7 +88,7 @@ export function PlanPage() {
   const sel = selected ? d.terms.flatMap((x) => x.courses).find((c) => c.code === selected) : null;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.plan.title')} subtitle={`${l(d.program.en, d.program.ar)} · ${t('academics.plan.subtitle')}`} actions={<ButtonLink to="/journey/graduation" variant="outline" size="sm" icon={<GraduationCap className="h-4 w-4" />}>{t('academics.plan.graduation')}</ButtonLink>} />
+      <PageHeader crumbs={[{ to: '/academics', label: t('nav.academics') }]} title={t('academics.plan.title')} subtitle={`${l(d.program.en, d.program.ar)} · ${t('academics.plan.subtitle')}`} actions={<ButtonLink to="/journey/graduation" variant="outline" size="sm" icon={<GraduationCap className="h-4 w-4" />}>{t('academics.plan.graduation')}</ButtonLink>} />
       <AcademicsNav />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Tabs value={view} onChange={setView} items={[{ value: 'map', label: t('academics.plan.map') }, { value: 'graph', label: t('academics.plan.graph') }, { value: 'audit', label: t('academics.plan.audit') }]} />

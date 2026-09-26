@@ -23,7 +23,7 @@ describe('career hiring-email review', () => {
     expect(amb.review_status).toBe('pending');
     expect(amb.confidence).toBeLessThan(0.8);
     expect(amb.suggested_application_id).toBeNull();
-    expect(amb.candidates.map((c) => c.company).sort()).toEqual(['Riyal Pay (fintech, demo)', 'STC (demo)']);
+    expect(amb.candidates.map((c) => c.company).sort()).toEqual(['Najd Telecom', 'Riyal Pay']);
     // pending emails are listed first
     expect(r.body.data!.items[0].review_status).toBe('pending');
     const noChoice = await s.as('u_student').post('/career/emails/' + amb.id + '/accept', {});
@@ -36,16 +36,16 @@ describe('career hiring-email review', () => {
 
   it('an older confirmation never downgrades an application that is already at interview', async () => {
     const c = s.as('u_student');
-    expect(appStatus('STC (demo)')).toBe('interview');
+    expect(appStatus('Najd Telecom')).toBe('interview');
     const list = await c.get<EmailsRes>('/career/emails');
     const older = list.body.data!.items.find((e) => e.category === 'application_confirmation')!;
     expect(older.suggested_status).toBe('applied');
-    // classify with auto-apply ON: forward-only rule keeps STC at interview and moves Riyal Pay forward
+    // classify with auto-apply ON: forward-only rule keeps Najd Telecom at interview and moves Riyal Pay forward
     await c.put('/career/settings', { autoApplyEmails: true });
     const cls = await c.post<{ classified: number; autoApplied: number }>('/career/emails/classify');
     expect(cls.status).toBe(200);
-    expect(appStatus('STC (demo)')).toBe('interview');
-    expect(appStatus('Riyal Pay (fintech, demo)')).toBe('interview');
+    expect(appStatus('Najd Telecom')).toBe('interview');
+    expect(appStatus('Riyal Pay')).toBe('interview');
     expect(cls.body.data!.autoApplied).toBe(1);
     const after = await c.get<EmailsRes>('/career/emails');
     expect(after.body.data!.items.find((e) => e.id === older.id)!.review_status).toBe('pending');
@@ -54,7 +54,7 @@ describe('career hiring-email review', () => {
     expect(acc.body.data!.applied).toBe(false);
     expect(acc.body.data!.application.status).toBe('interview');
     expect(acc.body.data!.note).toMatch(/never downgrades/);
-    const ev = db().all("SELECT source, from_status, to_status FROM application_events WHERE application_id = (SELECT id FROM applications WHERE company = 'STC (demo)' AND student_id = 'u_student') ORDER BY created_at, rowid");
+    const ev = db().all("SELECT source, from_status, to_status FROM application_events WHERE application_id = (SELECT id FROM applications WHERE company = 'Najd Telecom' AND student_id = 'u_student') ORDER BY created_at, rowid");
     expect(ev[ev.length - 1]).toMatchObject({ source: 'email', from_status: 'interview', to_status: 'interview' });
   });
 
@@ -63,7 +63,7 @@ describe('career hiring-email review', () => {
     const list = await c.get<EmailsRes>('/career/emails');
     const assess = list.body.data!.items.find((e) => e.category === 'assessment_invite')!;
     expect(assess.review_status).toBe('pending'); // auto-apply is off by default
-    expect(appStatus('Riyal Pay (fintech, demo)')).toBe('applied');
+    expect(appStatus('Riyal Pay')).toBe('applied');
     const r = await c.post<{ applied: boolean; application: { status: string } }>('/career/emails/' + assess.id + '/accept', {});
     expect(r.status).toBe(200);
     expect(r.body.data!.applied).toBe(true);
@@ -71,7 +71,7 @@ describe('career hiring-email review', () => {
     expect(db().count('application_events', "source = 'email' AND to_status = 'assessment'")).toBe(1);
     const dismissed = await c.post<Email>('/career/emails/' + list.body.data!.items.find((e) => e.category === 'interview_invite')!.id + '/dismiss');
     expect(dismissed.body.data!.review_status).toBe('dismissed');
-    expect(appStatus('Riyal Pay (fintech, demo)')).toBe('assessment');
+    expect(appStatus('Riyal Pay')).toBe('assessment');
   });
 
   it('simulates a labelled email and blocks cross-student access', async () => {

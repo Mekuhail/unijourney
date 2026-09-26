@@ -34,7 +34,7 @@ export function CoursePage() {
   const c = d.course;
   return (
     <div>
-      <PageHeader eyebrow={<Link to="/academics/plan" className="hover:underline">{t('academics.plan.title')}</Link>} title={`${c.code} · ${l(c.title_en, c.title_ar)}`} subtitle={`${c.credits} ${t('common.credits')} · ${t('academics.course.level')} ${c.level} · ${c.category} · ${c.source}`} actions={<><StatusPill status={d.status} /><ButtonLink to={d.links.resources} size="sm" variant="outline" icon={<BookOpen className="h-4 w-4" />}>{t('academics.course.resources')}</ButtonLink>{d.status === 'available' && <ButtonLink to={d.links.register} size="sm" icon={<ListChecks className="h-4 w-4" />}>{t('academics.nav.register')}</ButtonLink>}</>} />
+      <PageHeader crumbs={[{ to: '/academics', label: t('nav.academics') }, { to: '/academics/plan', label: t('academics.plan.title') }]} title={`${c.code} · ${l(c.title_en, c.title_ar)}`} subtitle={`${c.credits} ${t('common.credits')} · ${t('academics.course.level')} ${c.level} · ${c.category} · ${c.source}`} actions={<><StatusPill status={d.status} /><ButtonLink to={d.links.resources} size="sm" variant="outline" icon={<BookOpen className="h-4 w-4" />}>{t('academics.course.resources')}</ButtonLink>{d.status === 'available' && <ButtonLink to={d.links.register} size="sm" icon={<ListChecks className="h-4 w-4" />}>{t('academics.nav.register')}</ButtonLink>}</>} />
       <AcademicsNav />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

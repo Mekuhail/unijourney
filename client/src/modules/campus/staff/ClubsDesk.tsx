@@ -94,7 +94,7 @@ export function ClubsDesk() {
   const club = detail.data;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.staff')} title={t('campus.staff.clubs.title')} subtitle={t('campus.staff.clubs.subtitle')} actions={mine.length > 1 && <Tabs value={clubId ?? ''} onChange={(v) => setParams({ club: v })} items={mine.map((c) => ({ value: c.id, label: l(c.name_en, c.name_ar), count: c.pending_count }))} />} />
+      <PageHeader crumbs={[{ to: '/staff', label: t('nav.staff') }]} title={t('campus.staff.clubs.title')} subtitle={t('campus.staff.clubs.subtitle')} actions={mine.length > 1 && <Tabs value={clubId ?? ''} onChange={(v) => setParams({ club: v })} items={mine.map((c) => ({ value: c.id, label: l(c.name_en, c.name_ar), count: c.pending_count }))} />} />
       {clubs.loading && <Skeleton className="h-40" />}
       {clubs.error ? <ErrorState error={clubs.error} onRetry={() => void clubs.refetch()} /> : null}
       {clubs.data && mine.length === 0 && <EmptyState icon={<Users className="h-6 w-6" />} title={t('campus.staff.clubs.noClubs')} />}

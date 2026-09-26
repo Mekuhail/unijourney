@@ -51,7 +51,7 @@ export const demoOpportunitySource: OpportunitySourceAdapter = {
       },
       {
         source: 'demo-feed', source_id: 'feed-2026-10-ai-lab-research-assistant', url: 'https://careers.example-demo.sa/national-ai-lab/student-research-assistant',
-        title: 'Student Research Assistant – Arabic NLP', company: 'National AI Lab – demo', type: 'research', location: 'Riyadh', city: 'Riyadh', remote: 'onsite',
+        title: 'Student Research Assistant – Arabic NLP', company: 'Riyadh AI Lab', type: 'research', location: 'Riyadh', city: 'Riyadh', remote: 'onsite',
         field: 'data & ai', skills: ['Python', 'Machine Learning', 'SQL'],
         eligibility: 'Undergraduate students with at least one AI or data course; part-time during term.', deadline: addDays(today, 21), posted_at: today,
         description: 'Support a research group evaluating Arabic language models on dialect data. Tasks include dataset cleaning, running evaluation scripts and writing short reports. Ten hours per week alongside classes.', salary: null, status: 'demo'

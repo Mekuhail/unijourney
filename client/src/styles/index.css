@@ -141,19 +141,22 @@ body {
 [tabindex="-1"]:focus { outline: none; }
 
 /* Utility classes used across modules */
-.glass { background: color-mix(in oklab, var(--surface) 78%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid color-mix(in oklab, var(--line) 80%, transparent); }
+/* Floating surfaces (toasts, map controls): solid, no blur */
+.glass { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 1.25rem; box-shadow: var(--shadow-soft); }
 .card-2 { background: var(--surface-2); border: 1px solid var(--line); border-radius: 1rem; }
 .scroll-thin { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--muted) 40%, transparent) transparent; }
 .num { font-variant-numeric: tabular-nums; }
 
-/* Horizontal scroll rows: no visible scrollbar, soft fade on the edge that has more content */
-.scroll-row { scrollbar-width: none; -webkit-overflow-scrolling: touch; --fade-start: 0px; --fade-end: 0px; --fade-dir: right;
+/* Horizontal scroll rows: no visible scrollbar, soft fade on the edge that has more content.
+   .fade-x alone keeps the scrollbar (large canvases such as the prerequisite map). */
+.scroll-row, .fade-x { --fade-start: 0px; --fade-end: 0px; --fade-dir: right;
   mask-image: linear-gradient(to var(--fade-dir), transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%); }
+.scroll-row { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .scroll-row::-webkit-scrollbar { display: none; }
-.scroll-row[data-fade-start] { --fade-start: 28px; }
-.scroll-row[data-fade-end] { --fade-end: 28px; }
-[dir="rtl"] .scroll-row { --fade-dir: left; }
+.scroll-row[data-fade-start], .fade-x[data-fade-start] { --fade-start: 28px; }
+.scroll-row[data-fade-end], .fade-x[data-fade-end] { --fade-end: 28px; }
+[dir="rtl"] .scroll-row, [dir="rtl"] .fade-x { --fade-dir: left; }
 
 
 @media (prefers-reduced-motion: reduce) {

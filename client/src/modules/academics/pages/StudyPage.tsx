@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import clsx from 'clsx';
-import { Lock, Unlock, Plus, Wand2, Wrench, CalendarClock, Settings2, Trash2, CheckCircle2, Clock, History, RotateCcw, Sparkles } from 'lucide-react';
+import { Lock, Unlock, Plus, Wand2, Wrench, CalendarClock, Settings2, Trash2, CheckCircle2, Clock, History, RotateCcw, Sparkles, ArrowRight } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { api, errorMessage } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
@@ -60,7 +60,7 @@ function ProposalModal({ p, onClose, onApply, onDiscard, busy }: { p: StudyPropo
       {p && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('academics.study.changes')} ({p.changes.length})</div>{p.changes.length === 0 ? <div className="text-sm text-muted">{t('academics.study.noChanges')}</div> : <ul className="space-y-1.5 text-sm">{p.changes.map((c) => <li key={c.taskId} className="rounded-xl border border-line p-2"><div className="font-semibold">{c.title}</div><div className="num text-xs">{c.from ? fmtDate(c.from, locale) : t('status.unscheduled')} → <span className="font-semibold text-success">{c.to ? fmtDate(c.to, locale) : '—'}</span></div><div className="text-xs text-muted">{c.why}</div></li>)}</ul>}</div>
+            <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('academics.study.changes')} ({p.changes.length})</div>{p.changes.length === 0 ? <div className="text-sm text-muted">{t('academics.study.noChanges')}</div> : <ul className="space-y-1.5 text-sm">{p.changes.map((c) => <li key={c.taskId} className="rounded-xl border border-line p-2"><div className="font-semibold">{c.title}</div><div className="num text-xs">{c.from ? fmtDate(c.from, locale) : t('status.unscheduled')} <ArrowRight className="inline h-3.5 w-3.5 rtl:rotate-180" aria-label={t('common.to')} /> <span className="font-semibold text-success">{c.to ? fmtDate(c.to, locale) : '—'}</span></div><div className="text-xs text-muted">{c.why}</div></li>)}</ul>}</div>
             <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('academics.study.infeasible')} ({p.infeasible.length})</div>{p.infeasible.length === 0 ? <div className="text-sm text-muted">{t('academics.study.noInfeasible')}</div> : <ul className="space-y-1.5 text-sm">{p.infeasible.map((c) => <li key={c.taskId} className="rounded-xl border border-danger/30 bg-danger/5 p-2"><div className="font-semibold">{c.title}</div><div className="text-xs text-danger">{c.why}</div><div className="text-xs text-muted">{c.suggestion}</div></li>)}</ul>}</div>
           </div>
           <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t('academics.study.beforeAfter')}</div><DayLoadBars before={p.before_state.loads} after={p.after_state.loads} /></div>
@@ -121,7 +121,7 @@ export function StudyPage() {
   const overdueCount = groups.find((g) => g.key === 'overdue')?.tasks.length ?? 0;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.study.title')} subtitle={t('academics.study.subtitle', { cap: d.settings.daily_capacity_min })} actions={<><Button variant="outline" size="sm" icon={<Settings2 className="h-4 w-4" />} onClick={() => setSettingsOpen(true)}>{t('academics.study.settings')}</Button><Button variant="secondary" size="sm" icon={<CalendarClock className="h-4 w-4" />} onClick={schedule} loading={busy}>{t('academics.study.schedule')}</Button><Button size="sm" icon={<Wrench className="h-4 w-4" />} onClick={() => repair()} loading={busy}>{t('academics.study.repair')}</Button></>} />
+      <PageHeader crumbs={[{ to: '/academics', label: t('nav.academics') }]} title={t('academics.study.title')} subtitle={t('academics.study.subtitle', { cap: d.settings.daily_capacity_min })} actions={<><Button variant="outline" size="sm" icon={<Settings2 className="h-4 w-4" />} onClick={() => setSettingsOpen(true)}>{t('academics.study.settings')}</Button><Button variant="secondary" size="sm" icon={<CalendarClock className="h-4 w-4" />} onClick={schedule} loading={busy}>{t('academics.study.schedule')}</Button><Button size="sm" icon={<Wrench className="h-4 w-4" />} onClick={() => repair()} loading={busy}>{t('academics.study.repair')}</Button></>} />
       <AcademicsNav />
       {overdueCount > 0 && <div className="mb-4"><Callout tone="warn" title={t('academics.study.missedTitle', { n: overdueCount })}>{t('academics.study.missedBody')} <Select aria-label={t('common.reason')} value={repairReason} onChange={(e) => setRepairReason(e.target.value as typeof repairReason)} className="!ms-2 !inline-block !w-auto !py-1 text-xs"><option value="missed">{t('academics.study.reason.missed')}</option><option value="availability">{t('academics.study.reason.availability')}</option><option value="event">{t('academics.study.reason.event')}</option></Select> <Button size="sm" className="ms-2" onClick={() => repair()} loading={busy}>{t('academics.study.repair')}</Button></Callout></div>}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">

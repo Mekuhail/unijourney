@@ -61,7 +61,7 @@ export function AttendancePage() {
   const d = q.data;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.attendance.title')} subtitle={t('academics.attendance.subtitle')} />
+      <PageHeader crumbs={[{ to: '/academics', label: t('nav.academics') }]} title={t('academics.attendance.title')} subtitle={t('academics.attendance.subtitle')} />
       <AcademicsNav />
       <Card className="mb-5">
         <div className="flex items-center gap-2 text-sm font-semibold"><Search className="h-4 w-4 text-brand-500" />{t('academics.attendance.resolveTitle')}</div>

@@ -9,7 +9,6 @@ import { Link } from 'react-router';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Avatar, Badge, Callout, Card, EmptyState, ErrorState, KeyValue, SectionTitle, Skeleton } from '@/components/ui';
 import TiltedCard from '@/components/reactbits/TiltedCard';
-import GlareHover from '@/components/reactbits/GlareHover';
 import { fmtDate } from '@/lib/format';
 import type { CardData } from '../types';
 
@@ -45,7 +44,7 @@ export function CardPage() {
   const d = q.data;
   return (
     <div>
-      <PageHeader eyebrow={t('campus.hub.eyebrow')} title={t('campus.card.title')} subtitle={t('campus.card.subtitle')} />
+      <PageHeader crumbs={[{ to: '/campus', label: t('nav.campus') }]} title={t('campus.card.title')} subtitle={t('campus.card.subtitle')} />
       {q.loading && <Skeleton className="h-64 max-w-md" />}
       {q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : null}
       {d && (
@@ -53,7 +52,7 @@ export function CardPage() {
           <div>
             <div className="mx-auto w-full max-w-[400px]">
               {reducedMotion ? (
-                <GlareHover width="100%" height="240px" background="transparent" borderRadius="1.5rem" borderColor="transparent" glareColor="#ffffff" glareOpacity={0.25}><CardFace d={d} /></GlareHover>
+                <div className="h-[240px]"><CardFace d={d} /></div>
               ) : (
                 <TiltedCard imageSrc="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" altText="Digital card" containerHeight="240px" containerWidth="100%" imageHeight="240px" imageWidth="100%" rotateAmplitude={8} scaleOnHover={1.03} showMobileWarning={false} showTooltip={false} displayOverlayContent overlayContent={<div className="h-[240px] w-[min(100vw-2rem,400px)]"><CardFace d={d} /></div>} />
               )}
@@ -89,7 +88,7 @@ export function CardPage() {
                       <span className="block text-xs text-muted">{a.club_name_en ?? ''}{a.event_start_at ? ` · ${fmtDate(a.event_start_at, locale)}` : ''}</span>
                       {a.verified_by_name && <span className="mt-1 inline-flex items-center gap-1 text-xs text-success"><ShieldCheck className="h-3.5 w-3.5" />{t('campus.card.verifiedBy')} {a.verified_by_name}</span>}
                     </span>
-                    <Badge tone="brand">{a.kind}</Badge>
+                    <Badge tone="brand">{t(`achievement.kind.${a.kind}`) === `achievement.kind.${a.kind}` ? a.kind : t(`achievement.kind.${a.kind}`)}</Badge>
                   </li>
                 ))}
               </ul>

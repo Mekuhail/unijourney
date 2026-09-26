@@ -17,7 +17,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: ReactNode;
 }
 const variantCls: Record<Variant, string> = {
-  primary: 'bg-brand-500 text-ink-950 hover:bg-brand-400 shadow-[0_8px_20px_-10px_rgba(240,118,43,0.8)]',
+  primary: 'bg-brand-500 text-ink-950 hover:bg-brand-400 shadow-sm',
   secondary: 'bg-surface-2 text-fg border border-line hover:bg-line/60',
   ghost: 'bg-transparent text-fg hover:bg-line/60',
   outline: 'bg-transparent text-fg border border-line hover:border-brand-400 hover:text-brand-600',
@@ -90,7 +90,7 @@ export function Card({ children, className, as: As = 'div', ...rest }: { childre
 export function SectionTitle({ children, action, className, as: H = 'h2', id }: { children: ReactNode; action?: ReactNode; className?: string; as?: 'h2' | 'h3' | 'h4'; id?: string }) {
   return (
     <div className={clsx('mb-3 flex min-h-8 items-center justify-between gap-3', className)}>
-      <H id={id} className="text-sm font-semibold uppercase tracking-[0.12em] text-muted">{children}</H>
+      <H id={id} className="text-base font-semibold text-fg">{children}</H>
       {action}
     </div>
   );
@@ -119,7 +119,7 @@ export function Field({ label, hint, error, children, required, className }: { l
     </label>
   );
 }
-const inputCls = 'w-full touch:min-h-11 rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-fg placeholder:text-muted/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/30 disabled:opacity-60';
+const inputCls = 'w-full touch:min-h-11 rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-fg placeholder:text-muted focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/30 disabled:opacity-60';
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
   return <input ref={ref} className={clsx(inputCls, className)} {...rest} />;
 });
@@ -178,7 +178,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', des
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[100] flex items-end justify-center bg-ink-950/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <motion.div className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-ink-950/55 p-0 sm:items-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
           <motion.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={`${id}-t`} className={clsx('card max-h-[92vh] w-full overflow-hidden rounded-b-none sm:rounded-b-[1.25rem]', w)} initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
             <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
               <div>

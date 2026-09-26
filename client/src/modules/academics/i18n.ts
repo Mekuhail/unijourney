@@ -469,7 +469,7 @@ export const academicsDict = {
     'academics.attendance.newExcuseHint': 'المسودة مرتبطة بمعرّفات الحضور أدناه، لا باسم المقرر.',
     'academics.attendance.createDraft': 'إنشاء المسودة',
     'academics.excuses.title': 'طلبات الأعذار',
-    'academics.excuses.subtitle': 'مسودة → جاهز → معتمد → مُرسل → قيد المراجعة → مقبول / مرفوض / بحاجة لمعلومات. لا يتغير الحضور إلا بعد القبول.',
+    'academics.excuses.subtitle': 'مسودة ← جاهز ← معتمد ← مُرسل ← قيد المراجعة ← مقبول / مرفوض / بحاجة لمعلومات. لا يتغير الحضور إلا بعد القبول.',
     'academics.excuses.new': 'طلب جديد',
     'academics.excuses.none': 'لا توجد طلبات أعذار بعد',
     'academics.excuses.noneBody': 'ابدأ من محاضرة "غائب" في صفحة الحضور.',

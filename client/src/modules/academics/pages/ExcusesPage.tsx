@@ -8,7 +8,7 @@ import { api, apiUpload, errorMessage } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
 import { refreshAll } from '@/lib/bus';
 import { useToast } from '@/components/ui/toast';
-import { fmtDate, fmtDateTime } from '@/lib/format';
+import { fmtDate, fmtDateTime, fmtDateRange } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, SectionTitle, Skeleton, ErrorState, EmptyState, StatusPill, Badge, Button, Field, Input, Textarea, Select, Callout, KeyValue, CopyId, ButtonLink } from '@/components/ui';
 import { AcademicsNav, ChecksList, FlowSteps, type FlowStep } from '../components';
@@ -22,7 +22,7 @@ export function ExcusesListPage() {
   if (q.error) return <div><AcademicsNav /><ErrorState error={q.error} onRetry={q.refetch} /></div>;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.excuses.title')} subtitle={t('academics.excuses.subtitle')} actions={<ButtonLink to="/academics/attendance" size="sm" icon={<FileText className="h-4 w-4" />}>{t('academics.excuses.new')}</ButtonLink>} />
+      <PageHeader crumbs={[{ to: '/academics', label: t('nav.academics') }]} title={t('academics.excuses.title')} subtitle={t('academics.excuses.subtitle')} actions={<ButtonLink to="/academics/attendance" size="sm" icon={<FileText className="h-4 w-4" />}>{t('academics.excuses.new')}</ButtonLink>} />
       <AcademicsNav />
       {!q.data ? <Skeleton className="h-40" /> : q.data.length === 0 ? <EmptyState title={t('academics.excuses.none')} body={t('academics.excuses.noneBody')} action={<ButtonLink to="/academics/attendance" size="sm" variant="outline">{t('academics.nav.attendance')}</ButtonLink>} /> : (
         <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -30,7 +30,7 @@ export function ExcusesListPage() {
             <li key={e.id}>
               <Link to={`/academics/excuses/${e.id}`} className="card block p-4 transition hover:border-brand-400">
                 <div className="flex items-start justify-between gap-2"><div className="font-semibold">{e.sessions.map((s) => `${s.course_code} · ${fmtDate(s.session_date, locale)} ${s.start_time}`).join(' + ')}</div><StatusPill status={e.status} /></div>
-                <div className="mt-1 text-xs text-muted">{t(`academics.excuses.type.${e.type}`)} · {e.from_date} → {e.to_date}{e.portal_request_id ? ` · ${e.portal_request_id}` : ''}</div>
+                <div className="mt-1 text-xs text-muted">{t(`academics.excuses.type.${e.type}`)} · {fmtDateRange(e.from_date, e.to_date, locale)}{e.portal_request_id ? ` · ${e.portal_request_id}` : ''}</div>
                 <div className="mt-2 flex flex-wrap gap-1">{e.checks.filter((c) => c.status !== 'pass').slice(0, 3).map((c) => <Badge key={c.id} tone={c.status === 'fail' ? 'danger' : 'warn'}>{c.label}</Badge>)}</div>
               </Link>
             </li>
@@ -88,7 +88,7 @@ export function ExcuseDetailPage() {
   const timelineIdx = e.status === 'draft' ? 0 : e.status === 'ready' || e.status === 'approved' ? 1 : e.status === 'submitted' ? 2 : e.status === 'under_review' || e.status === 'needs_information' ? 3 : 4;
   return (
     <div>
-      <PageHeader eyebrow={<Link to="/academics/excuses" className="hover:underline">{t('academics.excuses.title')}</Link>} title={e.sessions.map((s) => `${s.course_code} · ${fmtDate(s.session_date, locale)}`).join(' + ')} subtitle={`${t(`academics.excuses.type.${e.type}`)} · ${t('academics.excuses.reviewedBy')} ${e.review_department}${e.portal_request_id ? ` · ${e.portal_request_id}` : ''}`} actions={<StatusPill status={e.status} />} />
+      <PageHeader crumbs={[{ to: '/academics', label: t('nav.academics') }, { to: '/academics/excuses', label: t('academics.excuses.title') }]} title={e.sessions.map((s) => `${s.course_code} · ${fmtDate(s.session_date, locale)}`).join(' + ')} subtitle={`${t(`academics.excuses.type.${e.type}`)} · ${t('academics.excuses.reviewedBy')} ${e.review_department}${e.portal_request_id ? ` · ${e.portal_request_id}` : ''}`} actions={<StatusPill status={e.status} />} />
       <AcademicsNav />
       <div className="mb-4"><FlowSteps steps={steps} onSelect={(k) => { if (order.indexOf(k) <= idx || k === 'status') setStep(k); }} /></div>
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

@@ -5,7 +5,7 @@ import { useI18n } from '@/i18n';
 import { api } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
 import { MatchRing } from './ui';
-import { TYPE_LABEL, type Handoff as HandoffData } from './types';
+import { oppTypeLabel, type Handoff as HandoffData } from './types';
 
 /** Graduation → career handoff: readiness checklist, active applications and suggested graduate roles. */
 export function HandoffPanel({ onClose }: { onClose?: () => void }) {
@@ -35,7 +35,7 @@ export function HandoffPanel({ onClose }: { onClose?: () => void }) {
         </div>
         <div>
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t('career.suggestedRoles')}</div>
-          <ul className="space-y-2 text-sm">{d.suggested.map((o) => <li key={o.id} className="flex items-center gap-2"><MatchRing score={o.match?.score ?? 0} size={36} /><div className="min-w-0"><div className="truncate font-medium">{o.title}</div><div className="text-xs text-muted">{o.company} · {TYPE_LABEL[o.type] ?? o.type}</div></div></li>)}</ul>
+          <ul className="space-y-2 text-sm">{d.suggested.map((o) => <li key={o.id} className="flex items-center gap-2"><MatchRing score={o.match?.score ?? 0} size={36} /><div className="min-w-0"><div className="truncate font-medium">{o.title}</div><div className="text-xs text-muted">{o.company} · {oppTypeLabel(t, o.type)}</div></div></li>)}</ul>
           <Link to="/career?tab=discover&type=entry" className="mt-2 inline-flex items-center gap-1 text-xs text-brand-600 hover:underline min-h-11">{t('career.browseEntry')}<ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" /></Link>
         </div>
       </div>

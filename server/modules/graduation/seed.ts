@@ -14,11 +14,11 @@ export function seedGraduation(ctx: SeedContext) {
   const { db: d, today } = ctx;
   const cleared = (n: number) => localToIso(addDays(today, -n), '12:00');
   const rows: Array<{ key: string; status: 'pending' | 'cleared'; by?: string; at?: string; note?: string }> = [
-    { key: 'library', status: 'cleared', by: ctx.users.admissions, at: cleared(20), note: 'No loans on record (demo).' },
-    { key: 'finance', status: 'pending', note: 'Final-term fee statement awaiting confirmation (demo).' },
+    { key: 'library', status: 'cleared', by: ctx.users.admissions, at: cleared(20), note: 'No loans on record.' },
+    { key: 'finance', status: 'pending', note: 'Final-term fee statement awaiting confirmation.' },
     { key: 'housing', status: 'cleared', by: ctx.users.admissions, at: cleared(30), note: 'Not applicable – day student.' },
-    { key: 'coop_report', status: 'pending', note: 'Report submitted to the co-op coordinator; grade pending (demo).' },
-    { key: 'exit_exam', status: 'cleared', by: ctx.users.admissions, at: cleared(8), note: 'Attempted in Spring 2026 (demo).' }
+    { key: 'coop_report', status: 'pending', note: 'Report submitted to the co-op coordinator; grade pending.' },
+    { key: 'exit_exam', status: 'cleared', by: ctx.users.admissions, at: cleared(8), note: 'Attempted in Spring 2026.' }
   ];
   for (const r of rows) {
     const spec = CLEARANCE_KEYS.find((k) => k.key === r.key)!;

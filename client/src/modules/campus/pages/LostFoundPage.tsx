@@ -1,3 +1,4 @@
+import { Breadcrumbs, PageHeader } from '@/components/ui/PageHeader';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Search, FilePlus2, ListChecks, CheckCircle2, Route, Mail, ArrowLeft, Paperclip, ShieldCheck } from 'lucide-react';
@@ -10,8 +11,6 @@ import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { Badge, Button, Callout, Card, CopyId, EmptyState, ErrorState, Field, Input, Select, Skeleton, StatusPill, Tabs, Textarea } from '@/components/ui';
-import ShinyText from '@/components/reactbits/ShinyText';
-import GradientText from '@/components/reactbits/GradientText';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import type { DocumentMeta } from '@shared/types';
 import type { LfLocations, LostFoundMinimal, LostFoundRequest } from '../types';
@@ -21,18 +20,16 @@ const STEPS = ['reported', 'searching', 'found', 'ready_for_collection', 'collec
 
 export function LfHero() {
   const { t } = useI18n();
-  const { reducedMotion } = useTheme();
   usePageTitle(t('campus.lf.title'));
   return (
-    <div className="relative mb-6 overflow-hidden rounded-3xl bg-[linear-gradient(120deg,#1e1b18,#2a2622_60%,#3a2a1a)] p-6 text-white sm:p-8">
-      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-300">Al Yamamah University · YU Claimed</div>
-      <h1 tabIndex={-1} className="mt-2 text-3xl font-bold focus:outline-none sm:text-4xl">
-        {reducedMotion ? <span className="text-gold-300">{t('campus.lf.tagline')}</span> : <GradientText colors={['#f6ebdb', '#c8975b', '#f0762b', '#c8975b']} animationSpeed={6} className="!mx-0 !inline">{t('campus.lf.tagline')}</GradientText>}
-      </h1>
-      <p className="mt-2 max-w-xl text-sm text-white/70">{t('campus.lf.subtitle')}</p>
-      <div className="mt-3"><ShinyText text={t('campus.lf.title')} disabled={reducedMotion} speed={3} color="#c8975b" shineColor="#ffffff" className="text-xs font-semibold tracking-wider" /></div>
-      <div className="pointer-events-none absolute -end-10 -top-10 h-48 w-48 rounded-full bg-gold-500/20 blur-3xl" />
-    </div>
+    <>
+      <Breadcrumbs items={[{ to: '/campus', label: t('nav.campus') }]} current={t('campus.lf.title')} />
+      <div className="mb-6 rounded-3xl border border-line bg-ink-900 p-6 text-white sm:p-8">
+        <h1 tabIndex={-1} className="text-3xl font-bold tracking-tight sm:text-4xl">{t('campus.lf.tagline')}</h1>
+        <p className="mt-2 max-w-[70ch] text-sm text-white/80">{t('campus.lf.subtitle')}</p>
+        <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-gold-300">YU Claimed</p>
+      </div>
+    </>
   );
 }
 
@@ -213,11 +210,9 @@ export function LostFoundDetailPage() {
   const { id } = useParams();
   const { t } = useI18n();
   const q = useQuery(() => api<LostFoundRequest>(`/campus/lost-found/${id}`), [id], { refreshOn: ['campus'] });
-  usePageTitle(t('campus.lf.details'));
   return (
     <div>
-      <Link to="/campus/lost-found?tab=mine" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-fg min-h-11"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{t('campus.lf.tabMine')}</Link>
-      <h1 tabIndex={-1} className="mb-4 text-2xl font-bold tracking-tight focus:outline-none">{t('campus.lf.details')}</h1>
+      <PageHeader crumbs={[{ to: '/campus', label: t('nav.campus') }, { to: '/campus/lost-found?tab=mine', label: t('campus.lf.title') }]} title={t('campus.lf.details')} />
       {q.loading && <Skeleton className="h-64" />}
       {q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : null}
       {q.data && <Card><RequestDetails r={q.data} /></Card>}

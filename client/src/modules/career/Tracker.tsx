@@ -11,14 +11,14 @@ import { refreshAll } from '@/lib/bus';
 import { useQuery } from '@/lib/useQuery';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { StatusDialog } from './StatusDialog';
-import { APP_STATUSES, TYPE_LABEL, type AppStatus, type Application } from './types';
+import { APP_STATUSES, TYPE_LABEL, oppTypeLabel, type AppStatus, type Application } from './types';
 
 const COLUMNS: Array<{ key: string; statuses: AppStatus[] }> = [
   { key: 'saved', statuses: ['saved'] }, { key: 'preparing', statuses: ['preparing'] }, { key: 'applied', statuses: ['applied'] }, { key: 'assessment', statuses: ['assessment'] }, { key: 'interview', statuses: ['interview'] }, { key: 'offer', statuses: ['offer'] }, { key: 'closed', statuses: ['rejected', 'withdrawn'] }
 ];
 
 export function Tracker() {
-  const { t, locale } = useI18n();
+  const { t, dir, locale } = useI18n();
   const q = useQuery(() => api<{ items: Application[] }>('/career/applications'), [], { refreshOn: ['career', 'calendar'] });
   const [statusFor, setStatusFor] = useState<Application | null>(null);
   const [newOpen, setNewOpen] = useState(false);
@@ -46,7 +46,7 @@ export function Tracker() {
                     </Link>
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <StatusPill status={a.status} />
-                      <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>
+                      <Badge tone="neutral">{oppTypeLabel(t, a.type)}</Badge>
                       {a.emails_count > 0 && <span className="inline-flex items-center gap-1 text-xs text-muted"><Mail className="h-3 w-3" />{a.emails_count}</span>}
                     </div>
                     {a.next_interview && <div className="mt-2 flex items-center gap-1 text-xs text-info"><CalendarClock className="h-3.5 w-3.5" />{fmtDateTime(a.next_interview.start_at, locale)}</div>}
@@ -70,7 +70,7 @@ export function Tracker() {
 }
 
 function NewApplicationDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { t } = useI18n();
+  const { t, dir } = useI18n();
   const toast = useToast();
   const [form, setForm] = useState({ company: '', title: '', url: '', type: 'internship' });
   const [err, setErr] = useState<string | null>(null);
@@ -91,9 +91,9 @@ function NewApplicationDialog({ open, onClose }: { open: boolean; onClose: () =>
       <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         <Field label={t('career.company')} required><Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} autoFocus /></Field>
         <Field label={t('career.titleField')} required><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
-        <Field label={t('career.type')}><Select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>{Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
+        <Field label={t('career.type')}><Select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>{Object.keys(TYPE_LABEL).map((k) => <option key={k} value={k}>{oppTypeLabel(t, k)}</option>)}</Select></Field>
         <Field label="URL" hint={t('career.urlDedupeHint')} error={err}><Input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://…" /></Field>
-        <div className={clsx('text-xs text-muted')}>{t('career.statusVocabulary')}: {APP_STATUSES.map((s) => t(`status.${s}`)).join(' → ')}</div>
+        <div className={clsx('text-xs text-muted')}>{t('career.statusVocabulary')}: {APP_STATUSES.map((s) => t(`status.${s}`)).join(dir === 'rtl' ? ' ← ' : ' → ')}</div>
       </form>
     </Modal>
   );

@@ -26,7 +26,6 @@ export function EventCard({ e, compact }: { e: EventItem; compact?: boolean }) {
       <div className="flex flex-wrap items-center gap-1.5">
         <KindBadge kind={e.kind} />
         {e.club && <Badge tone="neutral"><span className="h-2 w-2 rounded-full" style={{ background: e.club.color }} />{l(e.club.name_en, e.club.name_ar)}</Badge>}
-        {e.demo_label && e.kind === 'external' && <Badge tone="gold">{t('campus.events.demoListing')}</Badge>}
         {e.my_rsvp && (e.my_rsvp.status === 'going' || e.my_rsvp.status === 'waitlisted') && <StatusPill status={e.my_rsvp.status} />}
         {hasClassConflict && <Badge tone="warn"><AlertTriangle className="h-3 w-3" />{t('common.conflict')}</Badge>}
       </div>

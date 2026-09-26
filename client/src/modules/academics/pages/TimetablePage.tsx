@@ -20,7 +20,7 @@ export function TimetablePage() {
   const blocks = meetingsToBlocks(d.sections.map((s) => ({ id: s.id, code: s.course_code, meetings: s.meetings, to: s.meetings[0]?.location_id ? `/campus/map?to=${s.meetings[0].location_id}` : undefined })));
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.timetable.title')} subtitle={`${l(d.term_label.en, d.term_label.ar)}${d.dates ? ` · ${fmtDate(d.dates.start, locale)} → ${fmtDate(d.dates.end, locale)}` : ''} · ${d.credits} ${t('common.credits')}`} actions={<Select aria-label={t('common.term')} value={d.term} onChange={(e) => setParams({ term: e.target.value })} className="!w-auto">{d.terms.map((x) => <option key={x} value={x}>{termLabel(x, locale)}</option>)}</Select>} />
+      <PageHeader crumbs={[{ to: '/academics', label: t('nav.academics') }]} title={t('academics.timetable.title')} subtitle={`${l(d.term_label.en, d.term_label.ar)}${d.dates ? ` · ${fmtDate(d.dates.start, locale)} → ${fmtDate(d.dates.end, locale)}` : ''} · ${d.credits} ${t('common.credits')}`} actions={<Select aria-label={t('common.term')} value={d.term} onChange={(e) => setParams({ term: e.target.value })} className="!w-auto">{d.terms.map((x) => <option key={x} value={x}>{termLabel(x, locale)}</option>)}</Select>} />
       <AcademicsNav />
       {d.sections.length === 0 ? <EmptyState title={t('academics.timetable.empty')} body={t('academics.timetable.emptyBody')} action={<Link to="/academics/register" className="text-sm font-semibold text-brand-600 hover:underline">{t('academics.nav.register')}</Link>} /> : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">

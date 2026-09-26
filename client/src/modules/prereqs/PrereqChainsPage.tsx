@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { GitBranch, Lock, Printer, RotateCcw, Search, BookOpen, ExternalLink, ArrowRight, Sparkles } from 'lucide-react';
+import { GitBranch, Lock, Printer, RotateCcw, Search, BookOpen, ExternalLink, ArrowRight, Sparkles, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -8,6 +8,7 @@ import { useTheme } from '@/lib/theme';
 import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { watchEdgeFade } from '@/components/ui/useEdgeFade';
 import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Select, Skeleton, Toggle, SectionTitle, ButtonLink } from '@/components/ui';
 
 interface ProgramInfo { id: string; code: string; name_en: string; name_ar: string; college_id: string; college_en: string; college_ar: string; degree: string; total_credits: number; duration_years: number; source_url: string; source_version: string; source_note: string; campus_ids: string[]; courses: number; mine: boolean }
@@ -78,6 +79,7 @@ export function PrereqChainsPage() {
     setSize({ w: wrap.scrollWidth, h: wrap.scrollHeight });
   }, [d, locale]);
   useLayoutEffect(() => { measure(); }, [measure, showMine]);
+  useEffect(() => (wrapRef.current ? watchEdgeFade(wrapRef.current) : undefined), [d]);
   useEffect(() => { const ro = new ResizeObserver(() => measure()); if (wrapRef.current) ro.observe(wrapRef.current); window.addEventListener('resize', measure); return () => { ro.disconnect(); window.removeEventListener('resize', measure); }; }, [measure]);
 
   const edgeTone = (e: { from: string; to: string }) => {
@@ -127,7 +129,7 @@ export function PrereqChainsPage() {
         aria-pressed={isSel}
         title={`${c.code} · ${l(c.title_en, c.title_ar)}`}
         className={clsx('relative w-full rounded-xl border bg-surface px-2.5 py-2 text-start transition-all duration-200', CAT_TONE[c.category] ?? 'border-line',
-          isAct && 'ring-2 ring-brand-500 border-brand-500 shadow-[0_8px_24px_-12px_rgba(240,118,43,0.8)]',
+          isAct && 'ring-2 ring-brand-500 border-brand-500 shadow-md',
           !isAct && inUp && 'ring-2 ring-gold-500 border-gold-500',
           !isAct && inDown && 'ring-2 ring-info border-info',
           dim && 'opacity-35',
@@ -137,7 +139,7 @@ export function PrereqChainsPage() {
           <span className={clsx('font-mono text-xs font-bold', isElective ? 'text-muted' : 'text-brand-600')}>{isElective ? c.elective?.kind.toUpperCase() : c.code}</span>
           <span className="flex items-center gap-1">
             {c.min_credits > 0 && <Lock className="h-3 w-3 text-gold-700" aria-label={t('prereqs.minCredits', { n: c.min_credits })} />}
-            {st && <span className={clsx('h-2 w-2 rounded-full', STATUS_DOT[st] ?? 'bg-muted')} aria-label={st} />}
+            {st && <span role="img" className={clsx('h-2 w-2 rounded-full', STATUS_DOT[st] ?? 'bg-muted')} aria-label={t(`prereqs.status.${st}`)} />}
             <span className="num text-xs text-muted">{c.credits}{t('prereqs.credits')}</span>
           </span>
         </div>
@@ -149,7 +151,7 @@ export function PrereqChainsPage() {
 
   return (
     <div>
-      <PageHeader eyebrow={t('nav.prereqs')} title={t('prereqs.title')} subtitle={t('prereqs.subtitle')} actions={<div className="flex gap-2 no-print"><Button variant="outline" size="sm" icon={<Printer className="h-4 w-4" />} onClick={() => window.print()}>{t('prereqs.print')}</Button>{selected && <Button variant="ghost" size="sm" icon={<RotateCcw className="h-4 w-4" />} onClick={() => setSelected(null)}>{t('prereqs.reset')}</Button>}</div>} />
+      <PageHeader title={t('prereqs.title')} subtitle={t('prereqs.subtitle')} actions={<div className="flex gap-2 no-print"><Button variant="outline" size="sm" icon={<Printer className="h-4 w-4" />} onClick={() => window.print()}>{t('prereqs.print')}</Button>{selected && <Button variant="ghost" size="sm" icon={<RotateCcw className="h-4 w-4" />} onClick={() => setSelected(null)}>{t('prereqs.reset')}</Button>}</div>} />
 
       {/* Controls */}
       <div className="no-print mb-4 grid gap-3 md:grid-cols-[220px_260px_1fr_auto]">
@@ -160,7 +162,7 @@ export function PrereqChainsPage() {
         </Field>
         <Field label={t('prereqs.program')}>
           <Select value={pid ?? ''} onChange={(e) => nav(`/prereqs/${e.target.value}`)}>
-            {catalog.data?.colleges.filter((c) => c.id === collegeId).flatMap((c) => c.programs).map((p) => <option key={p.id} value={p.id}>{l(p.name_en, p.name_ar)} ({p.code}){p.mine ? ' · ★' : ''}</option>)}
+            {catalog.data?.colleges.filter((c) => c.id === collegeId).flatMap((c) => c.programs).map((p) => <option key={p.id} value={p.id}>{l(p.name_en, p.name_ar)} ({p.code}){p.mine ? ` · ${t('prereqs.yours')}` : ''}</option>)}
           </Select>
         </Field>
         <Field label={t('prereqs.search')}>
@@ -185,21 +187,35 @@ export function PrereqChainsPage() {
           {/* Stats */}
           <h2 className="sr-only">{t('prereqs.h.overview')}</h2>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[{ k: t('prereqs.credit_total'), v: d.stats.credits }, { k: t('prereqs.courses'), v: d.stats.courses }, { k: t('prereqs.longest'), v: d.stats.longestChain }, { k: 'Edges', v: d.stats.edges }].map((s) => (
-              <div key={s.k} className="card-2 p-3"><div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{s.k}</div><div className="num text-2xl font-bold">{s.v}</div></div>
+            {[{ k: t('prereqs.credit_total'), v: d.stats.credits }, { k: t('prereqs.courses'), v: d.stats.courses }, { k: t('prereqs.longest'), v: d.stats.longestChain }, { k: t('prereqs.links'), v: d.stats.edges }].map((s) => (
+              <div key={s.k} className="card-2 p-3"><div className="text-sm text-muted">{s.k}</div><div className="num text-2xl font-bold">{s.v}</div></div>
             ))}
           </div>
           <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
             <span className="flex items-center gap-1 font-semibold"><Sparkles className="h-4 w-4 text-gold-500" />{t('prereqs.gateways')}</span>
-            {d.stats.gateways.map((g) => <button key={g.code} type="button" onClick={() => setSelected(g.code)} className={clsx('rounded-full border px-2.5 py-0.5 font-mono text-xs transition hover:border-brand-400', selected === g.code ? 'border-brand-500 bg-brand-500/10' : 'border-line')}>{g.code} <span className="text-muted">→ {g.unlocks}</span></button>)}
+            {d.stats.gateways.map((g) => <button key={g.code} type="button" onClick={() => setSelected(g.code)} className={clsx('rounded-full border px-2.5 py-0.5 font-mono text-xs transition hover:border-brand-400', selected === g.code ? 'border-brand-500 bg-brand-500/10' : 'border-line')}>{g.code} <span className="font-sans text-muted">· {t('prereqs.unlocksN', { n: g.unlocks })}</span></button>)}
             <span className="text-xs text-muted">{t('prereqs.gatewaysHint')}</span>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
             {/* Diagram */}
-            <section aria-labelledby="prereq-map-h" className="card relative overflow-hidden p-0">
-              <h2 id="prereq-map-h" className="border-b border-line px-4 py-3 text-sm font-semibold">{t('prereqs.h.map')}</h2>
-              <div ref={wrapRef} className="scroll-thin relative overflow-auto p-4" style={{ maxHeight: '70vh' }} onScroll={measure}>
+            <section aria-labelledby="prereq-map-h" className="card relative min-w-0 p-0">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2">
+                <h2 id="prereq-map-h" className="text-sm font-semibold">{t('prereqs.h.map')}</h2>
+                <p className="text-sm text-muted">{t('prereqs.hint')}</p>
+              </div>
+              <details className="group border-b border-line px-4 py-1 text-sm">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium text-fg [&::-webkit-details-marker]:hidden"><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden />{t('prereqs.legend')}</summary>
+                <div className="flex flex-wrap gap-x-5 gap-y-2 pb-3 text-muted">
+                  <span className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded border-2 border-brand-500" />{t('prereqs.legendSelected')}</span>
+                  <span className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded border-2 border-gold-500" />{t('prereqs.legendUp')}</span>
+                  <span className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded border-2 border-info" />{t('prereqs.legendDown')}</span>
+                  <span className="flex items-center gap-1.5"><svg aria-hidden width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" strokeDasharray="6 4" /></svg>{t('prereqs.legendCoreq')}</span>
+                  <span className="flex items-center gap-1.5"><svg aria-hidden width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" strokeDasharray="2 3" /></svg>{t('prereqs.legendAlt')}</span>
+                  {mineVisible && <><span className="flex items-center gap-1.5"><span aria-hidden className="h-2 w-2 rounded-full bg-success" />{t('prereqs.status.completed')}</span><span className="flex items-center gap-1.5"><span aria-hidden className="h-2 w-2 rounded-full bg-brand-500" />{t('prereqs.status.enrolled')}</span><span className="flex items-center gap-1.5"><span aria-hidden className="h-2 w-2 rounded-full bg-teal-500" />{t('prereqs.status.available')}</span><span className="flex items-center gap-1.5"><span aria-hidden className="h-2 w-2 rounded-full bg-ink-400" />{t('prereqs.status.blocked')}</span></>}
+                </div>
+              </details>
+              <div ref={wrapRef} className="scroll-thin fade-x relative overflow-x-auto p-4" onScroll={measure}>
                 <svg className="pointer-events-none absolute start-0 top-0" width={size.w} height={size.h} aria-hidden>
                   {paths.map((p) => (
                     <path key={p.key} d={p.d} fill="none" strokeWidth={isUpEdge(p) || isDownEdge(p) || p.from === active || p.to === active ? 2.2 : 1.2} className={clsx('transition-all duration-300', edgeTone(p))} strokeDasharray={p.kind === 'coreq' ? '6 4' : p.alt ? '2 3' : undefined} />
@@ -222,16 +238,6 @@ export function PrereqChainsPage() {
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 border-t border-line px-4 py-2 text-xs text-muted">
-                <span className="font-semibold">{t('prereqs.legend')}:</span>
-                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-brand-500" />{t('prereqs.legendSelected')}</span>
-                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-gold-500" />{t('prereqs.legendUp')}</span>
-                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-info" />{t('prereqs.legendDown')}</span>
-                <span className="flex items-center gap-1"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" strokeDasharray="6 4" /></svg>{t('prereqs.legendCoreq')}</span>
-                <span className="flex items-center gap-1"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" strokeDasharray="2 3" /></svg>{t('prereqs.legendAlt')}</span>
-                {mineVisible && <><span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" />{t('prereqs.completedHint')}</span><span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-brand-500" />{t('prereqs.enrolledHint')}</span><span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal-500" />{t('prereqs.ready')}</span><span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-ink-400" />{t('prereqs.blocked')}</span></>}
-                <span className="ms-auto hidden sm:inline">{t('prereqs.hint')}</span>
               </div>
             </section>
 

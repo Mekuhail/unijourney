@@ -38,7 +38,7 @@ export function JourneyHome() {
 
   return (
     <div>
-      <PageHeader eyebrow={t('nav.journey')} title={t('journey.title')} subtitle={user ? t('journey.subtitle', { name: l(user.name_en, user.name_ar).split(' ')[0] }) : ''} actions={user && <Badge tone="brand">{t(`journey.stage.${stage}`)}</Badge>} />
+      <PageHeader title={t('journey.title')} subtitle={user ? t('journey.subtitle', { name: l(user.name_en, user.name_ar).split(' ')[0] }) : ''} actions={user && <Badge tone="brand">{t(`journey.stage.${stage}`)}</Badge>} />
       <Card className="overflow-hidden">
         <SectionTitle>{t('journey.timeline')}</SectionTitle>
         <ol className="relative grid gap-3 md:grid-cols-6">
