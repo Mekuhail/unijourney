@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Bookmark, BookmarkCheck, ExternalLink, Link2, RefreshCw, Search, MapPin, CalendarClock, ClipboardCheck, Sparkles, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
 import { Badge, Button, Callout, EmptyState, ErrorState, Field, Input, Modal, Select, Skeleton, StatusPill, Toggle, ButtonLink } from '@/components/ui';
@@ -23,11 +23,20 @@ export function Discover() {
   const nav = useNavigate();
   const [f, setF] = useState<Filters>(EMPTY);
   const [detail, setDetail] = useState<Opportunity | null>(null);
+  const [params, setParams] = useSearchParams();
   const [importOpen, setImportOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const q = useQuery(() => api<OppList>('/career/opportunities', { query: { q: f.q, type: f.type, city: f.city, remote: f.remote, field: f.field, skill: f.skill, deadlineBefore: f.deadlineBefore, includeExpired: f.includeExpired ? '1' : '', saved: f.saved ? '1' : '', sort: f.sort } }), [JSON.stringify({ ...f, eligibleOnly: undefined })], { refreshOn: ['career'] });
   const facets = q.data?.facets;
+  // Deep link from portfolio suggestions: /career?open=<id> opens that posting's details.
+  const openId = params.get('open');
+  useEffect(() => {
+    if (!openId || !q.data) return;
+    const hit = q.data.items.find((o) => o.id === openId);
+    if (hit) setDetail(hit);
+  }, [openId, q.data]);
+  const closeDetail = () => { setDetail(null); if (openId) { const p = new URLSearchParams(params); p.delete('open'); setParams(p, { replace: true }); } };
   const active = useMemo(() => Object.entries(f).filter(([k, v]) => v && !['q', 'type', 'eligibleOnly', 'sort'].includes(k)).length, [f]);
   const chipRow = useEdgeFade<HTMLDivElement>(f.type);
   // Competitions have their own tab; this list is the job market only.
@@ -149,7 +158,7 @@ export function Discover() {
         ))}
       </div>
 
-      <OpportunityDrawer o={detail} onClose={() => setDetail(null)} onSave={(o) => void save(o)} onTrack={(o) => void track(o)} busy={busy} />
+      <OpportunityDrawer o={detail} onClose={closeDetail} onSave={(o) => void save(o)} onTrack={(o) => void track(o)} busy={busy} />
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );

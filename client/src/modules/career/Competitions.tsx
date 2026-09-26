@@ -70,7 +70,7 @@ function CompetitionCard({ c, highlight, onChanged }: { c: Competition; highligh
         <div className="mt-3 rounded-xl border border-gold-500/50 bg-gold-100/60 p-3 text-sm dark:bg-gold-700/20">
           <div className="flex items-center gap-2 font-semibold"><Award className="h-4 w-4 text-gold-700" aria-hidden />{c.entry.result}{c.entry.team_name ? ` · ${c.entry.team_name}` : ''}</div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <ButtonLink size="sm" variant="outline" to="/career?tab=profile">{t('comp.viewInPortfolio')}</ButtonLink>
+            <ButtonLink size="sm" variant="outline" to="/portfolio">{t('comp.viewInPortfolio')}</ButtonLink>
             {c.scope === 'yu' && <a className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-brand-600 hover:underline sm:min-h-8" href={addToLinkedinUrl({ name: `${c.entry.result} · ${c.title}`, org: c.organiser, date: c.ends_at.slice(0, 7), url: c.url, credentialId: `competition:${c.id}` })} target="_blank" rel="noreferrer noopener"><ExternalLink className="h-4 w-4" aria-hidden />{t('portfolio.addToLinkedin')}</a>}
           </div>
         </div>
@@ -134,7 +134,6 @@ export function Competitions() {
   const counts = q.data?.counts;
   return (
     <div className="space-y-4">
-      <p className="max-w-[70ch] text-sm text-muted">{t('comp.intro')}</p>
       <Tabs label={t('comp.segments')} value={segment} onChange={setSegment} items={[
         { value: 'open', label: t('comp.segment.open'), count: counts?.open },
         { value: 'upcoming', label: t('comp.segment.upcoming'), count: counts?.upcoming },

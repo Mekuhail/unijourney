@@ -5,7 +5,8 @@ import * as M from 'motion/react-m';
 import { ExternalLink, MapPin, Upload, Trash2, CheckCircle2, AlertTriangle, FileText, PartyPopper, Info } from 'lucide-react';
 import clsx from 'clsx';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge, Button, Callout, Card, CopyId, EmptyState, ErrorState, Field, Input, KeyValue, Modal, SectionTitle, Select, Skeleton, StatusPill } from '@/components/ui';
+import { Badge, Button, ButtonLink, Callout, Card, CopyId, EmptyState, ErrorState, Field, Input, KeyValue, Modal, SectionTitle, Select, Skeleton, StatusPill } from '@/components/ui';
+import { useSession } from '@/lib/session';
 import { useToast } from '@/components/ui/toast';
 import { useI18n } from '@/i18n';
 import { ApiError, api, apiUpload, errorMessage } from '@/lib/api';
@@ -18,14 +19,56 @@ import type { DocumentMeta } from '@shared/types';
 
 export function AdmissionPage() {
   const { t } = useI18n();
-  const mine = useQuery(() => api<{ items: AdmApp[]; active: AdmApp | null }>('/admission/applications/mine'), [], { refreshOn: ['journey', 'persona'] });
+  const { user } = useSession();
+  // Enrolled students have finished admission: they see their record, never an application form.
+  const enrolled = !!user && user.roles.includes('student') && ['current', 'graduating', 'alumni'].includes(user.stage);
+  const mine = useQuery(() => api<{ items: AdmApp[]; active: AdmApp | null }>('/admission/applications/mine'), [user?.id], { refreshOn: ['journey', 'persona'], enabled: !enrolled });
+  if (enrolled) return <AdmissionRecord />;
   return (
     <div>
-      <PageHeader crumbs={[{ to: '/journey', label: t('nav.journey') }]} title={t('journey.admission')} subtitle={t('journey.admissionSubtitle')} actions={<Badge tone="gold">{t('journey.illustrative')}</Badge>} />
+      <PageHeader crumbs={[{ to: '/journey', label: t('nav.journey') }]} title={t('journey.admission')} subtitle={t('journey.admissionSubtitle')} />
       {!!mine.error && <ErrorState error={mine.error} onRetry={() => void mine.refetch()} />}
       {mine.loading && !mine.data && <Skeleton className="h-72" />}
       {mine.data && !mine.data.active && <ProgramExplorer />}
       {mine.data?.active && <ApplicationFlow app={mine.data.active} />}
+    </div>
+  );
+}
+
+/** Read-only admission record for a student who is already enrolled. */
+function AdmissionRecord() {
+  const { t, l } = useI18n();
+  const { user } = useSession();
+  const programs = useQuery(() => api<{ items: Program[] }>('/admission/programs'), []);
+  const p = programs.data?.items.find((x) => x.id === user?.program_id) ?? null;
+  return (
+    <div>
+      <PageHeader crumbs={[{ to: '/journey', label: t('nav.journey') }]} title={t('journey.record.title')} subtitle={t('journey.record.subtitle')} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <Card as="section" aria-labelledby="adm-rec-h">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="adm-rec-h" className="text-base font-semibold">{t('journey.record.heading')}</h2>
+            <StatusPill status="enrolled" />
+          </div>
+          {programs.loading && !programs.data ? <Skeleton className="mt-4 h-32" /> : (
+            <KeyValue className="mt-4" items={[
+              { k: t('journey.record.programme'), v: p ? `${l(p.name_en, p.name_ar)} (${p.code})` : '—' },
+              { k: t('journey.record.college'), v: p ? l(p.college_en, p.college_ar) : '—' },
+              { k: t('journey.record.degree'), v: p ? `${p.degree} · ${p.total_credits} ${t('common.credits')}` : '—' },
+              { k: t('journey.record.campus'), v: user?.campus_id === 'khobar' ? t('shell.khobar') : t('shell.riyadh') },
+              { k: t('journey.record.studentNo'), v: <span className="num">{user?.student_no ?? '—'}</span> },
+              { k: t('journey.record.level'), v: <span className="num">{user?.level ?? '—'}</span> }
+            ]} />
+          )}
+        </Card>
+        <div className="space-y-4">
+          <Callout tone="info" title={t('journey.record.changeTitle')}>{t('journey.record.changeBody')}</Callout>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink to="/academics/plan" variant="outline">{t('academics.plan.title')}</ButtonLink>
+            <ButtonLink to="/prereqs" variant="ghost">{t('journey.record.explore')}</ButtonLink>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

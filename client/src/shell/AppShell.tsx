@@ -1,41 +1,49 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router';
+import { Link, Outlet, useLocation } from 'react-router';
 import * as M from 'motion/react-m';
-import { Bell, Languages, Moon, Sun, Monitor, Menu as MenuIcon, X, IdCard, Users, LogOut } from 'lucide-react';
+import { Bell, Languages, Moon, Sun, Monitor, Menu as MenuIcon, X, IdCard, Users, LogOut, BadgeCheck } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { Avatar } from '@/components/ui';
 import { Brand } from './Brand';
-import { NAV, STAFF_NAV, DEMO_NAV, type NavItem } from './nav';
+import { NAV_GROUPS, BOTTOM_NAV, STAFF_NAV, DEMO_NAV, isActive, type NavItem, type NavGroup } from './nav';
 import { DemoPill } from './DemoClock';
 import { PersonaSwitcher } from './PersonaSwitcher';
 import { NotificationsPanel } from './NotificationsPanel';
 import { Menu, MenuRadio, MenuItem, MenuGroup, MenuSeparator } from '@/components/ui/Menu';
 
-function useNavItems(): NavItem[] {
-  const { hasRole } = useSession();
-  const items = [...NAV];
-  if (STAFF_NAV.roles && hasRole(...STAFF_NAV.roles)) items.push(STAFF_NAV);
-  return items;
-}
-
-function SideNav() {
+/** Grouped side menu. Each item decides its own active state (several destinations share the /campus prefix). */
+function SideNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();
-  const items = useNavItems();
+  const { hasRole } = useSession();
+  const { pathname } = useLocation();
+  const groups: NavGroup[] = [...NAV_GROUPS];
+  const extra: NavItem[] = [];
+  if (STAFF_NAV.roles && hasRole(...STAFF_NAV.roles)) extra.push(STAFF_NAV);
+  extra.push(DEMO_NAV);
+  groups.push({ key: 'nav.group.more', items: extra });
   return (
-    <nav aria-label="Primary" className="flex flex-col gap-1">
-      {[...items, DEMO_NAV].map((it) => (
-        <NavLink key={it.to} to={it.to} className={({ isActive }) => clsx('group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', isActive ? 'text-fg' : 'text-muted hover:text-fg hover:bg-line/50')}>
-          {({ isActive }) => (
-            <>
-              {isActive && <M.span layoutId="nav-active" className="absolute inset-0 rounded-xl bg-brand-500/10 ring-1 ring-brand-500/30" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
-              <it.icon className={clsx('relative h-[18px] w-[18px]', isActive ? 'text-brand-600' : 'text-muted group-hover:text-fg')} />
-              <span className="relative">{t(it.key)}</span>
-            </>
-          )}
-        </NavLink>
+    <nav aria-label={t('shell.primaryNav')} className="flex flex-col gap-4">
+      {groups.map((g) => (
+        <div key={g.key ?? 'home'} role="group" aria-labelledby={g.key ? `navg-${g.key}` : undefined}>
+          {g.key && <div id={`navg-${g.key}`} className="mb-1 px-3 text-xs font-semibold text-muted">{t(g.key)}</div>}
+          <ul className="flex flex-col gap-0.5">
+            {g.items.map((it) => {
+              const active = isActive(it, pathname);
+              return (
+                <li key={it.to}>
+                  <Link to={it.to} onClick={onNavigate} aria-current={active ? 'page' : undefined} className={clsx('group relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors lg:min-h-10', active ? 'text-fg' : 'text-muted hover:bg-line/50 hover:text-fg')}>
+                    {active && <M.span layoutId="nav-active" className="absolute inset-0 rounded-xl bg-brand-500/10 ring-1 ring-brand-500/30" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
+                    <it.icon className={clsx('relative h-[18px] w-[18px] shrink-0', active ? 'text-brand-600' : 'text-muted group-hover:text-fg')} aria-hidden />
+                    <span className="relative">{t(it.key)}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       ))}
     </nav>
   );
@@ -49,10 +57,8 @@ export function AppShell() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const loc = useLocation();
-  const items = useNavItems();
   useEffect(() => setMenuOpen(false), [loc.pathname]);
 
-  const bottomItems = items.filter((it) => it.to !== '/prereqs' && it.to !== '/staff').slice(0, 5);
   const iconBtn = 'grid h-11 w-11 place-items-center rounded-full border border-line hover:border-brand-400';
 
   // After client-side navigation, move focus to the new page's h1 (the h1 may render after lazy chunks or data load).
@@ -75,9 +81,9 @@ export function AppShell() {
     <div className="flex min-h-full">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[var(--z-skip)] focus:rounded-lg focus:bg-brand-500 focus:px-3 focus:py-2 focus:text-ink-950">{t('shell.skipToContent')}</a>
       {/* Sidebar (desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-line bg-surface p-4 lg:flex">
-        <div className="mb-6 px-1"><Brand /></div>
-        <SideNav />
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-line bg-surface lg:flex">
+        <div className="px-5 pb-4 pt-4"><Brand /></div>
+        <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-4"><SideNav /></div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -102,7 +108,8 @@ export function AppShell() {
                   </span>
                 </div>
                 <MenuSeparator />
-                <MenuItem icon={<IdCard className="h-4 w-4" />} to="/campus/card">{t('shell.profile')}</MenuItem>
+                <MenuItem icon={<BadgeCheck className="h-4 w-4" />} to="/portfolio">{t('nav.portfolio')}</MenuItem>
+                <MenuItem icon={<IdCard className="h-4 w-4" />} to="/campus/card">{t('shell.card')}</MenuItem>
                 {demoMode && <MenuItem icon={<Users className="h-4 w-4" />} onSelect={() => setPersonaOpen(true)}>{t('shell.switchPersonaDemo')}</MenuItem>}
                 <MenuSeparator />
                 <div className="sm:hidden">
@@ -125,7 +132,7 @@ export function AppShell() {
         </header>
         {menuOpen && (
           <div id="mobile-nav" className="border-b border-line bg-surface p-3 lg:hidden">
-            <SideNav />
+            <SideNav onNavigate={() => setMenuOpen(false)} />
           </div>
         )}
         <main id="main" className="pad-safe-x mx-auto w-full max-w-7xl flex-1 pb-[calc(5.5rem+var(--safe-bottom))] pt-5 sm:px-6 lg:pb-10">
@@ -136,13 +143,16 @@ export function AppShell() {
       {/* Mobile bottom navigation */}
       <nav aria-label={t('shell.primaryNav')} className="fixed inset-x-0 bottom-0 z-[var(--z-sticky)] border-t border-line bg-surface/95 backdrop-blur-md lg:hidden" style={{ paddingBottom: 'var(--safe-bottom)' }}>
         <ul className="mx-auto flex max-w-xl" style={{ paddingLeft: 'var(--safe-left)', paddingRight: 'var(--safe-right)' }}>
-          {bottomItems.map((it) => (
-            <li key={it.to} className="min-w-0 flex-1">
-              <NavLink to={it.to} className={({ isActive }) => clsx('flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-xs font-medium transition-colors', isActive ? 'text-brand-600' : 'text-muted hover:text-fg')}>
-                {({ isActive }) => (<><it.icon className="h-5 w-5" aria-hidden strokeWidth={isActive ? 2.4 : 2} /><span className="max-w-full truncate">{t(it.key.replace('nav.', 'nav.short.'))}</span></>)}
-              </NavLink>
-            </li>
-          ))}
+          {BOTTOM_NAV.map((it) => {
+            const active = isActive(it, loc.pathname);
+            return (
+              <li key={it.to} className="min-w-0 flex-1">
+                <Link to={it.to} aria-current={active ? 'page' : undefined} className={clsx('flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-xs font-medium transition-colors', active ? 'text-brand-600' : 'text-muted hover:text-fg')}>
+                  <it.icon className="h-5 w-5" aria-hidden strokeWidth={active ? 2.4 : 2} /><span className="max-w-full truncate">{t(it.key.replace('nav.', 'nav.short.'))}</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

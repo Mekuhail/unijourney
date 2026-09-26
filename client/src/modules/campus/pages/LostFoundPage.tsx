@@ -1,4 +1,4 @@
-import { Breadcrumbs, PageHeader } from '@/components/ui/PageHeader';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Search, FilePlus2, ListChecks, CheckCircle2, Route, Mail, ArrowLeft, Paperclip, ShieldCheck } from 'lucide-react';
@@ -23,7 +23,6 @@ export function LfHero() {
   usePageTitle(t('campus.lf.title'));
   return (
     <>
-      <Breadcrumbs items={[{ to: '/campus', label: t('nav.campus') }]} current={t('campus.lf.title')} />
       <div className="mb-6 rounded-3xl border border-line bg-ink-900 p-6 text-white sm:p-8">
         <h1 tabIndex={-1} className="text-3xl font-bold tracking-tight sm:text-4xl">{t('campus.lf.tagline')}</h1>
         <p className="mt-2 max-w-[70ch] text-sm text-white/80">{t('campus.lf.subtitle')}</p>
@@ -212,7 +211,7 @@ export function LostFoundDetailPage() {
   const q = useQuery(() => api<LostFoundRequest>(`/campus/lost-found/${id}`), [id], { refreshOn: ['campus'] });
   return (
     <div>
-      <PageHeader crumbs={[{ to: '/campus', label: t('nav.campus') }, { to: '/campus/lost-found?tab=mine', label: t('campus.lf.title') }]} title={t('campus.lf.details')} />
+      <PageHeader crumbs={[{ to: '/campus/lost-found?tab=mine', label: t('nav.lostFound') }]} title={t('campus.lf.details')} />
       {q.loading && <Skeleton className="h-64" />}
       {q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : null}
       {q.data && <Card><RequestDetails r={q.data} /></Card>}

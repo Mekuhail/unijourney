@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { CalendarClock, MapPin, ClipboardList, BookOpenCheck, Briefcase, Search, GraduationCap, FileText, Lock, ArrowRight, Sparkles, UserCheck, Compass } from 'lucide-react';
+import { CalendarClock, MapPin, ClipboardList, BookOpenCheck, Briefcase, Search, GraduationCap, FileText, Lock, ArrowRight, Sparkles, UserCheck, Compass, BadgeCheck } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -302,6 +302,18 @@ export function TodayPage() {
                     <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
                   </Link>
                 </li>
+                {isStudent && (
+                  <li>
+                    <Link to="/portfolio" className="flex min-h-11 items-start gap-3 py-3 hover:text-brand-600">
+                      <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-muted" aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{t('nav.portfolio')}</span>
+                        <span className="block text-sm text-muted">{t('today.portfolioBody')}</span>
+                      </span>
+                      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
+                    </Link>
+                  </li>
+                )}
                 {isStudent && (
                   <li>
                     <Link to="/career?tab=tracker" className="flex min-h-11 items-start gap-3 py-3 hover:text-brand-600">

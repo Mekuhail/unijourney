@@ -36,6 +36,14 @@ export function JourneyHome() {
   if (stage === 'alumni') actions.push({ to: '/career?handoff=1', title: t('journey.act.handoff'), body: t('journey.act.handoffBody') });
   if (stage === 'staff') actions.push({ to: '/staff', title: t('nav.staff'), body: t('journey.staffBody') });
 
+  // Journey records follow the student's stage: finished steps become read-only records, nothing repeats the menu.
+  const before = (st: (typeof STAGES)[number]) => idx > STAGES.indexOf(st);
+  const records: Array<{ to: string; k: string; state: 'done' | 'now' | 'later' }> = stage === 'staff' ? [] : [
+    { to: '/journey/admission', k: before('admitted') ? 'journey.mod.admissionRecord' : 'journey.mod.admission', state: before('admitted') ? 'done' : 'now' },
+    { to: '/journey/onboarding', k: 'journey.mod.onboarding', state: before('orientation') ? 'done' : stage === 'orientation' ? 'now' : 'later' },
+    { to: '/journey/graduation', k: 'journey.mod.graduation', state: stage === 'alumni' ? 'done' : stage === 'graduating' ? 'now' : 'later' }
+  ];
+
   return (
     <div>
       <PageHeader title={t('journey.title')} subtitle={user ? t('journey.subtitle', { name: l(user.name_en, user.name_ar).split(' ')[0] }) : ''} actions={user && <Badge tone="brand">{t(`journey.stage.${stage}`)}</Badge>} />
@@ -75,10 +83,15 @@ export function JourneyHome() {
           {stage === 'applicant' && adm.data?.active && <div className="mt-4"><Callout tone="info" title={`${t('journey.applicationStatus')}: `}><span className="inline-flex items-center gap-2"><StatusPill status={adm.data.active.status} />{adm.data.active.program ? l(adm.data.active.program.name_en, adm.data.active.program.name_ar) : ''}</span></Callout></div>}
         </div>
         <Card>
-          <SectionTitle>{t('journey.modules')}</SectionTitle>
-          <ul className="space-y-2 text-sm">
-            {[{ to: '/journey/admission', k: 'journey.mod.admission' }, { to: '/journey/onboarding', k: 'journey.mod.onboarding' }, { to: '/academics', k: 'journey.mod.academics' }, { to: '/campus', k: 'journey.mod.campus' }, { to: '/career', k: 'journey.mod.career' }, { to: '/journey/graduation', k: 'journey.mod.graduation' }].map((m) => (
-              <li key={m.to}><Link to={m.to} className="flex min-h-11 items-center justify-between rounded-xl px-3 py-2 hover:bg-surface-2"><span>{t(m.k)}</span><ArrowRight className="h-4 w-4 text-muted rtl:rotate-180" /></Link></li>
+          <SectionTitle>{t('journey.records')}</SectionTitle>
+          <ul className="space-y-1 text-sm">
+            {records.map((m) => (
+              <li key={m.to}>
+                <Link to={m.to} className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2 hover:bg-surface-2">
+                  <span className="min-w-0">{t(m.k)}</span>
+                  <span className="flex shrink-0 items-center gap-2"><Badge tone={m.state === 'done' ? 'success' : m.state === 'now' ? 'brand' : 'neutral'}>{t(`journey.recordState.${m.state}`)}</Badge><ArrowRight className="h-4 w-4 text-muted rtl:rotate-180" aria-hidden /></span>
+                </Link>
+              </li>
             ))}
           </ul>
           <p className="mt-3 text-xs text-muted">{t('journey.demoNote')}</p>

@@ -145,3 +145,13 @@ describe('admission journey', () => {
     expect(sara.body.data!.complete).toBe(true);
   });
 });
+
+describe('admission for enrolled students', () => {
+  it('refuses a new application from a student who is already enrolled', async () => {
+    const s2 = await startServer();
+    try {
+      const r = await s2.as('u_student').post('/admission/applications', { programId: 'bse', campusId: 'riyadh' });
+      expect(r.status).toBe(409);
+    } finally { await s2.close(); }
+  });
+});

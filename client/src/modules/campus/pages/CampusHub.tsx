@@ -1,90 +1,83 @@
 import { Link, useNavigate } from 'react-router';
-import { Users, BookOpen, Map, Search, IdCard, ArrowRight, CalendarDays } from 'lucide-react';
+import { Users, IdCard, ArrowRight, CalendarDays } from 'lucide-react';
+import { readableOn } from '@/lib/color';
 import { useI18n } from '@/i18n';
 import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge, Button, Card, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPill, SectionLink } from '@/components/ui';
+import { Badge, Button, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPill, SectionLink } from '@/components/ui';
 import type { Club, EventItem } from '../types';
 import { EventCard } from '../lib';
 
-const TILES = [
-  { to: '/campus/clubs', key: 'clubs', icon: Users, color: 'rgba(240, 118, 43, 0.28)' as const },
-  { to: '/campus/resources', key: 'resources', icon: BookOpen, color: 'rgba(47, 111, 219, 0.28)' as const },
-  { to: '/campus/map', key: 'map', icon: Map, color: 'rgba(46, 158, 107, 0.28)' as const },
-  { to: '/campus/lost-found', key: 'lostFound', icon: Search, color: 'rgba(200, 151, 91, 0.35)' as const }
-];
-
+/** Campus Life: clubs and events. The map, learning resources and lost & found have their own pages in the menu. */
 export function CampusHub() {
   const { t, l } = useI18n();
   const nav = useNavigate();
   const events = useQuery(() => api<EventItem[]>('/campus/events', { query: { from: '2026-09-27' } }), [], { refreshOn: ['calendar', 'campus'] });
   const clubs = useQuery(() => api<Club[]>('/campus/clubs'), [], { refreshOn: ['campus'] });
-  const upcoming = (events.data ?? []).filter((e) => !e.is_past).slice(0, 4);
+  const upcoming = (events.data ?? []).filter((e) => !e.is_past && e.kind !== 'personal');
+  const going = upcoming.filter((e) => e.my_rsvp?.status === 'going');
   const myClubs = (clubs.data ?? []).filter((c) => c.my_membership && c.my_membership.status !== 'left');
-  const stats = { clubs: clubs.data?.length ?? 0, events: (events.data ?? []).filter((e) => !e.is_past && e.kind !== 'personal').length, going: (events.data ?? []).filter((e) => e.my_rsvp?.status === 'going').length };
+  const suggestions = (clubs.data ?? []).filter((c) => !c.my_membership || c.my_membership.status === 'left').sort((a, b) => b.upcoming_events - a.upcoming_events || b.member_count - a.member_count).slice(0, 3);
+  const ready = !!events.data && !!clubs.data;
 
   return (
     <div>
       <PageHeader title={t('campus.hub.title')} subtitle={t('campus.hub.subtitle')} actions={<Button variant="gold" icon={<IdCard className="h-4 w-4" />} onClick={() => nav('/campus/card')}>{t('campus.hub.card')}</Button>} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {TILES.map((tile) => (
-          <Link key={tile.to} to={tile.to} className="block rounded-[1.25rem]">
-            <div className="card h-full p-5 transition hover:border-brand-400">
-              <tile.icon className="h-6 w-6 text-brand-500" />
-              <div className="mt-3 font-semibold">{t(`campus.hub.${tile.key}`)}</div>
-              <div className="mt-1 text-sm text-muted">{t(`campus.hub.${tile.key}Body`)}</div>
-              <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600">{t('common.open')} <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" /></div>
-            </div>
-          </Link>
-        ))}
-      </div>
+      {ready ? (
+        <p className="-mt-2 mb-6 text-sm">{[t('campus.hub.inClubs', { n: myClubs.length }), t('campus.hub.goingTo', { n: going.length }), t('campus.hub.upcomingN', { n: upcoming.length })].join(' · ')}</p>
+      ) : <Skeleton className="-mt-2 mb-6 h-5 w-72" />}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        {[{ k: 'clubs', v: stats.clubs, label: t('campus.clubs.title') }, { k: 'events', v: stats.events, label: t('campus.hub.upcoming') }, { k: 'going', v: stats.going, label: t('status.going') }].map((s) => (
-          <Card key={s.k} className="flex items-center justify-between">
-            <span className="text-sm text-muted">{s.label}</span>
-            <span className="num text-2xl font-bold text-brand-600">{s.v}</span>
-          </Card>
-        ))}
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="min-w-0">
-          <SectionTitle action={<SectionLink to="/campus/events">{t('campus.hub.allEvents')}</SectionLink>}>{t('campus.hub.upcoming')}</SectionTitle>
-          {events.loading && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32" />)}</div>}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="min-w-0" aria-labelledby="hub-events">
+          <SectionTitle id="hub-events" action={<SectionLink to="/campus/events">{t('campus.hub.allEvents')}</SectionLink>}>{t('campus.hub.upcoming')}</SectionTitle>
+          {events.loading && !events.data && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32" />)}</div>}
           {events.error ? <ErrorState error={events.error} onRetry={() => void events.refetch()} /> : null}
           {events.data && upcoming.length === 0 && <EmptyState icon={<CalendarDays className="h-6 w-6" />} title={t('common.empty')} />}
-          {upcoming.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{upcoming.map((e) => <EventCard key={e.id} e={e} />)}</div>}
+          {upcoming.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{upcoming.slice(0, 6).map((e) => <EventCard key={e.id} e={e} />)}</div>}
         </section>
-        <section className="min-w-0">
-          <SectionTitle action={<SectionLink to="/campus/clubs">{t('campus.hub.browseClubs')}</SectionLink>}>{t('campus.hub.myClubs')}</SectionTitle>
-          {clubs.loading && <Skeleton className="h-40" />}
-          {clubs.data && myClubs.length === 0 && <EmptyState title={t('campus.hub.noClubs')} action={<Button size="sm" onClick={() => nav('/campus/clubs')}>{t('campus.hub.browseClubs')}</Button>} />}
-          <ul className="space-y-2">
-            {myClubs.map((c) => (
-              <li key={c.id}>
-                <Link to={`/campus/clubs/${c.id}`} className="card flex items-center gap-3 p-3 transition hover:border-brand-400">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: c.color }}><Users className="h-5 w-5" /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">{l(c.name_en, c.name_ar)}</span>
-                    <span className="block text-xs text-muted">{t('campus.clubs.memberCount', { n: c.member_count })} · {t('campus.clubs.upcomingCount', { n: c.upcoming_events })}</span>
-                  </span>
-                  <StatusPill status={c.my_membership!.status} />
-                  {c.my_membership!.role === 'lead' && <Badge tone="gold">{t('campus.clubs.lead')}</Badge>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <Card className="mt-4 text-sm">
-            <div className="mb-2 font-semibold">{t('campus.hub.map')}</div>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => nav('/campus/map')}>{t('campus.hub.openMap')}</Button>
-              <Button size="sm" variant="secondary" onClick={() => nav('/campus/map?nextClass=1')}>{t('campus.hub.nextClassRoute')}</Button>
-            </div>
-          </Card>
-        </section>
+        <div className="min-w-0 space-y-6">
+          <section aria-labelledby="hub-clubs">
+            <SectionTitle id="hub-clubs" action={<SectionLink to="/campus/clubs">{t('campus.hub.browseClubs')}</SectionLink>}>{t('campus.hub.myClubs')}</SectionTitle>
+            {clubs.loading && !clubs.data && <Skeleton className="h-40" />}
+            {clubs.data && myClubs.length === 0 && <EmptyState title={t('campus.hub.noClubs')} action={<Button size="sm" onClick={() => nav('/campus/clubs')}>{t('campus.hub.browseClubs')}</Button>} />}
+            <ul className="space-y-2">
+              {myClubs.map((c) => (
+                <li key={c.id}>
+                  <Link to={`/campus/clubs/${c.id}`} className="card flex items-center gap-3 p-3 transition hover:border-brand-400">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: c.color, color: readableOn(c.color) }}><Users className="h-5 w-5" aria-hidden /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">{l(c.name_en, c.name_ar)}</span>
+                      <span className="block text-xs text-muted">{t('campus.clubs.memberCount', { n: c.member_count })} · {t('campus.clubs.upcomingCount', { n: c.upcoming_events })}</span>
+                    </span>
+                    <StatusPill status={c.my_membership!.status} />
+                    {c.my_membership!.role === 'lead' && <Badge tone="gold">{t('campus.clubs.lead')}</Badge>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+          {suggestions.length > 0 && (
+            <section aria-labelledby="hub-discover">
+              <SectionTitle id="hub-discover">{t('campus.hub.discover')}</SectionTitle>
+              <ul className="space-y-2">
+                {suggestions.map((c) => (
+                  <li key={c.id}>
+                    <Link to={`/campus/clubs/${c.id}`} className="flex min-h-11 items-center gap-3 rounded-2xl border border-line p-3 transition hover:border-brand-400">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: c.color, color: readableOn(c.color) }}><Users className="h-4 w-4" aria-hidden /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{l(c.name_en, c.name_ar)}</span>
+                        <span className="block text-xs text-muted">{t(`campus.clubs.categories.${c.category}`)} · {t('campus.clubs.upcomingCount', { n: c.upcoming_events })}</span>
+                      </span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );

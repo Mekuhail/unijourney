@@ -106,10 +106,10 @@ competitionsRouter.put('/competitions/:id/entry', h((req, res) => {
     db().upsert('competition_entries', { id, competition_id: c.id, student_id: u.id, status: body.status, team_name: body.team_name ?? cur?.team_name ?? null, result: body.result ?? cur?.result ?? null, portfolio_item_id: portfolioItemId, created_at: cur?.created_at ?? now, updated_at: now });
     // Deadlines on the shared calendar while the competition is still ahead.
     if (seg !== 'past') {
-      if (body.status === 'interested') upsertEntry(u.id, { source_type: 'deadline', source_id: `comp-reg:${c.id}`, title: `Registration closes: ${c.title}`, kind: 'deadline', start_at: `${c.registration_deadline}T20:00:00+03:00`, end_at: `${c.registration_deadline}T21:00:00+03:00`, link: `/career?tab=competitions&id=${c.id}` });
+      if (body.status === 'interested') upsertEntry(u.id, { source_type: 'deadline', source_id: `comp-reg:${c.id}`, title: `Registration closes: ${c.title}`, kind: 'deadline', start_at: `${c.registration_deadline}T20:00:00+03:00`, end_at: `${c.registration_deadline}T21:00:00+03:00`, link: `/competitions?id=${c.id}` });
       if (body.status !== 'interested') {
         removeEntry(u.id, 'deadline', `comp-reg:${c.id}`);
-        upsertEntry(u.id, { source_type: 'event', source_id: `comp:${c.id}`, title: c.title, kind: 'event', start_at: c.starts_at, end_at: c.ends_at, location_text: c.format === 'online' ? 'Online' : c.city, link: `/career?tab=competitions&id=${c.id}` });
+        upsertEntry(u.id, { source_type: 'event', source_id: `comp:${c.id}`, title: c.title, kind: 'event', start_at: c.starts_at, end_at: c.ends_at, location_text: c.format === 'online' ? 'Online' : c.city, link: `/competitions?id=${c.id}` });
       }
     }
   });
@@ -172,5 +172,5 @@ export function seedCompetitions(studentId: string) {
   const pf = recordVerifiedAward(studentId, { title: '2nd place · YU Spring Hackathon 2026', org: 'Al Yamamah University', date: '2026-03-11', description: 'Campus services track: a room-booking prototype with live availability.', skills: ['React', 'Node.js', 'UX'], ref: 'competition:comp_spring_2026' });
   d.insert('competition_entries', { id: eid, competition_id: 'comp_spring_2026', student_id: studentId, status: 'result', team_name: 'Najd Builders', result: '2nd place', portfolio_item_id: pf, created_at: now, updated_at: now });
   d.insert('competition_entries', { id: newId('ce'), competition_id: 'comp_farq_2026', student_id: studentId, status: 'interested', team_name: null, result: null, portfolio_item_id: null, created_at: now, updated_at: now });
-  upsertEntry(studentId, { source_type: 'deadline', source_id: 'comp-reg:comp_farq_2026', title: 'Registration closes: Farq Hackathon · Student Journey track', kind: 'deadline', start_at: '2026-10-10T20:00:00+03:00', end_at: '2026-10-10T21:00:00+03:00', link: '/career?tab=competitions&id=comp_farq_2026' });
+  upsertEntry(studentId, { source_type: 'deadline', source_id: 'comp-reg:comp_farq_2026', title: 'Registration closes: Farq Hackathon · Student Journey track', kind: 'deadline', start_at: '2026-10-10T20:00:00+03:00', end_at: '2026-10-10T21:00:00+03:00', link: '/competitions?id=comp_farq_2026' });
 }

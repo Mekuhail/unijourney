@@ -191,7 +191,7 @@ export function ResourcesPage() {
   const items = useMemo(() => q.data?.items ?? [], [q.data]);
   return (
     <div>
-      <PageHeader crumbs={[{ to: '/campus', label: t('nav.campus') }]} title={t('campus.resources.title')} subtitle={t('campus.resources.subtitle')} actions={<Button icon={<Upload className="h-4 w-4" />} onClick={() => setUpload(true)}>{t('campus.resources.upload')}</Button>} />
+      <PageHeader title={t('campus.resources.title')} subtitle={t('campus.resources.subtitle')} actions={<Button icon={<Upload className="h-4 w-4" />} onClick={() => setUpload(true)}>{t('campus.resources.upload')}</Button>} />
       <Card className="mb-4 space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <Input value={qText} onChange={(e) => setQText(e.target.value)} placeholder={t('campus.resources.searchPlaceholder')} aria-label={t('common.search')} className="md:flex-1" />

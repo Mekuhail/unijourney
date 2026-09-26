@@ -97,6 +97,8 @@ admissionRouter.get('/applications/mine', h((req, res) => {
 
 admissionRouter.post('/applications', h((req, res) => {
   const u = requireUser(req);
+  // Students who are already enrolled have finished admission; programme transfers go through the Registrar.
+  if (u.roles.includes('student') && ['current', 'graduating', 'alumni'].includes(u.stage)) throw conflict('You are already enrolled. Programme transfers go through the Registrar.');
   const body = parse(z.object({ programId: z.string().min(1), campusId: z.enum(['riyadh', 'khobar']) }), req.body);
   const p = programRow(body.programId);
   if (!p) throw notFound('Programme not found');

@@ -99,9 +99,9 @@ profileRouter.get('/handoff', h((req, res) => {
   const cvFresh = !!latestCv && new Date(latestCv.updated_at).getTime() >= new Date(nowIso()).getTime() - 120 * 86400000;
   const gradReq = db().get<{ status: string; receipt: string | null }>('SELECT status, receipt FROM graduation_requests WHERE student_id = ? ORDER BY created_at DESC LIMIT 1', u.id);
   const checklist = [
-    { key: 'cv_updated', label_en: 'CV updated in the last 4 months', label_ar: 'تحديث السيرة الذاتية خلال آخر 4 أشهر', done: cvFresh, detail: latestCv?.label ?? 'No CV version recorded', link: '/career?tab=profile' },
-    { key: 'linkedin', label_en: 'LinkedIn profile linked', label_ar: 'ربط حساب لينكدإن', done: !!profile.links.linkedin, detail: profile.links.linkedin ?? '', link: '/career?tab=profile' },
-    { key: 'github', label_en: 'Portfolio / GitHub linked', label_ar: 'ربط معرض الأعمال / GitHub', done: !!(profile.links.github || profile.links.portfolio), detail: profile.links.github ?? profile.links.portfolio ?? '', link: '/career?tab=profile' },
+    { key: 'cv_updated', label_en: 'CV updated in the last 4 months', label_ar: 'تحديث السيرة الذاتية خلال آخر 4 أشهر', done: cvFresh, detail: latestCv?.label ?? 'No CV version recorded', link: '/portfolio' },
+    { key: 'linkedin', label_en: 'LinkedIn profile linked', label_ar: 'ربط حساب لينكدإن', done: !!profile.links.linkedin, detail: profile.links.linkedin ?? '', link: '/portfolio' },
+    { key: 'github', label_en: 'Portfolio / GitHub linked', label_ar: 'ربط معرض الأعمال / GitHub', done: !!(profile.links.github || profile.links.portfolio), detail: profile.links.github ?? profile.links.portfolio ?? '', link: '/portfolio' },
     { key: 'coop_evidence', label_en: 'Co-op (CIS 490) evidence on the transcript', label_ar: 'إثبات التدريب التعاوني (CIS 490) في السجل', done: !!coop && (coop.status === 'completed' || coop.status === 'equivalent'), detail: coop ? `${coop.status} (${coop.term})` : 'Not on transcript', link: '/journey/graduation' },
     { key: 'active_application', label_en: 'At least one active graduate application', label_ar: 'طلب توظيف نشط واحد على الأقل', done: apps.some((a) => !a.terminal && a.type === 'entry'), detail: `${apps.filter((a) => !a.terminal).length} active`, link: '/career?tab=tracker' }
   ];

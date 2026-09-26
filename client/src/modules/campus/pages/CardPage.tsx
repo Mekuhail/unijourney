@@ -1,5 +1,5 @@
 import { QRCodeSVG } from 'qrcode.react';
-import { ShieldCheck, Users, Award, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Users, Award, ArrowRight, BadgeCheck } from 'lucide-react';
 import { readableOn } from '@/lib/color';
 import { useI18n } from '@/i18n';
 import { useQuery } from '@/lib/useQuery';
@@ -61,6 +61,14 @@ export function CardPage() {
             <Card className="mt-4">
               <KeyValue items={[{ k: t('campus.card.studentNo'), v: <span className="num">{d.user.student_no ?? '—'}</span> }, { k: t('campus.card.program'), v: d.program ? `${d.program.code} · ${l(d.program.name_en, d.program.name_ar)}` : '—' }, { k: t('campus.card.campus'), v: d.campus ? l(d.campus.name_en, d.campus.name_ar) : '—' }, { k: 'QR', v: <code className="break-all text-xs">{d.qr.payload}</code> }]} />
             </Card>
+            <Link to="/portfolio" className="mt-4 flex min-h-11 items-center gap-3 rounded-2xl border border-brand-500/40 bg-brand-50 p-4 transition hover:border-brand-500 dark:bg-brand-900/20">
+              <BadgeCheck className="h-6 w-6 shrink-0 text-brand-600" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">{t('campus.card.portfolioTitle')}</span>
+                <span className="block text-sm text-muted">{t('campus.card.portfolioBody')}</span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
+            </Link>
           </div>
           <div className="space-y-6">
             <section>
