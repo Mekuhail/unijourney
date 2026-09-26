@@ -10,7 +10,7 @@ import { refreshAll } from '@/lib/bus';
 import { useToast } from '@/components/ui/toast';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card, SectionTitle, Skeleton, ErrorState, EmptyState, StatusPill, Badge, Button, Field, Input, Textarea, Select, Callout, KeyValue, CopyId } from '@/components/ui';
+import { Card, SectionTitle, Skeleton, ErrorState, EmptyState, StatusPill, Badge, Button, Field, Input, Textarea, Select, Callout, KeyValue, CopyId, ButtonLink } from '@/components/ui';
 import { AcademicsNav, ChecksList, FlowSteps, type FlowStep } from '../components';
 import type { Excuse, ExtractedField, StoredExtraction } from '../api';
 
@@ -22,9 +22,9 @@ export function ExcusesListPage() {
   if (q.error) return <div><AcademicsNav /><ErrorState error={q.error} onRetry={q.refetch} /></div>;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.excuses.title')} subtitle={t('academics.excuses.subtitle')} actions={<Link to="/academics/attendance"><Button size="sm" icon={<FileText className="h-4 w-4" />}>{t('academics.excuses.new')}</Button></Link>} />
+      <PageHeader eyebrow={t('nav.academics')} title={t('academics.excuses.title')} subtitle={t('academics.excuses.subtitle')} actions={<ButtonLink to="/academics/attendance" size="sm" icon={<FileText className="h-4 w-4" />}>{t('academics.excuses.new')}</ButtonLink>} />
       <AcademicsNav />
-      {!q.data ? <Skeleton className="h-40" /> : q.data.length === 0 ? <EmptyState title={t('academics.excuses.none')} body={t('academics.excuses.noneBody')} action={<Link to="/academics/attendance"><Button size="sm" variant="outline">{t('academics.nav.attendance')}</Button></Link>} /> : (
+      {!q.data ? <Skeleton className="h-40" /> : q.data.length === 0 ? <EmptyState title={t('academics.excuses.none')} body={t('academics.excuses.noneBody')} action={<ButtonLink to="/academics/attendance" size="sm" variant="outline">{t('academics.nav.attendance')}</ButtonLink>} /> : (
         <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {q.data.map((e) => (
             <li key={e.id}>
@@ -44,7 +44,7 @@ export function ExcusesListPage() {
 function Conf({ f }: { f?: ExtractedField }) {
   if (!f) return <span className="text-xs text-muted">—</span>;
   const pct = Math.round(f.confidence * 100);
-  return <span className="inline-flex items-center gap-1.5 text-xs"><span className="font-mono">{f.value}</span><span className={clsx('rounded-full px-1.5 text-[10px] font-semibold', pct >= 85 ? 'bg-success/15 text-success' : pct >= 60 ? 'bg-warn/15 text-warn' : 'bg-danger/15 text-danger')}>{pct}%</span></span>;
+  return <span className="inline-flex items-center gap-1.5 text-xs"><span className="font-mono">{f.value}</span><span className={clsx('rounded-full px-1.5 text-xs font-semibold', pct >= 85 ? 'bg-success/15 text-success' : pct >= 60 ? 'bg-warn/15 text-warn' : 'bg-danger/15 text-danger')}>{pct}%</span></span>;
 }
 
 export function ExcuseDetailPage() {
@@ -97,7 +97,7 @@ export function ExcuseDetailPage() {
             <Card>
               <SectionTitle>{t('academics.excuses.step.absences')}</SectionTitle>
               <p className="mb-2 text-sm text-muted">{t('academics.excuses.absencesHint')}</p>
-              <ul className="space-y-2">{e.sessions.map((s) => <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line p-3 text-sm"><span><span className="font-semibold">{s.course_code}</span> · {l(s.title_en, s.title_ar)}<div className="text-xs text-muted">{fmtDate(s.session_date, locale)} · {s.start_time}–{s.end_time}{s.location ? ` · ${l(s.location.name_en, s.location.name_ar)}` : ''}</div></span><span className="flex items-center gap-2"><StatusPill status={s.status} /><span className="font-mono text-[10px] text-muted">{s.id}</span></span></li>)}</ul>
+              <ul className="space-y-2">{e.sessions.map((s) => <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line p-3 text-sm"><span><span className="font-semibold">{s.course_code}</span> · {l(s.title_en, s.title_ar)}<div className="text-xs text-muted">{fmtDate(s.session_date, locale)} · {s.start_time}–{s.end_time}{s.location ? ` · ${l(s.location.name_en, s.location.name_ar)}` : ''}</div></span><span className="flex items-center gap-2"><StatusPill status={s.status} /><span className="font-mono text-xs text-muted">{s.id}</span></span></li>)}</ul>
               {e.event && <div className="mt-3"><Callout tone="gold" title={e.event.title_en}>{e.event.organizer} · {fmtDateTime(e.event.start_at, locale)}</Callout></div>}
               <div className="mt-3"><Button onClick={() => setStep('details')}>{t('common.continue')}</Button></div>
             </Card>
@@ -119,7 +119,7 @@ export function ExcuseDetailPage() {
             <Card>
               <SectionTitle>{t('academics.excuses.step.evidence')}</SectionTitle>
               <p className="text-sm text-muted">{form.type === 'medical' ? t('academics.excuses.evidenceMedical') : form.type === 'event' ? t('academics.excuses.evidenceEvent') : t('academics.excuses.evidenceOther')}</p>
-              {e.documents.length > 0 && <ul className="mt-3 space-y-1">{e.documents.map((d) => <li key={d.id} className="flex items-center justify-between gap-2 rounded-xl border border-line p-2 text-sm"><span className="flex items-center gap-2"><Paperclip className="h-4 w-4 text-muted" />{d.filename} <span className="text-xs text-muted">({Math.round(d.size / 1024)} KB · {d.kind})</span></span><a href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline"><ExternalLink className="h-3 w-3" />{t('common.open')}</a></li>)}</ul>}
+              {e.documents.length > 0 && <ul className="mt-3 space-y-1">{e.documents.map((d) => <li key={d.id} className="flex items-center justify-between gap-2 rounded-xl border border-line p-2 text-sm"><span className="flex items-center gap-2"><Paperclip className="h-4 w-4 text-muted" />{d.filename} <span className="text-xs text-muted">({Math.round(d.size / 1024)} KB · {d.kind})</span></span><a href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-sm gap-1 font-semibold text-brand-600 hover:underline"><ExternalLink className="h-3 w-3" />{t('common.open')}</a></li>)}</ul>}
               {e.editable && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <input ref={fileRef} type="file" accept="application/pdf,image/png,image/jpeg" className="hidden" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) void upload(f); ev.target.value = ''; }} />
@@ -160,13 +160,13 @@ export function ExcuseDetailPage() {
           {current === 'status' && (
             <Card>
               <SectionTitle>{t('academics.excuses.step.status')}</SectionTitle>
-              <ol className="flex flex-wrap items-center gap-2">{TIMELINE.map((k, i) => <li key={k} className={clsx('rounded-full border px-3 py-1 text-xs font-semibold', i < timelineIdx && 'border-success/40 bg-success/10 text-success', i === timelineIdx && (e.status === 'rejected' ? 'border-danger bg-danger text-white' : 'border-brand-500 bg-brand-500 text-white'), i > timelineIdx && 'border-line text-muted')}>{k === 'decided' ? (['accepted', 'rejected'].includes(e.status) ? t(`status.${e.status}`) : t('academics.excuses.decision')) : t(`status.${k}`)}</li>)}</ol>
+              <ol className="flex flex-wrap items-center gap-2">{TIMELINE.map((k, i) => <li key={k} className={clsx('rounded-full border px-3 py-1 text-xs font-semibold', i < timelineIdx && 'border-success/40 bg-success/10 text-success', i === timelineIdx && (e.status === 'rejected' ? 'border-danger bg-danger text-on-strong' : 'border-brand-500 bg-brand-500 text-ink-950'), i > timelineIdx && 'border-line text-muted')}>{k === 'decided' ? (['accepted', 'rejected'].includes(e.status) ? t(`status.${e.status}`) : t('academics.excuses.decision')) : t(`status.${k}`)}</li>)}</ol>
               {e.portal_request_id && <div className="mt-3 flex flex-wrap items-center gap-2"><Badge tone="gold">{t('academics.excuses.demoSubmission')}</Badge><CopyId value={e.portal_request_id} /></div>}
               {e.status === 'needs_information' && <div className="mt-3"><Callout tone="warn" title={t('status.needs_information')}>{e.reviewer_note}<div className="mt-2"><Button size="sm" onClick={() => setStep('details')}>{t('academics.excuses.provideInfo')}</Button></div></Callout></div>}
               {e.status === 'accepted' && <div className="mt-3"><Callout tone="success" title={t('status.accepted')}>{e.reviewer_note} · {t('academics.excuses.acceptedNote')}</Callout></div>}
               {e.status === 'rejected' && <div className="mt-3"><Callout tone="danger" title={t('status.rejected')}>{e.reviewer_note}</Callout></div>}
               {['submitted', 'under_review'].includes(e.status) && <div className="mt-3"><Callout tone="info">{t('academics.excuses.underReviewNote')}</Callout></div>}
-              <div className="mt-3"><Link to="/academics/attendance" className="text-xs font-semibold text-brand-600 hover:underline">{t('academics.nav.attendance')}</Link></div>
+              <div className="mt-3"><Link to="/academics/attendance" className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-600 hover:underline">{t('academics.nav.attendance')}</Link></div>
             </Card>
           )}
         </div>
@@ -175,7 +175,7 @@ export function ExcuseDetailPage() {
           <Card>
             <SectionTitle><span className="inline-flex items-center gap-1"><History className="h-4 w-4" />{t('academics.excuses.history')}</span></SectionTitle>
             <ol className="space-y-1.5 text-xs">{e.history.slice().reverse().map((h, i) => <li key={i}><span className="num text-muted">{fmtDateTime(h.at, locale)}</span> · <span className="font-semibold">{t(`status.${h.action}`) === `status.${h.action}` ? h.action : t(`status.${h.action}`)}</span>{h.note && <div className="text-muted">{h.note}</div>}</li>)}</ol>
-            <div className="mt-2 text-[11px] text-muted">{t('academics.register.revision')} {e.revision}</div>
+            <div className="mt-2 text-xs text-muted">{t('academics.register.revision')} {e.revision}</div>
           </Card>
         </div>
       </div>

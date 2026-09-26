@@ -22,7 +22,7 @@ export function EventCard({ e, compact }: { e: EventItem; compact?: boolean }) {
   const { t, l, locale } = useI18n();
   const hasClassConflict = e.conflicts.some((c) => c.isClass);
   return (
-    <Link to={`/campus/events/${e.id}`} className={clsx('card block p-4 transition hover:border-brand-400', e.is_past && 'opacity-70')}>
+    <Link to={`/campus/events/${e.id}`} className={clsx('card block p-4 transition hover:border-brand-400', e.is_past && 'bg-surface-2')}>
       <div className="flex flex-wrap items-center gap-1.5">
         <KindBadge kind={e.kind} />
         {e.club && <Badge tone="neutral"><span className="h-2 w-2 rounded-full" style={{ background: e.club.color }} />{l(e.club.name_en, e.club.name_ar)}</Badge>}

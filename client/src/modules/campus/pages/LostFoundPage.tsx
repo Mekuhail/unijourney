@@ -8,6 +8,7 @@ import { api, apiUpload, errorMessage } from '@/lib/api';
 import { refreshAll } from '@/lib/bus';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
+import { usePageTitle } from '@/lib/usePageTitle';
 import { Badge, Button, Callout, Card, CopyId, EmptyState, ErrorState, Field, Input, Select, Skeleton, StatusPill, Tabs, Textarea } from '@/components/ui';
 import ShinyText from '@/components/reactbits/ShinyText';
 import GradientText from '@/components/reactbits/GradientText';
@@ -21,10 +22,11 @@ const STEPS = ['reported', 'searching', 'found', 'ready_for_collection', 'collec
 export function LfHero() {
   const { t } = useI18n();
   const { reducedMotion } = useTheme();
+  usePageTitle(t('campus.lf.title'));
   return (
     <div className="relative mb-6 overflow-hidden rounded-3xl bg-[linear-gradient(120deg,#1e1b18,#2a2622_60%,#3a2a1a)] p-6 text-white sm:p-8">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-300">Al Yamamah University · YU Claimed</div>
-      <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-300">Al Yamamah University · YU Claimed</div>
+      <h1 tabIndex={-1} className="mt-2 text-3xl font-bold focus:outline-none sm:text-4xl">
         {reducedMotion ? <span className="text-gold-300">{t('campus.lf.tagline')}</span> : <GradientText colors={['#f6ebdb', '#c8975b', '#f0762b', '#c8975b']} animationSpeed={6} className="!mx-0 !inline">{t('campus.lf.tagline')}</GradientText>}
       </h1>
       <p className="mt-2 max-w-xl text-sm text-white/70">{t('campus.lf.subtitle')}</p>
@@ -38,7 +40,7 @@ function StatusSteps({ status }: { status: string }) {
   const { t } = useI18n();
   const idx = status === 'closed' ? STEPS.length : STEPS.indexOf(status);
   return (
-    <ol className="flex flex-wrap gap-1.5 text-[11px]">
+    <ol className="flex flex-wrap gap-1.5 text-xs">
       {STEPS.map((s, i) => <li key={s} className={clsx('rounded-full border px-2 py-0.5', i <= idx ? 'border-gold-500 bg-gold-100 text-gold-700 dark:bg-gold-700/30 dark:text-gold-300' : 'border-line text-muted')}>{t(`status.${s}`)}</li>)}
       {status === 'closed' && <li className="rounded-full border border-line px-2 py-0.5 text-muted">{t('status.closed')}</li>}
     </ol>
@@ -58,7 +60,7 @@ export function RequestDetails({ r }: { r: LostFoundRequest }) {
     [t('campus.lf.dateLost'), fmtDate(r.lost_date, locale)],
     [t('common.status'), <StatusPill key="st" status={r.status} />],
     [t('campus.lf.dateReported'), fmtDateTime(r.created_at, locale)],
-    ...(r.document ? [[t('campus.lf.attachment'), <a key="doc" href={r.document.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline"><Paperclip className="h-3.5 w-3.5" />{r.document.filename}</a>] as [string, React.ReactNode]] : [])
+    ...(r.document ? [[t('campus.lf.attachment'), <a key="doc" href={r.document.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline touch:min-h-11"><Paperclip className="h-3.5 w-3.5" />{r.document.filename}</a>] as [string, React.ReactNode]] : [])
   ];
   return (
     <div className="space-y-4">
@@ -125,7 +127,7 @@ function NewRequestForm({ onSubmitted }: { onSubmitted: (r: LostFoundRequest) =>
       <Field label={t('campus.lf.lastPlace')}><Select value={form.last_location_id} onChange={(e) => setForm({ ...form, last_location_id: e.target.value })}><option value="">—</option>{campusLocs.map((x) => <option key={x.id} value={x.id}>{l(x.name_en, x.name_ar)}</option>)}</Select></Field>
       <Field label={t('campus.lf.lastPlaceOther')}><Input value={form.last_location_text} onChange={(e) => setForm({ ...form, last_location_text: e.target.value })} /></Field>
       <Field label={t('campus.lf.email')} required><Input type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} /></Field>
-      <Field label={t('campus.lf.photo')}><input type="file" accept="image/png,image/jpeg,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-gold-500 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white" /></Field>
+      <Field label={t('campus.lf.photo')}><input type="file" accept="image/png,image/jpeg,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block min-h-11 w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-gold-500 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white" /></Field>
       <Field label={t('campus.lf.description')} className="sm:col-span-2"><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Colour, brand, contents, distinguishing marks…" /></Field>
       {error && <div className="sm:col-span-2"><Callout tone="danger">{error}</Callout></div>}
       <div className="sm:col-span-2"><Button type="submit" variant="gold" size="lg" loading={busy} disabled={form.item.trim().length < 2 || (!form.last_location_id && !form.last_location_text.trim())}>{t('campus.lf.submit')}</Button></div>
@@ -142,7 +144,7 @@ function SuccessPanel({ r, onCheck }: { r: LostFoundRequest; onCheck: () => void
       <div className="mt-1 text-sm text-muted">{t('campus.lf.successBody')}</div>
       <div className="mt-3 flex justify-center"><CopyId value={r.public_id} className="text-lg" /></div>
       <div className="mt-2 text-xs text-muted">{t('campus.lf.keepId')}</div>
-      <div className="mt-4 flex flex-wrap justify-center gap-2"><Button variant="gold" onClick={onCheck}>{t('campus.lf.checkStatus')}</Button><Link to={`/campus/lost-found/${r.id}`} className="inline-flex h-10 items-center rounded-xl border border-line px-4 text-sm font-medium hover:border-brand-400">{t('common.details')}</Link></div>
+      <div className="mt-4 flex flex-wrap justify-center gap-2"><Button variant="gold" onClick={onCheck}>{t('campus.lf.checkStatus')}</Button><Link to={`/campus/lost-found/${r.id}`} className="inline-flex h-10 items-center rounded-xl border border-line px-4 text-sm font-medium hover:border-brand-400 min-h-11">{t('common.details')}</Link></div>
     </div>
   );
 }
@@ -211,10 +213,11 @@ export function LostFoundDetailPage() {
   const { id } = useParams();
   const { t } = useI18n();
   const q = useQuery(() => api<LostFoundRequest>(`/campus/lost-found/${id}`), [id], { refreshOn: ['campus'] });
+  usePageTitle(t('campus.lf.details'));
   return (
     <div>
-      <Link to="/campus/lost-found?tab=mine" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-fg"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{t('campus.lf.tabMine')}</Link>
-      <div className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-gold-700 dark:text-gold-300">YU Claimed · {t('campus.lf.details')}</div>
+      <Link to="/campus/lost-found?tab=mine" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-fg min-h-11"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{t('campus.lf.tabMine')}</Link>
+      <h1 tabIndex={-1} className="mb-4 text-2xl font-bold tracking-tight focus:outline-none">{t('campus.lf.details')}</h1>
       {q.loading && <Skeleton className="h-64" />}
       {q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : null}
       {q.data && <Card><RequestDetails r={q.data} /></Card>}

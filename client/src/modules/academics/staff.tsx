@@ -79,14 +79,14 @@ function Detail() {
         <div className="space-y-4 lg:col-span-2">
           <Card>
             <SectionTitle>{t('academics.staff.request')}</SectionTitle>
-            <KeyValue items={[{ k: t('academics.excuses.sessions'), v: <ul className="space-y-0.5">{e.sessions.map((s) => <li key={s.id}>{s.course_code} · {fmtDate(s.session_date, locale)} {s.start_time}–{s.end_time} <StatusPill status={s.status} /> <span className="font-mono text-[10px] text-muted">{s.id}</span></li>)}</ul> }, { k: t('academics.excuses.typeLabel'), v: t(`academics.excuses.type.${e.type}`) }, { k: t('academics.excuses.reason'), v: e.reason }, { k: t('academics.excuses.dates'), v: `${e.from_date} → ${e.to_date}` }, { k: t('academics.excuses.reference'), v: e.reference ?? '—' }, { k: t('academics.register.revision'), v: e.revision }]} />
+            <KeyValue items={[{ k: t('academics.excuses.sessions'), v: <ul className="space-y-0.5">{e.sessions.map((s) => <li key={s.id}>{s.course_code} · {fmtDate(s.session_date, locale)} {s.start_time}–{s.end_time} <StatusPill status={s.status} /> <span className="font-mono text-xs text-muted">{s.id}</span></li>)}</ul> }, { k: t('academics.excuses.typeLabel'), v: t(`academics.excuses.type.${e.type}`) }, { k: t('academics.excuses.reason'), v: e.reason }, { k: t('academics.excuses.dates'), v: `${e.from_date} → ${e.to_date}` }, { k: t('academics.excuses.reference'), v: e.reference ?? '—' }, { k: t('academics.register.revision'), v: e.revision }]} />
             <div className="mt-3 text-xs text-muted">{t('academics.staff.readOnly')}</div>
           </Card>
           <Card>
             <SectionTitle>{t('academics.excuses.step.evidence')}</SectionTitle>
             {!doc ? <div className="text-sm text-muted">{t('academics.staff.noEvidence')}</div> : (
               <>
-                <div className="mb-2 flex flex-wrap items-center gap-2 text-sm"><span className="font-semibold">{doc.filename}</span><Badge tone="neutral">{doc.kind}</Badge><span className="text-xs text-muted">{Math.round(doc.size / 1024)} KB</span><a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline"><ExternalLink className="h-3 w-3" />{t('common.open')}</a></div>
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-sm"><span className="font-semibold">{doc.filename}</span><Badge tone="neutral">{doc.kind}</Badge><span className="text-xs text-muted">{Math.round(doc.size / 1024)} KB</span><a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-sm gap-1 font-semibold text-brand-600 hover:underline"><ExternalLink className="h-3 w-3" />{t('common.open')}</a></div>
                 {doc.mime.startsWith('image/') ? <img src={`/api/documents/${doc.id}/file`} alt={doc.filename} className="max-h-[480px] rounded-xl border border-line" /> : <iframe title={doc.filename} src={`/api/documents/${doc.id}/file`} className="h-[480px] w-full rounded-xl border border-line bg-white" />}
                 {e.extracted && <div className="mt-2 text-xs text-muted">{t('academics.staff.extracted')}: {e.extracted.fromDate?.value ?? '—'} → {e.extracted.toDate?.value ?? '—'} · {e.extracted.reference?.value ?? '—'} · {e.extracted.patientName?.value ?? '—'} · {t('academics.staff.extractionNote')}</div>}
               </>
@@ -106,7 +106,7 @@ function Detail() {
                   <Button variant="secondary" icon={<MessageCircleQuestion className="h-4 w-4" />} onClick={() => decide('needs_information')} loading={busy === 'needs_information'} disabled={!!busy}>{t('academics.staff.needsInfo')}</Button>
                   <Button variant="danger" icon={<XCircle className="h-4 w-4" />} onClick={() => decide('rejected')} loading={busy === 'rejected'} disabled={!!busy}>{t('academics.staff.reject')}</Button>
                 </div>
-                <div className="mt-2 text-[11px] text-muted">{t('academics.staff.treatmentNote')}</div>
+                <div className="mt-2 text-xs text-muted">{t('academics.staff.treatmentNote')}</div>
               </>
             )}
           </Card>

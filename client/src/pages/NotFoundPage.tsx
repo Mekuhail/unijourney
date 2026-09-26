@@ -1,5 +1,13 @@
-import { Link } from 'react-router';
-import { EmptyState, Button } from '@/components/ui';
+import { ButtonLink } from '@/components/ui';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { useI18n } from '@/i18n';
+
 export function NotFoundPage() {
-  return <EmptyState title="Page not found" body="This route does not exist in the prototype." action={<Link to="/today"><Button>Go to Today</Button></Link>} />;
+  const { t } = useI18n();
+  return (
+    <div>
+      <PageHeader title={t('notFound.title')} subtitle={t('notFound.body')} />
+      <ButtonLink to="/today">{t('notFound.cta')}</ButtonLink>
+    </div>
+  );
 }

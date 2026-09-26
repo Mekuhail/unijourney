@@ -130,7 +130,7 @@ export function EventDetailPage() {
 
   return (
     <div>
-      <Link to="/campus/events" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-fg"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{t('campus.events.title')}</Link>
+      <Link to="/campus/events" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-fg min-h-11"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{t('campus.events.title')}</Link>
       <PageHeader eyebrow={<span className="flex items-center gap-2"><KindBadge kind={e.kind} />{e.club && <Link to={`/campus/clubs/${e.club.id}`} className="hover:underline">{l(e.club.name_en, e.club.name_ar)}</Link>}{e.demo_label && e.kind === 'external' && <Badge tone="gold">{t('campus.events.demoListing')}</Badge>}</span>} title={l(e.title_en, e.title_ar)}
         actions={<div className="flex flex-wrap items-center gap-2">
           {e.kind === 'personal' ? <Button variant="outline" icon={<Trash2 className="h-4 w-4" />} onClick={() => void removePersonal()}>{t('campus.events.deletePersonal')}</Button>
@@ -162,7 +162,7 @@ export function EventDetailPage() {
               <SectionTitle>{t('campus.events.evidence')}</SectionTitle>
               <KeyValue items={[
                 { k: t('campus.events.organizer'), v: e.organizer },
-                { k: t('campus.events.source'), v: e.source_url ? <a className="inline-flex items-center gap-1 text-brand-600 hover:underline" href={e.source_url} target="_blank" rel="noreferrer noopener">{e.source_url}<ExternalLink className="h-3 w-3" /></a> : <span className="text-muted">{t('common.none')}</span> },
+                { k: t('campus.events.source'), v: e.source_url ? <a className="inline-flex items-center gap-1 text-brand-600 hover:underline touch:min-h-11" href={e.source_url} target="_blank" rel="noreferrer noopener">{e.source_url}<ExternalLink className="h-3 w-3" /></a> : <span className="text-muted">{t('common.none')}</span> },
                 { k: t('campus.events.deadline'), v: e.deadline ? fmtDate(e.deadline, locale) : '—' },
                 { k: t('campus.events.eligibility'), v: e.eligibility ?? '—' },
                 { k: t('campus.events.evidence'), v: <span className="text-muted">{e.evidence_note}</span> }
@@ -195,9 +195,9 @@ export function EventDetailPage() {
               { k: t('campus.events.organizer'), v: e.organizer || '—' }
             ]} />
             {e.map_link && <Button className="mt-4 w-full" variant="secondary" icon={<Route className="h-4 w-4" />} onClick={() => nav(e.map_link!)}>{t('campus.events.route')}</Button>}
-            {e.location && <Link to={`/campus/map?to=${e.location.id}`} className="mt-2 flex items-center gap-1 text-xs text-muted hover:text-fg"><MapPin className="h-3 w-3" />{t('common.showOnMap')}</Link>}
+            {e.location && <Link to={`/campus/map?to=${e.location.id}`} className="mt-2 flex items-center gap-1 text-xs text-muted hover:text-fg min-h-11"><MapPin className="h-3 w-3" />{t('common.showOnMap')}</Link>}
           </Card>
-          {mine && <Card className="text-xs text-muted">{t('campus.events.calendarEntry')}: <Link to="/calendar" className="text-brand-600 hover:underline">{fmtDateTime(e.start_at, locale)}</Link></Card>}
+          {mine && <Card className="text-xs text-muted">{t('campus.events.calendarEntry')}: <Link to="/calendar" className="inline-flex items-center text-brand-600 hover:underline touch:min-h-11">{fmtDateTime(e.start_at, locale)}</Link></Card>}
         </div>
       </div>
       <ConfirmDialog open={cancelOpen} onClose={() => setCancelOpen(false)} onConfirm={cancel} title={t('campus.events.cancelRsvp')} body={t('campus.events.rsvpCancelled')} loading={busy} />

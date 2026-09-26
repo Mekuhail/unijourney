@@ -86,7 +86,7 @@ export function ClubDetailPage() {
   const past = c.events.filter((e) => !e.upcoming);
   return (
     <div>
-      <Link to="/campus/clubs" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-fg"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{t('campus.clubs.title')}</Link>
+      <Link to="/campus/clubs" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-fg min-h-11"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{t('campus.clubs.title')}</Link>
       <PageHeader eyebrow={t(`campus.clubs.categories.${c.category}`)} title={l(c.name_en, c.name_ar)} subtitle={l(c.description_en, c.description_ar)} actions={<div className="flex items-center gap-2">{c.is_lead && <Button variant="gold" size="sm" onClick={() => nav(`/staff/campus/clubs?club=${c.id}`)}>{t('campus.clubs.manage')}</Button>}<JoinLeaveButton club={c} onDone={() => void q.refetch()} /></div>} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
@@ -116,7 +116,7 @@ export function ClubDetailPage() {
                   <Avatar name={m.name_en} color={m.avatar_color} size={28} />
                   <span className="min-w-0 flex-1 truncate">{l(m.name_en, m.name_ar)}{m.role === 'lead' && <span className="ms-1 text-xs text-gold-700">· {t('campus.clubs.lead')}</span>}</span>
                   {c.is_lead && <StatusPill status={m.status} />}
-                  {c.is_lead && m.status === 'pending' && <span className="text-[10px] text-muted">{new Date(m.requested_at).toLocaleDateString(locale === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB')}</span>}
+                  {c.is_lead && m.status === 'pending' && <span className="text-xs text-muted">{new Date(m.requested_at).toLocaleDateString(locale === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB')}</span>}
                 </li>
               ))}
               {c.members.length === 0 && <li className="text-sm text-muted">{t('common.empty')}</li>}

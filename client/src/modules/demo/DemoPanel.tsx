@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { FlaskConical, Clock, RotateCcw, Users, Plug, Scale, ListChecks, BookMarked, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card, Button, Badge, ConfirmDialog, Field, Input, SectionTitle, Tabs, Avatar } from '@/components/ui';
+import { Card, Button, Badge, ConfirmDialog, Field, Input, SectionTitle, Tabs, Avatar, ButtonLink } from '@/components/ui';
 import { useToast } from '@/components/ui/toast';
 import { api, errorMessage } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
@@ -104,14 +104,14 @@ export function DemoPanel() {
           {TOUR.map((s, i) => (
             <Card key={s.title} className="flex flex-col gap-3 sm:flex-row sm:items-start">
               <div className="flex shrink-0 items-center gap-3 sm:w-40 sm:flex-col sm:items-start">
-                <span className="num rounded-full bg-brand-500 px-2.5 py-0.5 text-xs font-bold text-white">{s.minute}</span>
+                <span className="num rounded-full bg-brand-500 px-2.5 py-0.5 text-xs font-bold text-ink-950">{s.minute}</span>
                 <span className="text-xs text-muted">Step {i + 1} · persona <button className="font-mono text-brand-600 hover:underline" onClick={() => void switchPersona(s.persona).then(() => toast.success('Persona switched'))}>{s.persona}</button></span>
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-semibold">{s.title}</div>
                 <ol className="mt-1 list-decimal space-y-1 ps-5 text-sm text-muted">{s.steps.map((x) => <li key={x}>{x}</li>)}</ol>
               </div>
-              <Link to={s.link} className="shrink-0"><Button variant="outline" size="sm" icon={<ChevronRight className="h-4 w-4 rtl:rotate-180" />}>{t('common.open')}</Button></Link>
+              <ButtonLink to={s.link} className="shrink-0" variant="outline" size="sm" icon={<ChevronRight className="h-4 w-4 rtl:rotate-180" />}>{t('common.open')}</ButtonLink>
             </Card>
           ))}
         </div>

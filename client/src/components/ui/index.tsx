@@ -1,9 +1,11 @@
-import { forwardRef, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { forwardRef, useEffect, type ComponentProps, type KeyboardEvent as ReactKeyboardEvent, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import clsx from 'clsx';
-import { Loader2, X, Inbox, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { Loader2, X, Inbox, AlertTriangle, CheckCircle2, Info, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router';
 import { useI18n, statusKey } from '@/i18n';
+import { useEdgeFade } from './useEdgeFade';
 
 // ------------------------------------------------------------------ Button
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'gold' | 'outline';
@@ -15,22 +17,29 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: ReactNode;
 }
 const variantCls: Record<Variant, string> = {
-  primary: 'bg-brand-500 text-white hover:bg-brand-600 shadow-[0_8px_20px_-10px_rgba(240,118,43,0.8)]',
+  primary: 'bg-brand-500 text-ink-950 hover:bg-brand-400 shadow-[0_8px_20px_-10px_rgba(240,118,43,0.8)]',
   secondary: 'bg-surface-2 text-fg border border-line hover:bg-line/60',
   ghost: 'bg-transparent text-fg hover:bg-line/60',
   outline: 'bg-transparent text-fg border border-line hover:border-brand-400 hover:text-brand-600',
-  danger: 'bg-danger text-white hover:brightness-110',
-  success: 'bg-success text-white hover:brightness-110',
-  gold: 'bg-gold-500 text-white hover:bg-gold-700'
+  danger: 'bg-danger text-on-strong hover:brightness-110',
+  success: 'bg-success text-on-strong hover:brightness-110',
+  gold: 'bg-gold-500 text-ink-950 hover:bg-gold-300'
 };
-const sizeCls: Record<Size, string> = { sm: 'h-8 px-3 text-xs gap-1.5', md: 'h-10 px-4 text-sm gap-2', lg: 'h-12 px-6 text-base gap-2', icon: 'h-10 w-10 p-0' };
+const sizeCls: Record<Size, string> = { sm: 'h-8 touch:h-11 px-3 text-xs touch:text-sm gap-1.5', md: 'h-10 touch:h-11 px-4 text-sm gap-2', lg: 'h-12 px-6 text-base gap-2', icon: 'h-10 w-10 shrink-0 touch:h-11 touch:w-11 p-0' };
+
+const baseBtn = 'inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap';
+
+/** A router link that looks like a Button (never nest a <button> inside an <a>). */
+export function ButtonLink({ to, variant = 'primary', size = 'md', icon, className, children, ...rest }: { to: string; variant?: Variant; size?: Size; icon?: ReactNode; className?: string; children?: ReactNode } & Omit<ComponentProps<typeof Link>, 'to' | 'className' | 'children'>) {
+  return <Link to={to} className={clsx(baseBtn, variantCls[variant], sizeCls[size], className)} {...rest}>{icon}{children}</Link>;
+}
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant = 'primary', size = 'md', loading, icon, className, children, disabled, ...rest }, ref) {
   return (
     <button
       ref={ref}
       disabled={disabled || loading}
-      className={clsx('inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap', variantCls[variant], sizeCls[size], className)}
+      className={clsx(baseBtn, variantCls[variant], sizeCls[size], className)}
       {...rest}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : icon}
@@ -51,7 +60,7 @@ const tone: Record<string, string> = {
 };
 export function Badge({ children, tone: t = 'neutral', className, dot }: { children: ReactNode; tone?: keyof typeof tone; className?: string; dot?: boolean }) {
   return (
-    <span className={clsx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide', tone[t], className)}>
+    <span className={clsx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide', tone[t], className)}>
       {dot && <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />}
       {children}
     </span>
@@ -78,12 +87,21 @@ export function Card({ children, className, as: As = 'div', ...rest }: { childre
   return <As className={clsx('card p-5', className)} {...rest}>{children}</As>;
 }
 
-export function SectionTitle({ children, action, className }: { children: ReactNode; action?: ReactNode; className?: string }) {
+export function SectionTitle({ children, action, className, as: H = 'h2', id }: { children: ReactNode; action?: ReactNode; className?: string; as?: 'h2' | 'h3' | 'h4'; id?: string }) {
   return (
-    <div className={clsx('mb-3 flex items-center justify-between gap-3', className)}>
-      <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted">{children}</h2>
+    <div className={clsx('mb-3 flex min-h-8 items-center justify-between gap-3', className)}>
+      <H id={id} className="text-sm font-semibold uppercase tracking-[0.12em] text-muted">{children}</H>
       {action}
     </div>
+  );
+}
+
+/** "View all" style link in a section header: 44px target, arrow follows reading direction. */
+export function SectionLink({ to, children, className }: { to: string; children: ReactNode; className?: string }) {
+  return (
+    <Link to={to} className={clsx('-me-2 inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg px-2 text-sm font-medium text-brand-600 hover:underline', className)}>
+      {children}<ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
+    </Link>
   );
 }
 
@@ -101,7 +119,7 @@ export function Field({ label, hint, error, children, required, className }: { l
     </label>
   );
 }
-const inputCls = 'w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-fg placeholder:text-muted/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/30 disabled:opacity-60';
+const inputCls = 'w-full touch:min-h-11 rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-fg placeholder:text-muted/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/30 disabled:opacity-60';
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
   return <input ref={ref} className={clsx(inputCls, className)} {...rest} />;
 });
@@ -155,6 +173,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', des
       prev?.focus?.();
     };
   }, [open, onClose]);
+  const { t } = useI18n();
   const w = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl' }[size];
   return createPortal(
     <AnimatePresence>
@@ -166,7 +185,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', des
                 <h2 id={`${id}-t`} className="text-lg font-semibold">{title}</h2>
                 {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
               </div>
-              <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-muted hover:bg-line/60 hover:text-fg"><X className="h-5 w-5" /></button>
+              <button onClick={onClose} aria-label={t('common.close')} className="-me-2 -mt-1 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-muted hover:bg-line/60 hover:text-fg"><X className="h-5 w-5" /></button>
             </div>
             <div className="scroll-thin max-h-[calc(92vh-130px)] overflow-y-auto px-5 py-4">{children}</div>
             {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
@@ -188,18 +207,31 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, body, confirmLa
 }
 
 // ------------------------------------------------------------------ Tabs
-export function Tabs<T extends string>({ value, onChange, items, className }: { value: T; onChange: (v: T) => void; items: Array<{ value: T; label: ReactNode; count?: number; icon?: ReactNode }>; className?: string }) {
+export function Tabs<T extends string>({ value, onChange, items, className, label }: { value: T; onChange: (v: T) => void; items: Array<{ value: T; label: ReactNode; count?: number; icon?: ReactNode }>; className?: string; label?: string }) {
+  const row = useEdgeFade<HTMLDivElement>(value);
+  const onKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
+    const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
+    const i = items.findIndex((it) => it.value === value);
+    const step = (e.key === 'ArrowRight') !== rtl ? 1 : -1;
+    const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (i + step + items.length) % items.length;
+    e.preventDefault();
+    onChange(items[next].value);
+    requestAnimationFrame(() => row.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus());
+  };
   return (
-    <div role="tablist" className={clsx('scroll-thin flex gap-1 overflow-x-auto rounded-2xl border border-line bg-surface-2 p-1', className)}>
-      {items.map((it) => {
-        const active = it.value === value;
-        return (
-          <button key={it.value} role="tab" aria-selected={active} onClick={() => onChange(it.value)} className={clsx('relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors', active ? 'text-fg' : 'text-muted hover:text-fg')}>
-            {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-xl bg-surface shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-            <span className="relative flex items-center gap-2">{it.icon}{it.label}{it.count !== undefined && <span className="rounded-full bg-line px-1.5 text-[10px] font-semibold text-muted">{it.count}</span>}</span>
-          </button>
-        );
-      })}
+    <div className={clsx('min-w-0 max-w-full rounded-2xl border border-line bg-surface-2 p-1', className)}>
+      <div ref={row} role="tablist" aria-label={label} onKeyDown={onKey} className="scroll-row flex gap-1 overflow-x-auto">
+        {items.map((it) => {
+          const active = it.value === value;
+          return (
+            <button key={it.value} type="button" role="tab" aria-selected={active} tabIndex={active ? 0 : -1} onClick={() => onChange(it.value)} className={clsx('relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors touch:min-h-11', active ? 'text-fg' : 'text-muted hover:text-fg')}>
+              {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-xl bg-surface shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+              <span className="relative flex items-center gap-2 whitespace-nowrap">{it.icon}{it.label}{it.count !== undefined && <span className="num rounded-full bg-line px-1.5 text-xs font-semibold text-muted">{it.count}</span>}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -244,20 +276,36 @@ export function Callout({ tone: t = 'info', title, children, icon }: { tone?: 'i
 }
 
 // ------------------------------------------------------------------ Progress / Avatar / KeyValue
-export function Progress({ value, max = 100, className, tone: t = 'brand' }: { value: number; max?: number; className?: string; tone?: 'brand' | 'success' | 'warn' | 'danger' | 'gold' }) {
-  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+export function Progress({ value, max = 100, className, tone: t = 'brand', label }: { value: number; max?: number; className?: string; tone?: 'brand' | 'success' | 'warn' | 'danger' | 'gold'; label?: string }) {
+  const pct = max > 0 && Number.isFinite(value) ? Math.max(0, Math.min(100, (value / max) * 100)) : value > 0 ? 100 : 0;
   const c = { brand: 'bg-brand-500', success: 'bg-success', warn: 'bg-warn', danger: 'bg-danger', gold: 'bg-gold-500' }[t];
   return (
-    <div className={clsx('h-2 w-full overflow-hidden rounded-full bg-line', className)} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+    <div className={clsx('h-2 w-full overflow-hidden rounded-full bg-line', className)} role="progressbar" aria-label={label} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
       <motion.div className={clsx('h-full rounded-full', c)} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
     </div>
   );
 }
+/** Avatar colours: keep the persona hue but darken it until white initials reach 4.5:1 (WCAG AA). */
+function lum(hex: string): number {
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function avatarColors(input: string): { bg: string; fg: string } {
+  const m = /^#?([0-9a-f]{6})$/i.exec(input);
+  if (!m) return { bg: input, fg: '#ffffff' };
+  let hex = m[1];
+  for (let i = 0; i < 12 && 1.05 / (lum(hex) + 0.05) < 4.5; i++) {
+    hex = [0, 2, 4].map((j) => Math.round(parseInt(hex.slice(j, j + 2), 16) * 0.9).toString(16).padStart(2, '0')).join('');
+  }
+  return { bg: `#${hex}`, fg: '#ffffff' };
+}
 export function Avatar({ name, color, size = 36, className }: { name: string; color?: string; size?: number; className?: string }) {
   const initials = name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
+  const { bg, fg } = avatarColors(color ?? '#F0762B');
+  const small = size < 30;
   return (
-    <span className={clsx('grid shrink-0 place-items-center rounded-full font-semibold text-white', className)} style={{ width: size, height: size, background: color ?? '#F0762B', fontSize: size * 0.38 }} aria-hidden>
-      {initials}
+    <span className={clsx('grid shrink-0 place-items-center rounded-full font-semibold', className)} style={{ width: size, height: size, background: bg, color: fg, fontSize: Math.max(12, size * 0.38) }} aria-hidden>
+      {small ? initials.slice(0, 1) : initials}
     </span>
   );
 }
@@ -281,7 +329,7 @@ export function CopyId({ value, className }: { value: string; className?: string
   return (
     <button type="button" onClick={() => { void navigator.clipboard?.writeText(value); setDone(true); setTimeout(() => setDone(false), 1500); }} className={clsx('inline-flex items-center gap-2 rounded-lg border border-dashed border-gold-500/70 bg-gold-100/60 px-3 py-1.5 font-mono text-sm font-semibold tracking-wider text-gold-700 dark:bg-gold-700/20 dark:text-gold-300', className)} title={t('common.copy')}>
       {value}
-      <span className="text-[10px] font-sans font-medium uppercase tracking-wide">{done ? t('common.copied') : t('common.copy')}</span>
+      <span className="text-xs font-sans font-medium uppercase tracking-wide">{done ? t('common.copied') : t('common.copy')}</span>
     </button>
   );
 }

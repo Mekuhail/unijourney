@@ -44,7 +44,7 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
                         {!n.read_at && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" aria-label="unread" />}
                       </div>
                       {n.body && <div className="mt-0.5 text-xs text-muted">{n.body}</div>}
-                      <div className="mt-1.5 text-[11px] text-muted">{n.module} · {status ? fmtRelative(n.created_at, status.clock, locale) : ''}</div>
+                      <div className="mt-1.5 text-xs text-muted">{n.module} · {status ? fmtRelative(n.created_at, status.clock, locale) : ''}</div>
                     </Link>
                   </li>
                 ))}

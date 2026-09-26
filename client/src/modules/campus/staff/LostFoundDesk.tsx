@@ -96,7 +96,7 @@ function RequestControl({ r, points }: { r: LostFoundRequest; points: LfLocation
         {r.document ? (
           <div className="space-y-2">
             {isImage && <img src={r.document.url} alt={r.document.filename} className="max-h-40 rounded-xl border border-line" />}
-            <a href={r.document.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline"><Paperclip className="h-4 w-4" />{r.document.filename} · {Math.round(r.document.size / 1024)} KB</a>
+            <a href={r.document.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline min-h-11"><Paperclip className="h-4 w-4" />{r.document.filename} · {Math.round(r.document.size / 1024)} KB</a>
           </div>
         ) : <div className="text-sm text-muted">{t('common.none')}</div>}
       </div>

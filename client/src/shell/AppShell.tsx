@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router';
 import { motion } from 'motion/react';
-import { Bell, Languages, Moon, Sun, Monitor, ChevronDown, Menu, X } from 'lucide-react';
+import { Bell, Languages, Moon, Sun, Monitor, ChevronDown, Menu as MenuIcon, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -13,7 +13,7 @@ import { DemoClockChip } from './DemoClock';
 import { PersonaSwitcher } from './PersonaSwitcher';
 import { NotificationsPanel } from './NotificationsPanel';
 import ClickSpark from '@/components/reactbits/ClickSpark';
-import Dock from '@/components/reactbits/Dock';
+import { Menu, MenuRadio } from '@/components/ui/Menu';
 
 function useNavItems(): NavItem[] {
   const { hasRole } = useSession();
@@ -50,23 +50,32 @@ export function AppShell() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const loc = useLocation();
-  const nav = useNavigate();
   const items = useNavItems();
   useEffect(() => setMenuOpen(false), [loc.pathname]);
 
-  const cycleTheme = () => setTheme(theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system');
   const ThemeIcon = theme === 'system' ? Monitor : resolved === 'dark' ? Moon : Sun;
+  const bottomItems = items.filter((it) => it.to !== '/prereqs' && it.to !== '/staff').slice(0, 5);
+  const iconBtn = 'grid h-11 w-11 place-items-center rounded-full border border-line hover:border-brand-400';
 
-  const dockItems = items.filter((it) => it.to !== '/prereqs').slice(0, 5).map((it) => ({
-    icon: <it.icon className={clsx('h-5 w-5', loc.pathname.startsWith(it.to) ? 'text-brand-500' : 'text-fg')} />,
-    label: t(it.key),
-    onClick: () => nav(it.to),
-    className: loc.pathname.startsWith(it.to) ? 'ring-2 ring-brand-500/60' : ''
-  }));
+  // After client-side navigation, move focus to the new page's h1 (the h1 may render after lazy chunks or data load).
+  const lastPath = useRef(loc.pathname);
+  useEffect(() => {
+    if (lastPath.current === loc.pathname) return; // first load (and StrictMode re-runs): leave focus alone
+    lastPath.current = loc.pathname;
+    let tries = 0;
+    let timer = 0;
+    const focusH1 = () => {
+      const h1 = document.querySelector<HTMLElement>('#main h1');
+      if (h1) { if (!h1.hasAttribute('tabindex')) h1.tabIndex = -1; h1.focus({ preventScroll: true }); window.scrollTo(0, 0); return; }
+      if (++tries < 20) timer = window.setTimeout(focusH1, 50);
+    };
+    timer = window.setTimeout(focusH1, 0);
+    return () => window.clearTimeout(timer);
+  }, [loc.pathname]);
 
   const content = (
     <div className="flex min-h-full">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[200] focus:rounded-lg focus:bg-brand-500 focus:px-3 focus:py-2 focus:text-white">{t('shell.skipToContent')}</a>
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[var(--z-skip)] focus:rounded-lg focus:bg-brand-500 focus:px-3 focus:py-2 focus:text-ink-950">{t('shell.skipToContent')}</a>
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-line bg-surface/70 p-4 backdrop-blur lg:flex">
         <div className="mb-6 px-1"><Brand /></div>
@@ -77,47 +86,57 @@ export function AppShell() {
               <Avatar name={user.name_en} color={user.avatar_color} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">{l(user.name_en, user.name_ar)}</span>
-                <span className="block truncate text-[11px] text-muted">{user.department ?? (user.student_no ? `#${user.student_no}` : user.stage)}</span>
+                <span className="block truncate text-xs text-muted">{user.department ?? (user.student_no ? `#${user.student_no}` : user.stage)}</span>
               </span>
               {demoMode && <ChevronDown className="h-4 w-4 text-muted" />}
             </button>
           )}
-          <div className="px-1 text-[10px] leading-relaxed text-muted">All people, records and outcomes are synthetic demo data.</div>
+          <div className="px-1 text-xs leading-relaxed text-muted">All people, records and outcomes are synthetic demo data.</div>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <header className="pad-safe-x sticky top-0 z-40 glass flex h-14 items-center gap-2 sm:px-5">
-          <button className="rounded-lg p-2 lg:hidden" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu" aria-expanded={menuOpen}>{menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
+        <header className="app-header pad-safe-x sticky top-0 z-[var(--z-sticky)] flex h-14 items-center gap-1 border-b border-line bg-surface/95 backdrop-blur-md sm:gap-1.5 sm:px-5">
+          <button type="button" className="grid h-11 w-11 place-items-center rounded-xl lg:hidden" onClick={() => setMenuOpen((v) => !v)} aria-label={t('shell.menu')} aria-expanded={menuOpen} aria-controls="mobile-nav">{menuOpen ? <X className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}</button>
           <div className="lg:hidden"><Brand compact /></div>
-          <div className="ms-auto flex items-center gap-1.5">
+          <div className="ms-auto flex items-center gap-1 sm:gap-1.5">
             <DemoClockChip />
-            <button onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold hover:border-brand-400" aria-label={t('shell.language')}><Languages className="h-4 w-4" />{t('shell.language')}</button>
-            <button onClick={cycleTheme} className="grid h-9 w-9 place-items-center rounded-full border border-line hover:border-brand-400" aria-label={t('shell.theme')} title={`${t('shell.theme')}: ${theme}`}><ThemeIcon className="h-4 w-4" /></button>
-            <button onClick={() => setNotifOpen(true)} className="relative grid h-9 w-9 place-items-center rounded-full border border-line hover:border-brand-400" aria-label={`${t('nav.notifications')} (${unread})`}>
+            <button type="button" onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')} className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-line px-2.5 text-sm font-semibold hover:border-brand-400 sm:px-3" aria-label={t('shell.languageSwitch')}><Languages className="h-4 w-4" /><span lang={locale === 'ar' ? 'en' : 'ar'} className="hidden sm:inline">{t('shell.language')}</span></button>
+            <Menu label={`${t('shell.theme')}: ${t(`shell.theme.${theme}`)}`} buttonClassName={iconBtn} button={<ThemeIcon className="h-4 w-4" />}>
+              <MenuRadio icon={<Monitor className="h-4 w-4" />} checked={theme === 'system'} onSelect={() => setTheme('system')}>{t('shell.theme.system')}</MenuRadio>
+              <MenuRadio icon={<Sun className="h-4 w-4" />} checked={theme === 'light'} onSelect={() => setTheme('light')}>{t('shell.theme.light')}</MenuRadio>
+              <MenuRadio icon={<Moon className="h-4 w-4" />} checked={theme === 'dark'} onSelect={() => setTheme('dark')}>{t('shell.theme.dark')}</MenuRadio>
+            </Menu>
+            <button type="button" onClick={() => setNotifOpen(true)} className={clsx('relative', iconBtn)} aria-label={`${t('nav.notifications')} (${unread})`}>
               <Bell className="h-4 w-4" />
-              {unread > 0 && <span className="absolute -end-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[10px] font-bold text-white">{unread > 99 ? '99+' : unread}</span>}
+              {unread > 0 && <span className="absolute -end-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-xs font-bold text-ink-950">{unread > 99 ? '99+' : unread}</span>}
             </button>
-            {user && <button onClick={() => setPersonaOpen(true)} className="lg:hidden" aria-label={t('shell.switchPersona')}><Avatar name={user.name_en} color={user.avatar_color} size={34} /></button>}
+            {user && <button type="button" onClick={() => setPersonaOpen(true)} className="grid h-11 w-11 place-items-center rounded-full lg:hidden" aria-label={t('shell.switchPersona')}><Avatar name={user.name_en} color={user.avatar_color} size={34} /></button>}
           </div>
         </header>
         {menuOpen && (
-          <div className="border-b border-line bg-surface p-3 lg:hidden">
+          <div id="mobile-nav" className="border-b border-line bg-surface p-3 lg:hidden">
             <SideNav />
           </div>
         )}
-        <main id="main" className="pad-safe-x mx-auto w-full max-w-7xl flex-1 pb-28 pt-5 sm:px-6 lg:pb-10">
+        <main id="main" className="pad-safe-x mx-auto w-full max-w-7xl flex-1 pb-[calc(5.5rem+var(--safe-bottom))] pt-5 sm:px-6 lg:pb-10">
           <Outlet />
         </main>
       </div>
 
-      {/* Mobile dock */}
-      <div className="dock-safe fixed inset-x-0 bottom-0 z-40 lg:hidden" style={{ pointerEvents: 'none' }}>
-        <div style={{ pointerEvents: 'auto' }}>
-          <Dock items={dockItems} panelHeight={64} baseItemSize={44} magnification={reducedMotion ? 44 : 60} className="!bg-[var(--surface)]/95 !border-[var(--line)] backdrop-blur" />
-        </div>
-      </div>
+      {/* Mobile bottom navigation */}
+      <nav aria-label={t('shell.primaryNav')} className="fixed inset-x-0 bottom-0 z-[var(--z-sticky)] border-t border-line bg-surface/95 backdrop-blur-md lg:hidden" style={{ paddingBottom: 'var(--safe-bottom)' }}>
+        <ul className="mx-auto flex max-w-xl" style={{ paddingLeft: 'var(--safe-left)', paddingRight: 'var(--safe-right)' }}>
+          {bottomItems.map((it) => (
+            <li key={it.to} className="min-w-0 flex-1">
+              <NavLink to={it.to} className={({ isActive }) => clsx('flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-xs font-medium transition-colors', isActive ? 'text-brand-600' : 'text-muted hover:text-fg')}>
+                {({ isActive }) => (<><it.icon className="h-5 w-5" aria-hidden strokeWidth={isActive ? 2.4 : 2} /><span className="max-w-full truncate">{t(it.key.replace('nav.', 'nav.short.'))}</span></>)}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       <PersonaSwitcher open={personaOpen} onClose={() => setPersonaOpen(false)} />
       <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />

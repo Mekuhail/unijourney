@@ -8,7 +8,7 @@ import { useTheme } from '@/lib/theme';
 import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Select, Skeleton, Toggle, SectionTitle } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Select, Skeleton, Toggle, SectionTitle, ButtonLink } from '@/components/ui';
 
 interface ProgramInfo { id: string; code: string; name_en: string; name_ar: string; college_id: string; college_en: string; college_ar: string; degree: string; total_credits: number; duration_years: number; source_url: string; source_version: string; source_note: string; campus_ids: string[]; courses: number; mine: boolean }
 interface Catalog { colleges: Array<{ id: string; name_en: string; name_ar: string; url: string; programs: ProgramInfo[] }>; mine: string | null }
@@ -134,15 +134,15 @@ export function PrereqChainsPage() {
           isElective && 'bg-surface-2 text-muted')}
       >
         <div className="flex items-center justify-between gap-1">
-          <span className={clsx('font-mono text-[11px] font-bold', isElective ? 'text-muted' : 'text-brand-600')}>{isElective ? c.elective?.kind.toUpperCase() : c.code}</span>
+          <span className={clsx('font-mono text-xs font-bold', isElective ? 'text-muted' : 'text-brand-600')}>{isElective ? c.elective?.kind.toUpperCase() : c.code}</span>
           <span className="flex items-center gap-1">
             {c.min_credits > 0 && <Lock className="h-3 w-3 text-gold-700" aria-label={t('prereqs.minCredits', { n: c.min_credits })} />}
             {st && <span className={clsx('h-2 w-2 rounded-full', STATUS_DOT[st] ?? 'bg-muted')} aria-label={st} />}
-            <span className="num text-[10px] text-muted">{c.credits}{t('prereqs.credits')}</span>
+            <span className="num text-xs text-muted">{c.credits}{t('prereqs.credits')}</span>
           </span>
         </div>
-        <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug">{l(c.title_en, c.title_ar)}</div>
-        {c.unlocks.length > 0 && <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-line px-1 text-[9px] font-bold text-muted" title={`${t('prereqs.unlocks')} ${c.unlocks.length}`}>{c.unlocks.length}</span>}
+        <div className="mt-0.5 line-clamp-2 text-xs leading-snug">{l(c.title_en, c.title_ar)}</div>
+        {c.unlocks.length > 0 && <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-line px-1 text-xs font-bold text-muted" title={`${t('prereqs.unlocks')} ${c.unlocks.length}`}>{c.unlocks.length}</span>}
       </button>
     );
   };
@@ -183,9 +183,10 @@ export function PrereqChainsPage() {
       {d && (
         <>
           {/* Stats */}
+          <h2 className="sr-only">{t('prereqs.h.overview')}</h2>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[{ k: t('prereqs.credit_total'), v: d.stats.credits }, { k: t('prereqs.courses'), v: d.stats.courses }, { k: t('prereqs.longest'), v: d.stats.longestChain }, { k: 'Edges', v: d.stats.edges }].map((s) => (
-              <div key={s.k} className="card-2 p-3"><div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{s.k}</div><div className="num text-2xl font-bold">{s.v}</div></div>
+              <div key={s.k} className="card-2 p-3"><div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{s.k}</div><div className="num text-2xl font-bold">{s.v}</div></div>
             ))}
           </div>
           <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
@@ -196,7 +197,8 @@ export function PrereqChainsPage() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
             {/* Diagram */}
-            <div className="card relative overflow-hidden p-0">
+            <section aria-labelledby="prereq-map-h" className="card relative overflow-hidden p-0">
+              <h2 id="prereq-map-h" className="border-b border-line px-4 py-3 text-sm font-semibold">{t('prereqs.h.map')}</h2>
               <div ref={wrapRef} className="scroll-thin relative overflow-auto p-4" style={{ maxHeight: '70vh' }} onScroll={measure}>
                 <svg className="pointer-events-none absolute start-0 top-0" width={size.w} height={size.h} aria-hidden>
                   {paths.map((p) => (
@@ -207,7 +209,7 @@ export function PrereqChainsPage() {
                   {d.terms.map((term, ti) => (
                     <div key={`${term.year}-${term.sem}`} className="w-[176px] shrink-0">
                       <div className="mb-2 rounded-lg bg-surface-2 px-2 py-1 text-center">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">{t('prereqs.year', { n: term.year })}</div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted">{t('prereqs.year', { n: term.year })}</div>
                         <div className="text-xs font-semibold">{term.sem === 3 ? t('prereqs.summer') : t('prereqs.semester', { n: term.sem })} · <span className="num text-muted">{term.credits}{t('prereqs.credits')}</span></div>
                       </div>
                       <div className="space-y-2">{term.slots.map((c, si) => node(c, ti, si))}</div>
@@ -215,13 +217,13 @@ export function PrereqChainsPage() {
                   ))}
                   {d.pool.length > 0 && (
                     <div className="w-[176px] shrink-0">
-                      <div className="mb-2 rounded-lg bg-gold-100/70 px-2 py-1 text-center dark:bg-gold-700/20"><div className="text-[10px] font-semibold uppercase tracking-wide text-gold-700">{t('prereqs.poolTitle')}</div><div className="text-xs text-muted">{d.pool.length}</div></div>
+                      <div className="mb-2 rounded-lg bg-gold-100/70 px-2 py-1 text-center dark:bg-gold-700/20"><div className="text-xs font-semibold uppercase tracking-wide text-gold-700">{t('prereqs.poolTitle')}</div><div className="text-xs text-muted">{d.pool.length}</div></div>
                       <div className="space-y-2">{d.pool.map((c, si) => node(c, d.terms.length, si))}</div>
                     </div>
                   )}
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-3 border-t border-line px-4 py-2 text-[11px] text-muted">
+              <div className="flex flex-wrap items-center gap-3 border-t border-line px-4 py-2 text-xs text-muted">
                 <span className="font-semibold">{t('prereqs.legend')}:</span>
                 <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-brand-500" />{t('prereqs.legendSelected')}</span>
                 <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-gold-500" />{t('prereqs.legendUp')}</span>
@@ -231,10 +233,11 @@ export function PrereqChainsPage() {
                 {mineVisible && <><span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" />{t('prereqs.completedHint')}</span><span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-brand-500" />{t('prereqs.enrolledHint')}</span><span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal-500" />{t('prereqs.ready')}</span><span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-ink-400" />{t('prereqs.blocked')}</span></>}
                 <span className="ms-auto hidden sm:inline">{t('prereqs.hint')}</span>
               </div>
-            </div>
+            </section>
 
             {/* Detail panel */}
-            <div className="space-y-4">
+            <section aria-labelledby="prereq-detail-h" className="space-y-4">
+              <h2 id="prereq-detail-h" className="sr-only">{t('prereqs.h.detail')}</h2>
               {sel ? (
                 <Card className="lg:sticky lg:top-20">
                   <div className="flex items-start justify-between gap-2">
@@ -251,19 +254,19 @@ export function PrereqChainsPage() {
                     <div className="card-2 p-2"><div className="text-muted">{t('prereqs.unlocks')}</div><div className="num text-lg font-bold">{sel.unlocks.length}</div></div>
                   </div>
                   {sel.min_credits > 0 && <div className="mt-2 flex items-center gap-1 text-xs text-gold-700"><Lock className="h-3.5 w-3.5" />{t('prereqs.minCredits', { n: sel.min_credits })}</div>}
-                  <SectionTitle className="mt-4">{t('prereqs.requires')}</SectionTitle>
+                  <SectionTitle as="h4" className="mt-4">{t('prereqs.requires')}</SectionTitle>
                   {sel.prereqs.length === 0 ? <div className="text-sm text-muted">{t('prereqs.noPrereqs')}</div> : (
-                    <ul className="space-y-1.5">{sel.prereqs.map((g, i) => <li key={i} className="flex flex-wrap items-center gap-1">{g.map((p, j) => <span key={p} className="flex items-center gap-1">{j > 0 && <span className="text-[10px] uppercase text-muted">or</span>}<button type="button" onClick={() => setSelected(p)} className="rounded-full border border-gold-500/60 bg-gold-100/60 px-2 py-0.5 font-mono text-xs hover:border-gold-700 dark:bg-gold-700/20">{p}</button></span>)}</li>)}</ul>
+                    <ul className="space-y-1.5">{sel.prereqs.map((g, i) => <li key={i} className="flex flex-wrap items-center gap-1">{g.map((p, j) => <span key={p} className="flex items-center gap-1">{j > 0 && <span className="text-xs uppercase text-muted">or</span>}<button type="button" onClick={() => setSelected(p)} className="rounded-full border border-gold-500/60 bg-gold-100/60 px-2 py-0.5 font-mono text-xs hover:border-gold-700 dark:bg-gold-700/20">{p}</button></span>)}</li>)}</ul>
                   )}
                   {sel.coreqs.length > 0 && <div className="mt-2 text-xs text-muted">{t('prereqs.legendCoreq')}: {sel.coreqs.flat().join(', ')}</div>}
-                  <SectionTitle className="mt-4">{t('prereqs.unlocks')}</SectionTitle>
+                  <SectionTitle as="h4" className="mt-4">{t('prereqs.unlocks')}</SectionTitle>
                   {sel.unlocks.length === 0 ? <div className="text-sm text-muted">{t('prereqs.unlocksNothing')}</div> : <div className="flex flex-wrap gap-1">{sel.unlocks.map((u) => <button key={u} type="button" onClick={() => setSelected(u)} className="rounded-full border border-info/50 bg-info/10 px-2 py-0.5 font-mono text-xs hover:border-info">{u}</button>)}</div>}
-                  {sel.elective?.pool.length ? <><SectionTitle className="mt-4">{t('prereqs.electivePool')}</SectionTitle><div className="flex flex-wrap gap-1">{sel.elective.pool.map((p) => <button key={p} type="button" onClick={() => byCode.has(p) && setSelected(p)} className="rounded-full border border-line px-2 py-0.5 font-mono text-xs hover:border-brand-400">{p}</button>)}</div></> : null}
+                  {sel.elective?.pool.length ? <><SectionTitle as="h4" className="mt-4">{t('prereqs.electivePool')}</SectionTitle><div className="flex flex-wrap gap-1">{sel.elective.pool.map((p) => <button key={p} type="button" onClick={() => byCode.has(p) && setSelected(p)} className="rounded-full border border-line px-2 py-0.5 font-mono text-xs hover:border-brand-400">{p}</button>)}</div></> : null}
                   {!sel.code.startsWith('ELECTIVE:') && (
                     <div className="no-print mt-4 flex flex-wrap gap-2">
-                      {d.my && <Link to={`/academics/courses/${encodeURIComponent(sel.code)}`}><Button size="sm" variant="outline" icon={<BookOpen className="h-4 w-4" />}>{t('prereqs.openCourse')}</Button></Link>}
-                      <Link to={`/campus/resources?course=${encodeURIComponent(sel.code)}`}><Button size="sm" variant="ghost" icon={<ArrowRight className="h-4 w-4 rtl:rotate-180" />}>{t('prereqs.resources')}</Button></Link>
-                      {d.my && d.my[sel.code]?.status === 'available' && <Link to={`/academics/register?course=${encodeURIComponent(sel.code)}`}><Button size="sm" variant="gold">{t('prereqs.planTerm')}</Button></Link>}
+                      {d.my && <ButtonLink to={`/academics/courses/${encodeURIComponent(sel.code)}`} size="sm" variant="outline" icon={<BookOpen className="h-4 w-4" />}>{t('prereqs.openCourse')}</ButtonLink>}
+                      <ButtonLink to={`/campus/resources?course=${encodeURIComponent(sel.code)}`} size="sm" variant="ghost" icon={<ArrowRight className="h-4 w-4 rtl:rotate-180" />}>{t('prereqs.resources')}</ButtonLink>
+                      {d.my && d.my[sel.code]?.status === 'available' && <ButtonLink to={`/academics/register?course=${encodeURIComponent(sel.code)}`} size="sm" variant="gold">{t('prereqs.planTerm')}</ButtonLink>}
                     </div>
                   )}
                 </Card>
@@ -272,13 +275,13 @@ export function PrereqChainsPage() {
               )}
               {program && (
                 <Card className="text-xs text-muted">
-                  <div className="mb-1 font-semibold text-fg">{t('prereqs.source')}</div>
+                  <h3 className="mb-1 font-semibold text-fg">{t('prereqs.source')}</h3>
                   <div>{program.source_version}</div>
                   <div className="mt-1">{program.source_note}</div>
-                  <a href={program.source_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><ExternalLink className="h-3 w-3" />yu.edu.sa</a>
+                  <a href={program.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm text-brand-600 hover:underline"><ExternalLink className="h-3.5 w-3.5" aria-hidden />yu.edu.sa</a>
                 </Card>
               )}
-            </div>
+            </section>
           </div>
         </>
       )}

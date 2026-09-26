@@ -27,7 +27,7 @@ export function ApprovalsPage() {
         {q.data?.map((a) => (
           <Card key={a.id}>
             <div className="mb-2 flex items-center justify-between gap-2">
-              <Link to={linkFor[a.kind]?.(a.entity_id) ?? '#'} className="font-semibold capitalize hover:text-brand-600">{a.kind.replace('_', ' ')} · {a.entity_id}</Link>
+              <Link to={linkFor[a.kind]?.(a.entity_id) ?? '#'} className="inline-flex items-center touch:min-h-11 font-semibold capitalize hover:text-brand-600">{a.kind.replace('_', ' ')} · {a.entity_id}</Link>
               <StatusPill status={a.status} />
             </div>
             <KeyValue items={[{ k: 'Revision', v: `r${a.revision}` }, { k: 'Payload hash', v: <span className="font-mono text-xs">{a.payload_hash.slice(0, 16)}…</span> }, { k: 'Idempotency key', v: <span className="font-mono text-xs">{a.idempotency_key}</span> }, { k: 'Expires', v: fmtDateTime(a.expires_at, locale) }, { k: 'Created', v: fmtDateTime(a.created_at, locale) }]} />

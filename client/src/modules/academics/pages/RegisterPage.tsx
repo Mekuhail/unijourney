@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { useTheme } from '@/lib/theme';
 import { fmtDateTime, weekdayName } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Button, Card, SectionTitle, Skeleton, ErrorState, Callout, Field, Input, Textarea, Toggle, Select, StatusPill, Badge, Modal, KeyValue, CopyId } from '@/components/ui';
+import { Button, Card, SectionTitle, Skeleton, ErrorState, Callout, Field, Input, Textarea, Toggle, Select, StatusPill, Badge, Modal, KeyValue, CopyId, ButtonLink } from '@/components/ui';
 import SpotlightCard from '@/components/reactbits/SpotlightCard';
 import ShinyText from '@/components/reactbits/ShinyText';
 import Magnet from '@/components/reactbits/Magnet';
@@ -34,18 +34,18 @@ function PreferencesForm({ initial, eligibility, onGenerate, busy }: { initial: 
   const submit = () => onGenerate({ text: text || undefined, avoidEarly: avoidEarly || undefined, avoidDays, maxCredits: maxCredits ? Number(maxCredits) : undefined, countInProgress: countInProgress || undefined, compact: compact || undefined, lightLoad: lightLoad || undefined, courses, keepWindows: win ? [win] : [] });
   return (
     <Card>
-      <SectionTitle action={<button type="button" className="text-xs font-semibold text-brand-600 hover:underline" onClick={() => setOpen((v) => !v)}>{open ? t('common.less') : t('academics.register.moreOptions')}</button>}>{t('academics.register.preferences')}</SectionTitle>
+      <SectionTitle action={<button type="button" className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-600 hover:underline" onClick={() => setOpen((v) => !v)}>{open ? t('common.less') : t('academics.register.moreOptions')}</button>}>{t('academics.register.preferences')}</SectionTitle>
       <Field label={t('academics.register.nlLabel')} hint={t('academics.register.nlHint')}>
         <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={EXAMPLES[0]} rows={2} />
       </Field>
-      <div className="mt-2 flex flex-wrap gap-1.5">{EXAMPLES.map((ex) => <button key={ex} type="button" onClick={() => setText(ex)} className="rounded-full border border-dashed border-line px-2.5 py-1 text-[11px] text-muted hover:border-brand-400 hover:text-fg">{ex.slice(0, 48)}{ex.length > 48 ? '…' : ''}</button>)}</div>
+      <div className="mt-2 flex flex-wrap gap-1.5">{EXAMPLES.map((ex) => <button key={ex} type="button" onClick={() => setText(ex)} className="rounded-full border border-dashed border-line px-2.5 py-1 text-xs text-muted hover:border-brand-400 hover:text-fg">{ex.slice(0, 48)}{ex.length > 48 ? '…' : ''}</button>)}</div>
       {open && (
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Toggle checked={avoidEarly} onChange={setAvoidEarly} label={t('academics.register.avoidEarly')} description={t('academics.register.avoidEarlyHint')} />
           <Toggle checked={countInProgress} onChange={setCountInProgress} label={t('academics.register.countInProgress')} description={t('academics.register.countInProgressHint')} />
           <Toggle checked={compact} onChange={setCompact} label={t('academics.register.compact')} />
           <Toggle checked={lightLoad} onChange={setLightLoad} label={t('academics.register.lightLoad')} />
-          <div className="text-sm"><div className="mb-1.5 font-medium">{t('academics.register.avoidDays')}</div><div className="flex flex-wrap gap-1.5">{[0, 1, 2, 3, 4].map((d) => <button key={d} type="button" onClick={() => setAvoidDays((v) => v.includes(d) ? v.filter((x) => x !== d) : [...v, d])} className={clsx('rounded-full border px-2.5 py-1 text-xs', avoidDays.includes(d) ? 'border-brand-500 bg-brand-500 text-white' : 'border-line')} aria-pressed={avoidDays.includes(d)}>{weekdayName(d, locale)}</button>)}</div></div>
+          <div className="text-sm"><div className="mb-1.5 font-medium">{t('academics.register.avoidDays')}</div><div className="flex flex-wrap gap-1.5">{[0, 1, 2, 3, 4].map((d) => <button key={d} type="button" onClick={() => setAvoidDays((v) => v.includes(d) ? v.filter((x) => x !== d) : [...v, d])} className={clsx('rounded-full border px-2.5 py-1 text-xs', avoidDays.includes(d) ? 'border-brand-500 bg-brand-500 text-ink-950' : 'border-line')} aria-pressed={avoidDays.includes(d)}>{weekdayName(d, locale)}</button>)}</div></div>
           <Field label={t('academics.register.maxCredits')}><Input type="number" min={1} max={24} value={maxCredits} onChange={(e) => setMaxCredits(e.target.value)} placeholder="19" /></Field>
           <div className="text-sm sm:col-span-2">
             <div className="mb-1.5 font-medium">{t('academics.register.keepWindow')}</div>
@@ -56,7 +56,7 @@ function PreferencesForm({ initial, eligibility, onGenerate, busy }: { initial: 
             </div>
           </div>
           {eligibility && (
-            <div className="text-sm sm:col-span-2"><div className="mb-1.5 font-medium">{t('academics.register.mustInclude')}</div><div className="flex flex-wrap gap-1.5">{eligibility.filter((e) => e.eligible).map((e) => <button key={e.code} type="button" onClick={() => setCourses((v) => v.includes(e.code) ? v.filter((x) => x !== e.code) : [...v, e.code])} className={clsx('rounded-full border px-2.5 py-1 text-xs', courses.includes(e.code) ? 'border-brand-500 bg-brand-500 text-white' : 'border-line')} aria-pressed={courses.includes(e.code)}>{e.code}</button>)}</div></div>
+            <div className="text-sm sm:col-span-2"><div className="mb-1.5 font-medium">{t('academics.register.mustInclude')}</div><div className="flex flex-wrap gap-1.5">{eligibility.filter((e) => e.eligible).map((e) => <button key={e.code} type="button" onClick={() => setCourses((v) => v.includes(e.code) ? v.filter((x) => x !== e.code) : [...v, e.code])} className={clsx('rounded-full border px-2.5 py-1 text-xs', courses.includes(e.code) ? 'border-brand-500 bg-brand-500 text-ink-950' : 'border-line')} aria-pressed={courses.includes(e.code)}>{e.code}</button>)}</div></div>
           )}
         </div>
       )}
@@ -75,7 +75,7 @@ function OptionCard({ o, chosen, onChoose, busy }: { o: PlanOption; chosen: bool
     <SpotlightCard className={clsx('!rounded-2xl !border-line !bg-surface !p-4 h-full', chosen && '!border-brand-500 ring-2 ring-brand-500/40')} spotlightColor="rgba(240, 118, 43, 0.16)">
       <div className="flex items-start justify-between gap-2">
         <div><div className="text-xs font-semibold uppercase tracking-wide text-brand-600">{t('academics.register.option')} {o.id}</div><div className="font-semibold">{l(o.label_en, o.label_ar)}</div></div>
-        <div className="text-end"><div className="num text-2xl font-bold">{o.credits}</div><div className="text-[10px] uppercase text-muted">{t('common.credits')}</div></div>
+        <div className="text-end"><div className="num text-2xl font-bold">{o.credits}</div><div className="text-xs uppercase text-muted">{t('common.credits')}</div></div>
       </div>
       <ul className="mt-3 space-y-1 text-xs">{o.courses.map((c) => <li key={c.section_id} className="flex items-center justify-between gap-2"><span className="truncate"><span className="font-semibold">{c.code}</span> <span className="text-muted">sec {c.section_no} · {c.instructor}</span></span><span className="num shrink-0 text-muted">{c.meetings.map((m) => `${weekdayName(m.day, 'en').slice(0, 2)}`).join('/')} {c.meetings[0]?.start}</span></li>)}</ul>
       <div className="mt-3"><WeekGrid compact blocks={meetingsToBlocks(o.courses.map((c) => ({ id: c.section_id, code: c.code, meetings: c.meetings, tone: c.seats_left <= 2 ? 'warn' : 'brand' })))} /></div>
@@ -109,9 +109,9 @@ function ReceiptPanel({ p }: { p: Proposal }) {
         <div className="mt-4 rounded-2xl border border-line bg-surface-2 p-3">
           <div className="text-sm font-semibold">{t('academics.register.nextSteps')}</div>
           <div className="mt-2 flex flex-wrap gap-2">
-            {codes.map((c) => <Link key={c} to={`/campus/resources?course=${encodeURIComponent(c)}`}><Button size="sm" variant="outline" icon={<BookOpen className="h-3.5 w-3.5" />}>{t('academics.register.notesFor', { code: c })}</Button></Link>)}
-            <Link to={`/academics/study?setup=${encodeURIComponent(codes.join(','))}`}><Button size="sm" variant="gold" icon={<ListTodo className="h-3.5 w-3.5" />}>{t('academics.register.studySetup')}</Button></Link>
-            <Link to={`/academics/timetable?term=${p.term}`}><Button size="sm" variant="secondary">{t('academics.register.viewTimetable')}</Button></Link>
+            {codes.map((c) => <ButtonLink key={c} to={`/campus/resources?course=${encodeURIComponent(c)}`} size="sm" variant="outline" icon={<BookOpen className="h-3.5 w-3.5" />}>{t('academics.register.notesFor', { code: c })}</ButtonLink>)}
+            <ButtonLink to={`/academics/study?setup=${encodeURIComponent(codes.join(','))}`} size="sm" variant="gold" icon={<ListTodo className="h-3.5 w-3.5" />}>{t('academics.register.studySetup')}</ButtonLink>
+            <ButtonLink to={`/academics/timetable?term=${p.term}`} size="sm" variant="secondary">{t('academics.register.viewTimetable')}</ButtonLink>
           </div>
         </div>
       )}
@@ -235,7 +235,7 @@ export function RegisterPage() {
               <Card className={clsx(p.status === 'approved' && 'border-brand-500/60')}>
                 <SectionTitle>{t('academics.register.finalReview')}</SectionTitle>
                 <p className="text-xs text-muted">{t('academics.register.finalReviewHint')}</p>
-                <ul className="mt-2 space-y-1 text-sm">{p.sections.map((s) => <li key={s.id} className="flex justify-between"><span>{s.course_code} · sec {s.section_no} <span className="font-mono text-[10px] text-muted">{s.id}</span></span><span className="num">{s.credits}</span></li>)}<li className="flex justify-between border-t border-line pt-1 font-semibold"><span>{t('academics.register.total')}</span><span className="num">{p.credits} {t('common.credits')}</span></li></ul>
+                <ul className="mt-2 space-y-1 text-sm">{p.sections.map((s) => <li key={s.id} className="flex justify-between"><span>{s.course_code} · sec {s.section_no} <span className="font-mono text-xs text-muted">{s.id}</span></span><span className="num">{s.credits}</span></li>)}<li className="flex justify-between border-t border-line pt-1 font-semibold"><span>{t('academics.register.total')}</span><span className="num">{p.credits} {t('common.credits')}</span></li></ul>
                 {p.hard_fails.length > 0 && <div className="mt-2"><Callout tone="danger" title={t('academics.register.blocked')}>{p.hard_fails.join(' · ')}</Callout></div>}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {editable && <Button onClick={approve} disabled={!p.can_approve} loading={busy} icon={<ShieldCheck className="h-4 w-4" />}>{p.status === 'approved' ? t('academics.register.reapprove') : t('academics.register.approveExact')}</Button>}
@@ -254,7 +254,7 @@ export function RegisterPage() {
               {eligibility && (
                 <Card>
                   <SectionTitle>{t('academics.register.eligibility')}</SectionTitle>
-                  <div className="mb-2 flex flex-wrap gap-1">{eligibility.filter((e) => e.eligible).map((e) => <span key={e.code} className={clsx('rounded-md border px-1.5 py-0.5 text-[11px] font-medium', e.required ? 'border-brand-500/40 bg-brand-500/10' : 'border-line')} title={e.title_en}>{e.code}{e.conditional ? '*' : ''}</span>)}</div>
+                  <div className="mb-2 flex flex-wrap gap-1">{eligibility.filter((e) => e.eligible).map((e) => <span key={e.code} className={clsx('rounded-md border px-1.5 py-0.5 text-xs font-medium', e.required ? 'border-brand-500/40 bg-brand-500/10' : 'border-line')} title={e.title_en}>{e.code}{e.conditional ? '*' : ''}</span>)}</div>
                   <details className="text-xs"><summary className="cursor-pointer font-semibold text-muted">{t('academics.register.blockedN', { n: eligibility.filter((e) => !e.eligible).length })}</summary><ul className="mt-1 space-y-1">{eligibility.filter((e) => !e.eligible).map((e) => <li key={e.code}><span className="font-semibold">{e.code}</span> <span className="text-muted">— {e.reasons.join('; ')}</span></li>)}</ul></details>
                 </Card>
               )}

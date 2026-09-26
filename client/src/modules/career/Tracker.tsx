@@ -36,7 +36,7 @@ export function Tracker() {
         <div className="scroll-thin -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-3">
           {byCol.map((col) => (
             <section key={col.key} className="card-2 flex w-[82vw] shrink-0 snap-start flex-col p-2 sm:w-60" aria-label={t(`career.col.${col.key}`)}>
-              <header className="mb-2 flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-wide text-muted"><span>{t(`career.col.${col.key}`)}</span><span className="rounded-full bg-line px-1.5 text-[10px]">{col.items.length}</span></header>
+              <header className="mb-2 flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-wide text-muted"><span>{t(`career.col.${col.key}`)}</span><span className="rounded-full bg-line px-1.5 text-xs">{col.items.length}</span></header>
               <div className="flex flex-col gap-2">
                 {col.items.map((a) => (
                   <motion.article key={a.id} layout className="card p-3 text-sm">
@@ -47,17 +47,17 @@ export function Tracker() {
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <StatusPill status={a.status} />
                       <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>
-                      {a.emails_count > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-muted"><Mail className="h-3 w-3" />{a.emails_count}</span>}
+                      {a.emails_count > 0 && <span className="inline-flex items-center gap-1 text-xs text-muted"><Mail className="h-3 w-3" />{a.emails_count}</span>}
                     </div>
-                    {a.next_interview && <div className="mt-2 flex items-center gap-1 text-[11px] text-info"><CalendarClock className="h-3.5 w-3.5" />{fmtDateTime(a.next_interview.start_at, locale)}</div>}
-                    {a.deadline && !a.next_interview && <div className="mt-2 text-[11px] text-muted">{t('career.deadline')}: {fmtDate(a.deadline, locale)}</div>}
+                    {a.next_interview && <div className="mt-2 flex items-center gap-1 text-xs text-info"><CalendarClock className="h-3.5 w-3.5" />{fmtDateTime(a.next_interview.start_at, locale)}</div>}
+                    {a.deadline && !a.next_interview && <div className="mt-2 text-xs text-muted">{t('career.deadline')}: {fmtDate(a.deadline, locale)}</div>}
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-[11px] text-muted">{a.last_event ? fmtDate(a.last_event.created_at, locale) : ''}</span>
+                      <span className="text-xs text-muted">{a.last_event ? fmtDate(a.last_event.created_at, locale) : ''}</span>
                       <Button size="sm" variant="outline" onClick={() => setStatusFor(a)}>{t('career.changeStatus')}</Button>
                     </div>
                   </motion.article>
                 ))}
-                {col.items.length === 0 && <div className="rounded-xl border border-dashed border-line p-3 text-center text-[11px] text-muted">{t('common.empty')}</div>}
+                {col.items.length === 0 && <div className="rounded-xl border border-dashed border-line p-3 text-center text-xs text-muted">{t('common.empty')}</div>}
               </div>
             </section>
           ))}

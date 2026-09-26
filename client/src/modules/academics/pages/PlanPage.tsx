@@ -6,11 +6,11 @@ import { useI18n } from '@/i18n';
 import { api } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card, SectionTitle, Skeleton, ErrorState, Progress, Badge, Callout, Tabs, Button } from '@/components/ui';
+import { Card, SectionTitle, Skeleton, ErrorState, Progress, Badge, Callout, Tabs, Button, ButtonLink } from '@/components/ui';
 import { AcademicsNav } from '../components';
 import { termLabel, type DegreePlan, type PlanCourse } from '../api';
 
-const STATUS_TONE: Record<string, string> = { completed: 'border-success/40 bg-success/10', equivalent: 'border-gold-500/60 bg-gold-100/60 dark:bg-gold-700/20', enrolled: 'border-brand-500/50 bg-brand-500/10', planned: 'border-info/40 bg-info/10', available: 'border-line bg-surface', blocked: 'border-line bg-line/40 opacity-80' };
+const STATUS_TONE: Record<string, string> = { completed: 'border-success/40 bg-success/10', equivalent: 'border-gold-500/60 bg-gold-100/60 dark:bg-gold-700/20', enrolled: 'border-brand-500/50 bg-brand-500/10', planned: 'border-info/40 bg-info/10', available: 'border-line bg-surface', blocked: 'border-dashed border-line bg-line/40' };
 const DOT: Record<string, string> = { completed: '#1f8a5b', equivalent: '#c8975b', enrolled: '#f0762b', planned: '#2f6fdb', available: '#8f857b', blocked: '#d9cfc4' };
 
 function CoursePill({ c, onSelect, selected }: { c: PlanCourse; onSelect: (code: string | null) => void; selected: boolean }) {
@@ -19,14 +19,14 @@ function CoursePill({ c, onSelect, selected }: { c: PlanCourse; onSelect: (code:
     <div className={clsx('rounded-xl border p-2.5 text-sm transition', STATUS_TONE[c.status] ?? STATUS_TONE.available, selected && 'ring-2 ring-brand-500', c.code && 'hover:border-brand-400')}>
       <div className="flex items-center justify-between gap-2">
         <span className="font-semibold">{c.code ?? l(c.slot_label_en ?? c.title_en, c.slot_label_ar ?? c.title_ar)}</span>
-        <span className="num text-[11px] text-muted">{c.credits} {t('common.credits')}</span>
+        <span className="num text-xs text-muted">{c.credits} {t('common.credits')}</span>
       </div>
       <div className="truncate text-xs text-muted">{c.code ? l(c.title_en, c.title_ar) : c.candidates?.length ? t('academics.plan.candidates', { n: c.candidates.length }) : t('academics.plan.noCandidates')}</div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide"><span className="h-1.5 w-1.5 rounded-full" style={{ background: DOT[c.status] }} />{t(`status.${c.status}`)}</span>
-        {c.grade && <span className="num rounded bg-line/70 px-1 text-[10px]">{c.grade}</span>}
-        {c.term && <span className="num text-[10px] text-muted">{termLabel(c.term, 'en')}</span>}
-        {c.status === 'blocked' && c.reasons.length > 0 && <span className="text-[10px] text-danger">{c.reasons.join('; ')}</span>}
+        <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide"><span className="h-1.5 w-1.5 rounded-full" style={{ background: DOT[c.status] }} />{t(`status.${c.status}`)}</span>
+        {c.grade && <span className="num rounded bg-line/70 px-1 text-xs">{c.grade}</span>}
+        {c.term && <span className="num text-xs text-muted">{termLabel(c.term, 'en')}</span>}
+        {c.status === 'blocked' && c.reasons.length > 0 && <span className="text-xs text-danger">{c.reasons.join('; ')}</span>}
       </div>
     </div>
   );
@@ -88,11 +88,11 @@ export function PlanPage() {
   const sel = selected ? d.terms.flatMap((x) => x.courses).find((c) => c.code === selected) : null;
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.plan.title')} subtitle={`${l(d.program.en, d.program.ar)} · ${t('academics.plan.subtitle')}`} actions={<Link to="/journey/graduation"><Button variant="outline" size="sm" icon={<GraduationCap className="h-4 w-4" />}>{t('academics.plan.graduation')}</Button></Link>} />
+      <PageHeader eyebrow={t('nav.academics')} title={t('academics.plan.title')} subtitle={`${l(d.program.en, d.program.ar)} · ${t('academics.plan.subtitle')}`} actions={<ButtonLink to="/journey/graduation" variant="outline" size="sm" icon={<GraduationCap className="h-4 w-4" />}>{t('academics.plan.graduation')}</ButtonLink>} />
       <AcademicsNav />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Tabs value={view} onChange={setView} items={[{ value: 'map', label: t('academics.plan.map') }, { value: 'graph', label: t('academics.plan.graph') }, { value: 'audit', label: t('academics.plan.audit') }]} />
-        <div className="flex flex-wrap gap-2 text-[11px]">{Object.entries(DOT).map(([k, c]) => <span key={k} className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: c }} />{t(`status.${k}`)}</span>)}</div>
+        <div className="flex flex-wrap gap-2 text-xs">{Object.entries(DOT).map(([k, c]) => <span key={k} className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: c }} />{t(`status.${k}`)}</span>)}</div>
       </div>
       {sel && (
         <Callout tone="info" title={`${sel.code} · ${l(sel.title_en, sel.title_ar)}`}>
@@ -128,8 +128,8 @@ export function PlanPage() {
                   <div><div className="font-semibold">{l(b.label_en, b.label_ar)}</div><div className="text-xs text-muted">{t('academics.plan.bucketLine', { earned: b.earned_credits, inProgress: b.in_progress_credits, required: b.required_credits })}</div></div>
                   <Badge tone={b.remaining_credits === 0 ? 'success' : b.remaining_credits <= b.in_progress_credits ? 'info' : 'warn'}>{b.remaining_credits === 0 ? t('academics.plan.met') : t('academics.plan.remaining', { n: b.remaining_credits })}</Badge>
                 </div>
-                <Progress value={b.earned_credits} max={Math.max(1, b.required_credits)} tone={b.remaining_credits === 0 ? 'success' : 'brand'} className="mt-2" />
-                <div className="mt-2 flex flex-wrap gap-1">{b.courses.map((c) => <span key={c.code} className={clsx('rounded-md border px-1.5 py-0.5 text-[10px] font-medium', STATUS_TONE[c.status === 'missing' ? 'blocked' : c.status] ?? 'border-line')} title={c.title_en}>{c.code}{c.grade ? ` · ${c.grade}` : ''}</span>)}</div>
+                <Progress label={l(b.label_en, b.label_ar)} value={b.earned_credits} max={Math.max(1, b.required_credits)} tone={b.remaining_credits === 0 ? 'success' : 'brand'} className="mt-2" />
+                <div className="mt-2 flex flex-wrap gap-1">{b.courses.map((c) => <span key={c.code} className={clsx('rounded-md border px-1.5 py-0.5 text-xs font-medium', STATUS_TONE[c.status === 'missing' ? 'blocked' : c.status] ?? 'border-line')} title={c.title_en}>{c.code}{c.grade ? ` · ${c.grade}` : ''}</span>)}</div>
               </Card>
             ))}
           </div>
@@ -153,8 +153,8 @@ export function PlanPage() {
             )}
             <Card>
               <SectionTitle>{t('academics.plan.nextTermEligible')}</SectionTitle>
-              <div className="flex flex-wrap gap-1">{d.next_term.eligibility.filter((e) => e.eligible).map((e) => <Link key={e.code} to={`/academics/register?course=${encodeURIComponent(e.code)}`} className="rounded-md border border-line px-1.5 py-0.5 text-[11px] font-medium hover:border-brand-400">{e.code}</Link>)}</div>
-              <Link to="/academics/register" className="mt-3 inline-block text-xs font-semibold text-brand-600 hover:underline">{t('academics.overview.planNext', { term: termLabel(d.next_term.id, 'en') })}</Link>
+              <div className="flex flex-wrap gap-1">{d.next_term.eligibility.filter((e) => e.eligible).map((e) => <Link key={e.code} to={`/academics/register?course=${encodeURIComponent(e.code)}`} className="inline-flex items-center touch:min-h-11 rounded-md border border-line px-2.5 py-0.5 text-xs font-medium hover:border-brand-400">{e.code}</Link>)}</div>
+              <Link to="/academics/register" className="inline-flex min-h-11 items-center text-sm mt-3 font-semibold text-brand-600 hover:underline">{t('academics.overview.planNext', { term: termLabel(d.next_term.id, 'en') })}</Link>
             </Card>
           </div>
         </div>

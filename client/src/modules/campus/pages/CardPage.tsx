@@ -1,5 +1,6 @@
 import { QRCodeSVG } from 'qrcode.react';
-import { ShieldCheck, Users, Award } from 'lucide-react';
+import { ShieldCheck, Users, Award, ArrowRight } from 'lucide-react';
+import { readableOn } from '@/lib/color';
 import { useI18n } from '@/i18n';
 import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
@@ -18,7 +19,7 @@ function CardFace({ d }: { d: CardData }) {
     <div className="flex h-full w-full flex-col justify-between rounded-3xl bg-[linear-gradient(135deg,#1e1b18,#2a2622_55%,#3a2a1a)] p-5 text-white shadow-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-300">Al Yamamah University · UniJourney</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-300">Al Yamamah University · UniJourney</div>
           <div className="mt-2 text-lg font-bold leading-tight">{l(d.user.name_en, d.user.name_ar)}</div>
           <div className="text-xs text-white/70">{d.program ? l(d.program.name_en, d.program.name_ar) : d.user.stage} · {d.campus ? l(d.campus.name_en, d.campus.name_ar).replace(/.*– /, '') : ''}</div>
         </div>
@@ -28,11 +29,11 @@ function CardFace({ d }: { d: CardData }) {
         <div className="text-xs">
           <div className="text-white/60">{t('campus.card.studentNo')}</div>
           <div className="num text-base font-semibold tracking-wider">{d.user.student_no ?? '—'}</div>
-          <div className="mt-2 flex flex-wrap gap-1">{d.memberships.slice(0, 3).map((m) => <span key={m.club_id} className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: m.color }}>{l(m.name_en, m.name_ar)}</span>)}</div>
+          <div className="mt-2 flex flex-wrap gap-1">{d.memberships.slice(0, 3).map((m) => <span key={m.club_id} className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: m.color, color: readableOn(m.color) }}>{l(m.name_en, m.name_ar)}</span>)}</div>
         </div>
-        <div className="rounded-xl bg-white p-1.5"><QRCodeSVG value={d.qr.payload} size={72} level="M" /></div>
+        <div className="rounded-xl bg-white p-1.5"><QRCodeSVG value={d.qr.payload} size={72} level="M" title={t('campus.card.qrNote')} /></div>
       </div>
-      <div className="text-[9px] text-white/50">{t('campus.card.issued')} {fmtDate(d.issued_at, locale)} · {t('campus.card.qrNote')}</div>
+      <div className="text-xs text-white/50">{t('campus.card.issued')} {fmtDate(d.issued_at, locale)} · {t('campus.card.qrNote')}</div>
     </div>
   );
 }
@@ -97,7 +98,7 @@ export function CardPage() {
         </div>
       )}
       <div className="card-next-steps mt-6 flex flex-wrap gap-2">
-        {[{ to: '/campus/clubs', label: t('nav.campus') + ' · ' + 'Clubs' }, { to: '/campus/events', label: 'Events' }, { to: '/campus/map', label: t('today.action.map') }, { to: '/journey/onboarding', label: t('nav.journey') }].map((x) => <Link key={x.to} to={x.to} className="rounded-full border border-line px-3 py-1.5 text-sm hover:border-brand-400">{x.label} →</Link>)}
+        {[{ to: '/campus/clubs', label: t('campus.clubs.title') }, { to: '/campus/events', label: t('campus.events.title') }, { to: '/campus/map', label: t('today.action.map') }, { to: '/journey/onboarding', label: t('nav.journey') }].map((x) => <Link key={x.to} to={x.to} className="inline-flex min-h-11 items-center gap-1 rounded-full border border-line px-4 text-sm hover:border-brand-400">{x.label}<ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden /></Link>)}
       </div>
     </div>
   );

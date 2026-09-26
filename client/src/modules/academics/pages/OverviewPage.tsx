@@ -7,7 +7,8 @@ import { useQuery } from '@/lib/useQuery';
 import { useTheme } from '@/lib/theme';
 import { fmtTime, weekdayName, fmtDate } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card, SectionTitle, Skeleton, ErrorState, EmptyState, Progress, StatusPill, Badge, Button } from '@/components/ui';
+import { AbsenceBar, AbsenceLegend } from '@/components/ui/AbsenceBar';
+import { Card, SectionTitle, Skeleton, ErrorState, EmptyState, Progress, StatusPill, Badge, Button, ButtonLink, SectionLink } from '@/components/ui';
 import GradientText from '@/components/reactbits/GradientText';
 import SpotlightCard from '@/components/reactbits/SpotlightCard';
 import { AcademicsNav, StatTile } from '../components';
@@ -26,19 +27,19 @@ export function OverviewPage() {
   for (const e of d.week.entries) { const wd = new Date(new Date(e.start_at).getTime() + 3 * 3600e3).getUTCDay(); if (!byDay.has(wd)) byDay.set(wd, []); byDay.get(wd)!.push(e); }
   return (
     <div>
-      <PageHeader eyebrow={t('nav.academics')} title={t('academics.overview.hello', { name: first })} subtitle={d.student.program ? `${l(d.student.program.en, d.student.program.ar)} · ${t('academics.overview.level', { level: d.student.level })} · ${l(d.term.label.en, d.term.label.ar)}` : t('academics.overview.noProgram')} />
+      <PageHeader eyebrow={t('nav.academics')} documentTitle={t('nav.academics')} title={t('academics.overview.hello', { name: first })} subtitle={d.student.program ? `${l(d.student.program.en, d.student.program.ar)} · ${t('academics.overview.level', { level: d.student.level })} · ${l(d.term.label.en, d.term.label.ar)}` : t('academics.overview.noProgram')} />
       <AcademicsNav />
       <section className={clsx('relative mb-6 overflow-hidden rounded-3xl border border-line p-6', resolved === 'dark' ? 'bg-gradient-to-br from-brand-900/40 via-surface to-surface' : 'bg-gradient-to-br from-brand-50 via-surface to-gold-100/40')}>
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-600">{t('academics.overview.degreeProgress')}</div>
             <div className="mt-1 text-3xl font-bold">{reducedMotion ? <span>{pct}%</span> : <GradientText colors={['#f0762b', '#c8975b', '#f0762b']} animationSpeed={6} className="!mx-0">{pct}%</GradientText>}<span className="ms-2 text-base font-medium text-muted">{t('academics.overview.ofCredits', { earned: d.credits.earned, required: d.credits.required })}</span></div>
-            <Progress value={d.credits.earned} max={d.credits.required} className="mt-3 max-w-md" />
+            <Progress label={t('academics.overview.degreeProgress')} value={d.credits.earned} max={d.credits.required} className="mt-3 max-w-md" />
             {d.credits.estimate && <div className="mt-2 text-xs text-muted">{t('academics.overview.estimate', { terms: d.credits.estimate.terms_remaining })} · {d.credits.estimate.assumptions}</div>}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link to="/academics/plan"><Button variant="outline" size="sm" icon={<GraduationCap className="h-4 w-4" />}>{t('academics.nav.plan')}</Button></Link>
-            <Link to="/academics/register"><Button size="sm" icon={<Sparkles className="h-4 w-4" />}>{t('academics.overview.planNext', { term: l(d.term.next.label.en, d.term.next.label.ar) })}</Button></Link>
+            <ButtonLink to="/academics/plan" variant="outline" size="sm" icon={<GraduationCap className="h-4 w-4" />}>{t('academics.nav.plan')}</ButtonLink>
+            <ButtonLink to="/academics/register" size="sm" icon={<Sparkles className="h-4 w-4" />}>{t('academics.overview.planNext', { term: l(d.term.next.label.en, d.term.next.label.ar) })}</ButtonLink>
           </div>
         </div>
       </section>
@@ -67,15 +68,15 @@ export function OverviewPage() {
               ))}
             </div>
           )}
-          <SectionTitle className="mt-6" action={<Link to="/academics/timetable" className="text-xs font-semibold text-brand-600 hover:underline">{t('academics.overview.fullTimetable')}</Link>}>{t('academics.overview.thisWeek')}</SectionTitle>
+          <SectionTitle className="mt-6" action={<SectionLink to="/academics/timetable">{t('academics.overview.fullTimetable')}</SectionLink>}>{t('academics.overview.thisWeek')}</SectionTitle>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
             {[0, 1, 2, 3, 4].map((wd) => {
               const list = byDay.get(wd) ?? [];
               return (
                 <div key={wd} className="card-2 p-2">
                   <div className="mb-1 text-xs font-semibold text-muted">{weekdayName(wd, locale)}</div>
-                  {list.length === 0 && <div className="text-[11px] text-muted">{t('academics.overview.free')}</div>}
-                  <ul className="space-y-1">{list.map((e) => <li key={e.id} className={clsx('rounded-lg border px-1.5 py-1 text-[11px]', e.kind === 'exam' ? 'border-danger/40 bg-danger/10' : 'border-line bg-surface')}><span className="num text-muted">{fmtTime(e.start_at, locale)}</span> <span className="font-medium">{e.title.split(' · ')[0]}</span></li>)}</ul>
+                  {list.length === 0 && <div className="text-xs text-muted">{t('academics.overview.free')}</div>}
+                  <ul className="space-y-1">{list.map((e) => <li key={e.id} className={clsx('rounded-lg border px-1.5 py-1 text-xs', e.kind === 'exam' ? 'border-danger/40 bg-danger/10' : 'border-line bg-surface')}><span className="num text-muted">{fmtTime(e.start_at, locale)}</span> <span className="font-medium">{e.title.split(' · ')[0]}</span></li>)}</ul>
                 </div>
               );
             })}
@@ -87,24 +88,25 @@ export function OverviewPage() {
             <ul className="space-y-3">
               {d.attendance.courses.map((c) => (
                 <li key={c.course_code}>
-                  <div className="flex items-center justify-between text-sm"><Link to="/academics/attendance" className="font-semibold hover:text-brand-600">{c.course_code}</Link><span className={clsx('num text-xs', c.level === 'denial' ? 'text-danger' : c.level === 'warning' ? 'text-warn' : 'text-muted')}>{c.absence_percent}% · {c.counts.absent}/{c.total}</span></div>
-                  <Progress value={c.absence_percent} max={d.attendance.policy.denial.value} tone={c.level === 'denial' ? 'danger' : c.level === 'warning' ? 'warn' : 'success'} className="mt-1 h-1.5" />
+                  <div className="flex items-center justify-between text-sm"><Link to="/academics/attendance" className="inline-flex items-center font-semibold hover:text-brand-600 touch:min-h-11">{c.course_code}</Link><span className={clsx('num text-xs', c.level === 'denial' ? 'text-danger' : c.level === 'warning' ? 'text-warn' : 'text-muted')}>{c.absence_percent}% · {c.counts.absent}/{c.total}</span></div>
+                  <AbsenceBar label={c.course_code} percent={c.absence_percent} warn={d.attendance.policy.warning.value} deny={d.attendance.policy.denial.value} level={c.level === 'denial' ? 'danger' : c.level === 'warning' ? 'warn' : 'ok'} className="mt-1.5" />
                 </li>
               ))}
             </ul>
-            <div className="mt-3 text-[11px] text-muted">{t('academics.attendance.policyNote', { warn: d.attendance.policy.warning.value, deny: d.attendance.policy.denial.value })} · {d.attendance.policy.warning.provenance}</div>
+            <AbsenceLegend className="mt-3" warn={d.attendance.policy.warning.value} deny={d.attendance.policy.denial.value} />
+            <div className="mt-1 text-xs text-muted">{d.attendance.policy.warning.provenance}</div>
           </Card>
           <Card>
-            <SectionTitle action={<Link to="/academics/excuses" className="text-xs font-semibold text-brand-600 hover:underline">{t('common.view')}</Link>}>{t('academics.nav.excuses')}</SectionTitle>
+            <SectionTitle action={<SectionLink to="/academics/excuses">{t('common.view')}</SectionLink>}>{t('academics.nav.excuses')}</SectionTitle>
             {d.excuses.items.length === 0 ? <div className="text-sm text-muted">{t('academics.excuses.none')}</div> : (
-              <ul className="space-y-2 text-sm">{d.excuses.items.map((e) => <li key={e.id} className="flex items-center justify-between gap-2"><Link to={`/academics/excuses/${e.id}`} className="truncate hover:text-brand-600">{e.sessions.map((s) => `${s.course_code} ${fmtDate(s.session_date, locale)}`).join(', ')}</Link><StatusPill status={e.status} /></li>)}</ul>
+              <ul className="space-y-2 text-sm">{d.excuses.items.map((e) => <li key={e.id} className="flex items-center justify-between gap-2"><Link to={`/academics/excuses/${e.id}`} className="inline-flex items-center touch:min-h-11 truncate hover:text-brand-600">{e.sessions.map((s) => `${s.course_code} ${fmtDate(s.session_date, locale)}`).join(', ')}</Link><StatusPill status={e.status} /></li>)}</ul>
             )}
           </Card>
           {d.proposals.latest && (
             <Card>
               <SectionTitle>{t('academics.register.latestProposal')}</SectionTitle>
               <div className="flex items-center justify-between text-sm"><span>{l(d.proposals.latest.term_label.en, d.proposals.latest.term_label.ar)} · {d.proposals.latest.credits} {t('common.credits')}</span><StatusPill status={d.proposals.latest.status} /></div>
-              <Link to={`/academics/register?proposal=${d.proposals.latest.id}`} className="mt-2 inline-block text-xs font-semibold text-brand-600 hover:underline">{t('common.open')}</Link>
+              <Link to={`/academics/register?proposal=${d.proposals.latest.id}`} className="inline-flex min-h-11 items-center text-sm mt-2 font-semibold text-brand-600 hover:underline">{t('common.open')}</Link>
             </Card>
           )}
         </div>

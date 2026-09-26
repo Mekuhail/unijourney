@@ -62,11 +62,11 @@ function ProgramExplorer() {
               <motion.article key={p.id} layout className="card flex flex-col p-4">
                 <div className="flex items-start justify-between gap-2"><div><div className="font-semibold">{l(p.name_en, p.name_ar)}</div><div className="text-xs text-muted">{p.degree} · {p.code}</div></div><Badge tone="neutral">{p.total_credits} {t('common.credits')}</Badge></div>
                 <p className="mt-2 line-clamp-3 text-sm text-muted">{l(p.description_en, p.description_ar)}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">{p.campus_ids.map((c) => <Badge key={c} tone="brand"><MapPin className="h-3 w-3" />{campusName(c, t)}</Badge>)}<span className="text-[11px] text-muted">{p.duration_years} {t('journey.years')}</span></div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">{p.campus_ids.map((c) => <Badge key={c} tone="brand"><MapPin className="h-3 w-3" />{campusName(c, t)}</Badge>)}<span className="text-xs text-muted">{p.duration_years} {t('journey.years')}</span></div>
                 <button type="button" className="mt-2 text-start text-xs text-brand-600 hover:underline" onClick={() => setOpen(open === p.id ? null : p.id)}>{open === p.id ? t('common.less') : t('journey.criteria')}</button>
                 <AnimatePresence initial={false}>{open === p.id && <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-xs text-muted">{p.criteria.map((c) => <li key={c.key} className="flex gap-1.5 py-0.5"><Info className="mt-0.5 h-3 w-3 shrink-0" /><span>{l(c.label_en, c.label_ar)} <span className="opacity-70">– {c.note}</span></span></li>)}</motion.ul>}</AnimatePresence>
                 <div className="mt-auto flex items-center justify-between pt-3">
-                  {p.source_url && <a href={p.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg"><ExternalLink className="h-3.5 w-3.5" />{t('journey.officialPage')}</a>}
+                  {p.source_url && <a href={p.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg min-h-11"><ExternalLink className="h-3.5 w-3.5" />{t('journey.officialPage')}</a>}
                   <Button size="sm" onClick={() => { setApply(p); setApplyCampus(p.campus_ids[0] ?? 'riyadh'); }}>{t('journey.apply')}</Button>
                 </div>
               </motion.article>

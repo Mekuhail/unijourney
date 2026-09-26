@@ -47,7 +47,7 @@ export function ResourceCard({ r, onPreview, onTask, onReport }: { r: Resource; 
         <Button size="sm" variant={r.bookmarked ? 'gold' : 'outline'} loading={busy === 'bm'} icon={r.bookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />} onClick={() => void toggle('bookmark')} aria-pressed={r.bookmarked}>{t('campus.resources.bookmark')}</Button>
         <Button size="sm" variant="secondary" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => onPreview(r)}>{t('campus.resources.preview')}</Button>
         <Button size="sm" variant="secondary" icon={<ListPlus className="h-3.5 w-3.5" />} onClick={() => onTask(r)}>{t('campus.resources.addTask')}</Button>
-        <button type="button" className="ms-auto rounded-lg p-1.5 text-muted hover:bg-line/60 hover:text-danger" title={t('campus.resources.report')} aria-label={t('campus.resources.report')} onClick={() => onReport(r)}><Flag className="h-3.5 w-3.5" /></button>
+        <button type="button" className="-me-2 ms-auto grid h-11 w-11 place-items-center rounded-lg text-muted hover:bg-line/60 hover:text-danger" title={t('campus.resources.report')} aria-label={t('campus.resources.report')} onClick={() => onReport(r)}><Flag className="h-3.5 w-3.5" /></button>
       </div>
     </article>
   );
@@ -69,7 +69,7 @@ export function PreviewModal({ resource, onClose, onTask }: { resource: Resource
   const p = q.data;
   return (
     <Modal open={!!resource} onClose={onClose} title={resource?.title ?? ''} size="xl" description={resource ? `${resource.course_code} · ${t(`campus.resources.types.${resource.type}`)}` : undefined}
-      footer={<>{p?.file_url && <a href={`/api/campus/resources/${resource!.id}/download`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-xl border border-line px-4 text-sm font-medium hover:border-brand-400"><Download className="h-4 w-4" />{t('campus.resources.download')}</a>}<Button variant="secondary" icon={<ListPlus className="h-4 w-4" />} onClick={() => resource && onTask(resource)}>{t('campus.resources.addTask')}</Button><Button variant="gold" loading={busy} icon={<Sparkles className="h-4 w-4" />} onClick={() => void summarise()} disabled={!p?.content_text}>{t('campus.resources.summary')}</Button></>}>
+      footer={<>{p?.file_url && <a href={`/api/campus/resources/${resource!.id}/download`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-xl border border-line px-4 text-sm font-medium hover:border-brand-400 min-h-11"><Download className="h-4 w-4" />{t('campus.resources.download')}</a>}<Button variant="secondary" icon={<ListPlus className="h-4 w-4" />} onClick={() => resource && onTask(resource)}>{t('campus.resources.addTask')}</Button><Button variant="gold" loading={busy} icon={<Sparkles className="h-4 w-4" />} onClick={() => void summarise()} disabled={!p?.content_text}>{t('campus.resources.summary')}</Button></>}>
       {q.loading && <Skeleton className="h-64" />}
       {q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : null}
       {p && (
@@ -81,7 +81,7 @@ export function PreviewModal({ resource, onClose, onTask }: { resource: Resource
               <div className="mt-2 text-xs text-muted">{summary.note} {t('campus.resources.summaryNote')}</div>
             </Callout>
           )}
-          {tab === 'text' && (p.paragraphs.length ? <div className="space-y-3 text-sm leading-relaxed">{p.paragraphs.map((para, i) => <p key={i}><span className="me-2 rounded bg-line/60 px-1.5 py-0.5 text-[10px] font-semibold text-muted">P{i + 1}</span>{para}</p>)}</div> : <EmptyState title={t('common.empty')} />)}
+          {tab === 'text' && (p.paragraphs.length ? <div className="space-y-3 text-sm leading-relaxed">{p.paragraphs.map((para, i) => <p key={i}><span className="me-2 rounded bg-line/60 px-1.5 py-0.5 text-xs font-semibold text-muted">P{i + 1}</span>{para}</p>)}</div> : <EmptyState title={t('common.empty')} />)}
           {tab === 'pdf' && (p.file_url ? <iframe title={p.title} src={p.file_url} className="h-[60vh] w-full rounded-xl border border-line bg-white" /> : <EmptyState title={t('common.empty')} />)}
         </div>
       )}

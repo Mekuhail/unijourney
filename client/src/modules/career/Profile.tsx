@@ -79,9 +79,9 @@ export function Profile() {
             <li key={g.skill} className="card-2 p-3 text-sm">
               <div className="flex flex-wrap items-center gap-2"><SkillChip tone="missing">{g.skill}</SkillChip><span className="text-xs text-muted">{t('career.neededBy', { n: g.opportunities.length })}: {g.opportunities.map((o) => o.company).join(', ')}</span></div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                {g.workshops.map((w) => <Link key={w.id} to={w.link} className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-2 py-1 text-xs hover:border-brand-400"><BookOpen className="h-3.5 w-3.5 text-brand-500" />{l(w.title_en, w.title_ar)} · {fmtDateTime(w.start_at, locale)}</Link>)}
+                {g.workshops.map((w) => <Link key={w.id} to={w.link} className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-2 py-1 text-xs hover:border-brand-400 touch:min-h-11"><BookOpen className="h-3.5 w-3.5 text-brand-500" />{l(w.title_en, w.title_ar)} · {fmtDateTime(w.start_at, locale)}</Link>)}
                 {g.workshops.length === 0 && <span className="text-xs text-muted">{t('career.noWorkshops')}</span>}
-                {g.task ? <Link to={g.task.link} className="ms-auto inline-flex items-center gap-1 text-xs text-success"><ListTodo className="h-3.5 w-3.5" />{t('career.taskExists')} · <Badge tone="neutral">{t(`status.${g.task.status}`)}</Badge></Link> : <Button size="sm" variant="outline" className="ms-auto" loading={taskBusy === g.skill} icon={<ListTodo className="h-4 w-4" />} onClick={() => void createTask(g)}>{t('career.createTask')}</Button>}
+                {g.task ? <Link to={g.task.link} className="ms-auto inline-flex items-center gap-1 text-xs text-success min-h-11"><ListTodo className="h-3.5 w-3.5" />{t('career.taskExists')} · <Badge tone="neutral">{t(`status.${g.task.status}`)}</Badge></Link> : <Button size="sm" variant="outline" className="ms-auto" loading={taskBusy === g.skill} icon={<ListTodo className="h-4 w-4" />} onClick={() => void createTask(g)}>{t('career.createTask')}</Button>}
               </div>
             </li>
           ))}

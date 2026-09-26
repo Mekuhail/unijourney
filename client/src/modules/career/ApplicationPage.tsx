@@ -49,7 +49,7 @@ export function ApplicationPage() {
 
   return (
     <div>
-      <Link to="/career?tab=tracker" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><ArrowLeft className="h-4 w-4 rtl:rotate-180" />{t('career.backToTracker')}</Link>
+      <Link to="/career?tab=tracker" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-fg min-h-11"><ArrowLeft className="h-4 w-4 rtl:rotate-180" />{t('career.backToTracker')}</Link>
       <PageHeader eyebrow={`${t('nav.career')} · ${TYPE_LABEL[a.type] ?? a.type}`} title={a.title} subtitle={<span className="flex flex-wrap items-center gap-2">{a.company}<StatusPill status={a.status} />{a.applied_at && <Badge tone="brand">{t('career.appliedOn')} {fmtDate(a.applied_at, locale)} · {t('career.attestedBy')} {a.attested_by}</Badge>}</span>}
         actions={<><Button variant="outline" icon={<Wand2 className="h-4 w-4" />} onClick={() => setPrepareOpen(true)}>{t('career.prepare')}</Button><Button variant="outline" icon={<CalendarPlus className="h-4 w-4" />} onClick={() => setInterviewOpen(true)}>{t('career.addInterview')}</Button><Button onClick={() => setStatusOpen(true)}>{t('career.changeStatus')}</Button></>} />
 
@@ -88,7 +88,7 @@ export function ApplicationPage() {
                     <div className="text-xs text-muted">{iv.location ?? t('career.online')} · Asia/Riyadh{iv.link && <> · <a href={iv.link} target="_blank" rel="noreferrer" className="text-brand-600 hover:underline">{t('career.joinLink')}</a></>}</div>
                     {iv.notes && <div className="mt-1 text-xs">{iv.notes}</div>}
                   </div>
-                  <Link to="/calendar" className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle2 className="h-4 w-4" />{t('career.onCalendar')}</Link>
+                  <Link to="/calendar" className="inline-flex items-center gap-1 text-xs text-success min-h-11"><CheckCircle2 className="h-4 w-4" />{t('career.onCalendar')}</Link>
                   <Button size="sm" variant="ghost" icon={<Trash2 className="h-4 w-4" />} onClick={() => setDelInterview(iv)} aria-label={t('common.remove')} />
                 </li>
               ))}
@@ -106,7 +106,7 @@ export function ApplicationPage() {
                 </li>
               ))}
             </ul>
-            <Link to="/career?tab=inbox" className="mt-2 inline-block text-xs text-brand-600 hover:underline">{t('career.openInbox')}</Link>
+            <Link to="/career?tab=inbox" className="inline-flex min-h-11 items-center mt-2 text-xs text-brand-600 hover:underline">{t('career.openInbox')}</Link>
           </Card>
         </div>
 
@@ -117,7 +117,7 @@ export function ApplicationPage() {
               { k: t('career.company'), v: a.company },
               { k: t('career.type'), v: TYPE_LABEL[a.type] ?? a.type },
               { k: t('career.source'), v: a.opportunity ? <Badge tone="gold">{a.opportunity.source}</Badge> : t('career.manualEntry') },
-              { k: 'URL', v: a.url ? <a className="inline-flex items-center gap-1 text-brand-600 hover:underline" href={a.url} target="_blank" rel="noreferrer">{t('career.sourceLink')}<ExternalLink className="h-3.5 w-3.5" /></a> : '—' },
+              { k: 'URL', v: a.url ? <a className="inline-flex items-center gap-1 text-brand-600 hover:underline touch:min-h-11" href={a.url} target="_blank" rel="noreferrer">{t('career.sourceLink')}<ExternalLink className="h-3.5 w-3.5" /></a> : '—' },
               { k: t('career.created'), v: fmtDate(a.created_at, locale) }
             ]} />
             {a.opportunity?.match && <div className="mt-3 text-xs text-muted">{t('career.matchScore')}: <span className="font-semibold text-fg">{a.opportunity.match.score}</span> · {a.opportunity.match.missing.length ? `${t('career.missingSkills')}: ${a.opportunity.match.missing.join(', ')}` : t('career.noMissing')}</div>}

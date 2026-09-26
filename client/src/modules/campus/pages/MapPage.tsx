@@ -138,11 +138,11 @@ export function MapPage() {
                     className={clsx('uj-chip inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition', on ? 'border-transparent bg-surface text-fg shadow-sm' : 'border-line bg-surface/70 text-muted line-through decoration-1')}>
                     <span className="h-2.5 w-2.5 rounded-full" style={{ background: on ? CATEGORY_COLOR[c] : 'transparent', boxShadow: `inset 0 0 0 2px ${CATEGORY_COLOR[c]}` }} />
                     {t(`map.cat.${c}`)}
-                    <span className="num text-[10px] font-medium text-muted">{counts.get(c)}</span>
+                    <span className="num text-xs font-medium text-muted">{counts.get(c)}</span>
                   </button>
                 );
               })}
-              {hidden.size > 0 && <button type="button" onClick={() => setHidden(new Set())} className="uj-chip shrink-0 rounded-full bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">{t('map.showAll')}</button>}
+              {hidden.size > 0 && <button type="button" onClick={() => setHidden(new Set())} className="uj-chip shrink-0 rounded-full bg-brand-500 px-3 py-1.5 text-xs font-semibold text-ink-950 shadow-sm">{t('map.showAll')}</button>}
             </div>
           </div>
 
@@ -152,7 +152,7 @@ export function MapPage() {
               <div className="pointer-events-auto glass flex items-center gap-3 rounded-2xl px-3 py-2 shadow-lg lg:hidden">
                 {routeOk ? (
                   <>
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 text-white">{r!.mode === 'accessible' ? <Accessibility className="h-4 w-4" /> : <Footprints className="h-4 w-4" />}</span>
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 text-ink-950">{r!.mode === 'accessible' ? <Accessibility className="h-4 w-4" /> : <Footprints className="h-4 w-4" />}</span>
                     <span className="num min-w-0 flex-1 text-sm font-semibold">{t('map.routeSummary', { m: r!.distance_m, t: minutesLabel(r!.duration_min, locale) })}</span>
                     <Button size="sm" variant="ghost" onClick={() => setQ({ from: null, to: null })}>{t('map.closeRoute')}</Button>
                   </>
@@ -170,7 +170,7 @@ export function MapPage() {
                 {campus && <GeometryBadge status={campus.geometry_status} />}
                 {campus && <Badge tone="neutral" className="!bg-surface/85">{t('map.results', { n: campus.locations })}</Badge>}
               </div>
-              <button type="button" onClick={() => setRecenterKey((k) => k + 1)} className="pointer-events-auto glass grid h-10 w-10 place-items-center rounded-xl shadow-md hover:text-brand-600" title={t('map.recenter')} aria-label={t('map.recenter')}><Maximize2 className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setRecenterKey((k) => k + 1)} className="pointer-events-auto glass grid h-11 w-11 place-items-center rounded-xl shadow-md hover:text-brand-600" title={t('map.recenter')} aria-label={t('map.recenter')}><Maximize2 className="h-4 w-4" /></button>
             </div>
           </div>
         </section>
@@ -272,15 +272,15 @@ export function MapPage() {
                         <span className="num text-2xl font-bold tracking-tight">{minutesLabel(r.duration_min, locale)}</span>
                         <span className="num text-sm text-muted">{r.distance_m} m</span>
                         {r.stairsSegments > 0 ? <Badge tone="warn">{t('campus.map.stairs')}</Badge> : <Badge tone="success">{t('campus.map.stepFree')}</Badge>}
-                        {gmapsUrl && <a href={gmapsUrl} target="_blank" rel="noreferrer noopener" className="ms-auto inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline">{t('campus.map.directionsGoogle')}<ExternalLink className="h-3 w-3" /></a>}
+                        {gmapsUrl && <a href={gmapsUrl} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center text-sm ms-auto gap-1 font-semibold text-brand-600 hover:underline">{t('campus.map.directionsGoogle')}<ExternalLink className="h-3 w-3" /></a>}
                       </div>
                       <ol className="relative space-y-0 ps-6">
                         <span className="absolute bottom-2 start-[9px] top-2 w-0.5 rounded bg-brand-500/25" aria-hidden />
                         {r.steps.map((st, i) => (
                           <li key={i} className="relative py-1.5 text-sm">
-                            <span className={clsx('absolute -start-6 top-2 grid h-[18px] w-[18px] place-items-center rounded-full text-[10px] font-bold text-white', i === r.steps.length - 1 ? 'bg-danger' : 'bg-brand-500')}>{i + 1}</span>
+                            <span className={clsx('absolute -start-6 top-2 grid h-[18px] w-[18px] place-items-center rounded-full text-xs font-bold', i === r.steps.length - 1 ? 'bg-danger text-on-strong' : 'bg-brand-500 text-ink-950')}>{i + 1}</span>
                             <span className="block leading-snug">{locale === 'ar' ? st.instruction_ar : st.instruction_en}</span>
-                            <span className={clsx('text-[11px] capitalize', st.accessible === 'no' ? 'text-danger' : st.accessible === 'unknown' ? 'text-muted' : 'text-success')}>{st.kind}</span>
+                            <span className={clsx('text-xs capitalize', st.accessible === 'no' ? 'text-danger' : st.accessible === 'unknown' ? 'text-muted' : 'text-success')}>{st.kind}</span>
                           </li>
                         ))}
                       </ol>
@@ -292,7 +292,7 @@ export function MapPage() {
                     <Callout tone="warn" title={t('campus.map.noRoute')}>
                       {r.reason}
                       {r.reason_code === 'no_step_free_route' && <div className="mt-2"><Button size="sm" variant="outline" onClick={() => setQ({ mode: 'walking' })}>{t('campus.map.walking')}</Button></div>}
-                      {gmapsUrl && r.reason_code === 'cross_campus' && <div className="mt-2"><a href={gmapsUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline">{t('campus.map.directionsGoogle')}<ExternalLink className="h-3 w-3" /></a></div>}
+                      {gmapsUrl && r.reason_code === 'cross_campus' && <div className="mt-2"><a href={gmapsUrl} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center text-sm gap-1 font-semibold text-brand-600 hover:underline">{t('campus.map.directionsGoogle')}<ExternalLink className="h-3 w-3" /></a></div>}
                     </Callout>
                   )}
                 </section>

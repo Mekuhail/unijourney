@@ -19,7 +19,7 @@ function TaskRow({ t: task, onPatch, onDelete, busy }: { t: StudyTask; onPatch: 
   const [mins, setMins] = useState('30');
   const done = task.status === 'done';
   return (
-    <li className={clsx('rounded-2xl border p-3 text-sm', done ? 'border-line bg-surface-2 opacity-75' : 'border-line bg-surface', task.locked && 'border-gold-500/60')}>
+    <li className={clsx('rounded-2xl border p-3 text-sm', done ? 'border-line bg-surface-2' : 'border-line bg-surface', task.locked && 'border-gold-500/60')}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -34,21 +34,21 @@ function TaskRow({ t: task, onPatch, onDelete, busy }: { t: StudyTask; onPatch: 
             {task.scheduled_date ? <span className="num">{t('academics.study.plannedFor')} {weekdayName(new Date(`${task.scheduled_date}T00:00:00Z`).getUTCDay(), locale)} {fmtDate(task.scheduled_date, locale)}</span> : <Badge tone="danger">{t('status.unscheduled')}</Badge>}
             {task.source === 'nl' && <Badge tone="neutral">NL</Badge>}
           </div>
-          {task.status === 'partial' && <Progress value={task.progress} className="mt-2 h-1.5 max-w-xs" tone="gold" />}
+          {task.status === 'partial' && <Progress label={task.title} value={task.progress} className="mt-2 h-1.5 max-w-xs" tone="gold" />}
         </div>
         <div className="flex flex-wrap items-center gap-1">
           {!done && <>
-            <div className="flex items-center gap-1"><Input type="number" min={5} max={600} value={mins} onChange={(e) => setMins(e.target.value)} className="!h-8 !w-16 !px-2 !py-1 text-xs" aria-label={t('common.minutes')} /><Button size="sm" variant="outline" onClick={() => onPatch({ status: 'partial', add_minutes: Number(mins) || 30 })} disabled={busy}>{t('academics.study.logPartial')}</Button></div>
+            <div className="flex items-center gap-1"><Input type="number" min={5} max={600} value={mins} onChange={(e) => setMins(e.target.value)} className="!h-8 !w-16 !px-2 !py-1 text-xs touch:!h-11" aria-label={t('common.minutes')} /><Button size="sm" variant="outline" onClick={() => onPatch({ status: 'partial', add_minutes: Number(mins) || 30 })} disabled={busy}>{t('academics.study.logPartial')}</Button></div>
             <Button size="sm" variant="success" icon={<CheckCircle2 className="h-3.5 w-3.5" />} onClick={() => onPatch({ status: 'done', add_minutes: Number(mins) || undefined })} disabled={busy}>{t('status.done')}</Button>
           </>}
           {done && <Button size="sm" variant="ghost" onClick={() => onPatch({ status: 'todo' })} disabled={busy}>{t('academics.study.reopen')}</Button>}
-          <Button size="sm" variant="ghost" title={task.locked ? t('academics.study.unlock') : t('academics.study.lock')} onClick={() => onPatch({ locked: !task.locked })} disabled={busy}>{task.locked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}</Button>
+          <Button size="icon" variant="ghost" title={task.locked ? t('academics.study.unlock') : t('academics.study.lock')} aria-label={task.locked ? t('academics.study.unlock') : t('academics.study.lock')} onClick={() => onPatch({ locked: !task.locked })} disabled={busy}>{task.locked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}</Button>
           <Input type="date" value={task.scheduled_date ?? ''} onChange={(e) => onPatch({ scheduled_date: e.target.value || null })} className="!h-8 !w-36 !px-2 !py-1 text-xs" aria-label={t('academics.study.plannedFor')} disabled={busy} />
-          <Button size="sm" variant="ghost" title={t('academics.study.history')} onClick={() => setLogOpen((v) => !v)}><History className="h-4 w-4" /></Button>
-          <Button size="sm" variant="ghost" title={t('common.delete')} onClick={onDelete} disabled={busy}><Trash2 className="h-4 w-4 text-danger" /></Button>
+          <Button size="icon" variant="ghost" title={t('academics.study.history')} aria-label={t('academics.study.history')} aria-expanded={logOpen} onClick={() => setLogOpen((v) => !v)}><History className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" title={t('common.delete')} aria-label={t('common.delete')} onClick={onDelete} disabled={busy}><Trash2 className="h-4 w-4 text-danger" /></Button>
         </div>
       </div>
-      {logOpen && <ol className="mt-2 space-y-0.5 border-t border-line pt-2 text-[11px] text-muted">{task.history.slice().reverse().map((h, i) => <li key={i}><span className="num">{fmtDateTime(h.at, locale)}</span> · {h.action}{'from' in h && h.from !== undefined ? ` ${String(h.from ?? '—')} → ${String(h.to ?? '—')}` : ''}{'minutes' in h ? ` +${String(h.minutes)} min` : ''}{'why' in h ? ` — ${String(h.why)}` : ''}</li>)}</ol>}
+      {logOpen && <ol className="mt-2 space-y-0.5 border-t border-line pt-2 text-xs text-muted">{task.history.slice().reverse().map((h, i) => <li key={i}><span className="num">{fmtDateTime(h.at, locale)}</span> · {h.action}{'from' in h && h.from !== undefined ? ` ${String(h.from ?? '—')} → ${String(h.to ?? '—')}` : ''}{'minutes' in h ? ` +${String(h.minutes)} min` : ''}{'why' in h ? ` — ${String(h.why)}` : ''}</li>)}</ol>}
     </li>
   );
 }
@@ -123,7 +123,7 @@ export function StudyPage() {
     <div>
       <PageHeader eyebrow={t('nav.academics')} title={t('academics.study.title')} subtitle={t('academics.study.subtitle', { cap: d.settings.daily_capacity_min })} actions={<><Button variant="outline" size="sm" icon={<Settings2 className="h-4 w-4" />} onClick={() => setSettingsOpen(true)}>{t('academics.study.settings')}</Button><Button variant="secondary" size="sm" icon={<CalendarClock className="h-4 w-4" />} onClick={schedule} loading={busy}>{t('academics.study.schedule')}</Button><Button size="sm" icon={<Wrench className="h-4 w-4" />} onClick={() => repair()} loading={busy}>{t('academics.study.repair')}</Button></>} />
       <AcademicsNav />
-      {overdueCount > 0 && <div className="mb-4"><Callout tone="warn" title={t('academics.study.missedTitle', { n: overdueCount })}>{t('academics.study.missedBody')} <Select value={repairReason} onChange={(e) => setRepairReason(e.target.value as typeof repairReason)} className="!ms-2 !inline-block !w-auto !py-1 text-xs"><option value="missed">{t('academics.study.reason.missed')}</option><option value="availability">{t('academics.study.reason.availability')}</option><option value="event">{t('academics.study.reason.event')}</option></Select> <Button size="sm" className="ms-2" onClick={() => repair()} loading={busy}>{t('academics.study.repair')}</Button></Callout></div>}
+      {overdueCount > 0 && <div className="mb-4"><Callout tone="warn" title={t('academics.study.missedTitle', { n: overdueCount })}>{t('academics.study.missedBody')} <Select aria-label={t('common.reason')} value={repairReason} onChange={(e) => setRepairReason(e.target.value as typeof repairReason)} className="!ms-2 !inline-block !w-auto !py-1 text-xs"><option value="missed">{t('academics.study.reason.missed')}</option><option value="availability">{t('academics.study.reason.availability')}</option><option value="event">{t('academics.study.reason.event')}</option></Select> <Button size="sm" className="ms-2" onClick={() => repair()} loading={busy}>{t('academics.study.repair')}</Button></Callout></div>}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
           {groups.length === 0 && <EmptyState title={t('academics.study.noTasks')} body={t('academics.study.noTasksBody')} />}
@@ -138,14 +138,14 @@ export function StudyPage() {
           <Card>
             <SectionTitle>{t('academics.study.load')}</SectionTitle>
             <DayLoadBars after={d.loads} />
-            <div className="mt-2 text-[11px] text-muted">{t('academics.study.loadHint')}</div>
+            <div className="mt-2 text-xs text-muted">{t('academics.study.loadHint')}</div>
           </Card>
           <Card>
             <SectionTitle>{t('academics.study.intake')}</SectionTitle>
             <div className="grid gap-2">
               <Input value={quick.title} onChange={(e) => setQuick({ ...quick, title: e.target.value })} placeholder={t('academics.study.quickTitle')} />
               <div className="grid grid-cols-3 gap-2">
-                <Select value={quick.course_code} onChange={(e) => setQuick({ ...quick, course_code: e.target.value })}><option value="">{t('academics.study.noCourse')}</option>{d.courses.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
+                <Select aria-label={t('common.course')} value={quick.course_code} onChange={(e) => setQuick({ ...quick, course_code: e.target.value })}><option value="">{t('academics.study.noCourse')}</option>{d.courses.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
                 <Input type="number" min={5} value={quick.effort_min} onChange={(e) => setQuick({ ...quick, effort_min: e.target.value })} aria-label={t('common.minutes')} />
                 <Input type="date" value={quick.deadline} onChange={(e) => setQuick({ ...quick, deadline: e.target.value })} aria-label={t('academics.study.due')} />
               </div>
@@ -154,7 +154,7 @@ export function StudyPage() {
             <div className="mt-4 border-t border-line pt-3">
               <div className="mb-1 flex items-center gap-2 text-sm font-semibold"><Sparkles className="h-4 w-4 text-brand-600" />{t('academics.study.nlTitle')}</div>
               <Textarea value={nl} onChange={(e) => setNl(e.target.value)} placeholder={'Read ch. 3 for CIS 321, 2h, by Oct 5\nSWE 302 design doc 90 min due 2026-10-03'} rows={3} />
-              <div className="mt-2 flex items-center gap-2"><Button size="sm" variant="secondary" icon={<Wand2 className="h-4 w-4" />} onClick={parse} loading={busy} disabled={!nl.trim()}>{t('academics.study.parse')}</Button><span className="text-[11px] text-muted">{t('academics.study.parseHint')}</span></div>
+              <div className="mt-2 flex items-center gap-2"><Button size="sm" variant="secondary" icon={<Wand2 className="h-4 w-4" />} onClick={parse} loading={busy} disabled={!nl.trim()}>{t('academics.study.parse')}</Button><span className="text-xs text-muted">{t('academics.study.parseHint')}</span></div>
               {drafts && (
                 <div className="mt-3 space-y-2">
                   {parseNote && <div className="text-xs text-muted">{parseNote}</div>}
@@ -162,7 +162,7 @@ export function StudyPage() {
                     <div key={i} className="rounded-xl border border-line p-2 text-xs">
                       <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[1fr_90px_80px_120px]">
                         <Input value={x.title} onChange={(e) => setDrafts(drafts.map((y, k) => k === i ? { ...y, title: e.target.value } : y))} className="!py-1.5" />
-                        <Select value={x.course_code ?? ''} onChange={(e) => setDrafts(drafts.map((y, k) => k === i ? { ...y, course_code: e.target.value || null } : y))} className="!py-1.5"><option value="">—</option>{d.courses.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
+                        <Select aria-label={t('common.course')} value={x.course_code ?? ''} onChange={(e) => setDrafts(drafts.map((y, k) => k === i ? { ...y, course_code: e.target.value || null } : y))} className="!py-1.5"><option value="">—</option>{d.courses.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
                         <Input type="number" value={x.effort_min} onChange={(e) => setDrafts(drafts.map((y, k) => k === i ? { ...y, effort_min: Number(e.target.value) } : y))} className="!py-1.5" />
                         <Input type="date" value={x.deadline ?? ''} onChange={(e) => setDrafts(drafts.map((y, k) => k === i ? { ...y, deadline: e.target.value || null } : y))} className="!py-1.5" />
                       </div>
@@ -176,9 +176,9 @@ export function StudyPage() {
           </Card>
           <Card>
             <SectionTitle>{t('academics.study.versions')}</SectionTitle>
-            <ul className="space-y-1.5 text-sm">{d.versions.map((v) => <li key={v.id} className="flex items-center justify-between gap-2"><span><span className="font-semibold">{v.label}</span><div className="text-[11px] text-muted">{fmtDateTime(v.created_at, locale)} · {v.reason}</div></span><Button size="sm" variant="outline" icon={<RotateCcw className="h-3.5 w-3.5" />} onClick={() => run(() => api(`/academics/study/versions/${v.id}/restore`, { method: 'POST' }), t('academics.study.restored'))} disabled={busy}>{t('academics.study.restore')}</Button></li>)}</ul>
-            <div className="mt-2 text-[11px] text-muted">{t('academics.study.restoreNote')}</div>
-            {d.history.length > 0 && <div className="mt-3 border-t border-line pt-2 text-[11px] text-muted">{t('academics.study.proposalHistory')}: {d.history.map((h) => `${h.kind} (${h.status}, ${h.changes} ${t('academics.study.changes').toLowerCase()})`).join(' · ')}</div>}
+            <ul className="space-y-1.5 text-sm">{d.versions.map((v) => <li key={v.id} className="flex items-center justify-between gap-2"><span><span className="font-semibold">{v.label}</span><div className="text-xs text-muted">{fmtDateTime(v.created_at, locale)} · {v.reason}</div></span><Button size="sm" variant="outline" icon={<RotateCcw className="h-3.5 w-3.5" />} onClick={() => run(() => api(`/academics/study/versions/${v.id}/restore`, { method: 'POST' }), t('academics.study.restored'))} disabled={busy}>{t('academics.study.restore')}</Button></li>)}</ul>
+            <div className="mt-2 text-xs text-muted">{t('academics.study.restoreNote')}</div>
+            {d.history.length > 0 && <div className="mt-3 border-t border-line pt-2 text-xs text-muted">{t('academics.study.proposalHistory')}: {d.history.map((h) => `${h.kind} (${h.status}, ${h.changes} ${t('academics.study.changes').toLowerCase()})`).join(' · ')}</div>}
           </Card>
         </div>
       </div>

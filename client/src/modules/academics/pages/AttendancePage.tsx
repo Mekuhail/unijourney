@@ -9,7 +9,8 @@ import { refreshAll } from '@/lib/bus';
 import { useToast } from '@/components/ui/toast';
 import { fmtDate, weekdayName } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card, Skeleton, ErrorState, Progress, Badge, Modal, Button, Input, Callout, StatusPill } from '@/components/ui';
+import { AbsenceBar } from '@/components/ui/AbsenceBar';
+import { Card, Skeleton, ErrorState, Badge, Modal, Button, Input, Callout, StatusPill } from '@/components/ui';
 import { AcademicsNav } from '../components';
 import type { AttendanceOverview, AttendanceSession, Excuse } from '../api';
 
@@ -18,8 +19,8 @@ type ExcuseType = 'medical' | 'event' | 'other';
 export function SessionPill({ s, onExcuse }: { s: AttendanceSession; onExcuse?: (s: AttendanceSession) => void }) {
   const { t } = useI18n();
   const clickable = (s.status === 'absent' || s.status === 'late') && !s.excuse_request_id && !!onExcuse;
-  const cls = clsx('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition', s.status === 'present' && 'border-success/30 bg-success/10 text-success', s.status === 'absent' && 'border-danger/40 bg-danger/10 text-danger', s.status === 'late' && 'border-warn/40 bg-warn/10 text-warn', s.status === 'excused' && 'border-info/40 bg-info/10 text-info', clickable && 'cursor-pointer hover:ring-2 hover:ring-danger/40');
-  const label = <>{t(`status.${s.status}`)}{s.excuse_request_id && s.status !== 'excused' && <span className="rounded-full bg-line/70 px-1 text-[9px] uppercase text-muted">{t(`status.${s.excuse_status ?? 'draft'}`)}</span>}</>;
+  const cls = clsx('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition', s.status === 'present' && 'border-success/30 bg-success/10 text-success', s.status === 'absent' && 'border-danger/40 bg-danger/10 text-danger', s.status === 'late' && 'border-warn/40 bg-warn/10 text-warn', s.status === 'excused' && 'border-info/40 bg-info/10 text-info', clickable && 'cursor-pointer hover:ring-2 hover:ring-danger/40');
+  const label = <>{t(`status.${s.status}`)}{s.excuse_request_id && s.status !== 'excused' && <span className="rounded-full bg-line/70 px-1 text-xs uppercase text-muted">{t(`status.${s.excuse_status ?? 'draft'}`)}</span>}</>;
   if (s.excuse_request_id) return <Link to={`/academics/excuses/${s.excuse_request_id}`} className={cls} title={t('academics.attendance.openRequest')}>{label}</Link>;
   if (clickable) return <button type="button" className={cls} onClick={() => onExcuse!(s)} title={t('academics.attendance.clickToExcuse')}>{label}</button>;
   return <span className={cls}>{label}</span>;
@@ -90,12 +91,12 @@ export function AttendancePage() {
         {d.courses.map((c) => (
           <Card key={c.section_id} className="!p-4">
             <div className="flex items-start justify-between gap-2">
-              <div><Link to={`/academics/courses/${encodeURIComponent(c.course_code)}`} className="font-semibold hover:text-brand-600">{c.course_code}</Link><div className="text-xs text-muted">{l(c.title_en, c.title_ar)} · sec {c.section_no} · {c.instructor}</div></div>
+              <div><Link to={`/academics/courses/${encodeURIComponent(c.course_code)}`} className="inline-flex items-center touch:min-h-11 font-semibold hover:text-brand-600">{c.course_code}</Link><div className="text-xs text-muted">{l(c.title_en, c.title_ar)} · sec {c.section_no} · {c.instructor}</div></div>
               <Badge tone={c.level === 'denial' ? 'danger' : c.level === 'warning' ? 'warn' : 'success'}>{c.absence_percent}% {t('academics.attendance.absent')}</Badge>
             </div>
-            <Progress value={c.absence_percent} max={c.denial_percent} tone={c.level === 'denial' ? 'danger' : c.level === 'warning' ? 'warn' : 'success'} className="mt-2" />
-            <div className="mt-1 flex justify-between text-[10px] text-muted"><span>{t('academics.attendance.counts', { p: c.counts.present, a: c.counts.absent, l: c.counts.late, e: c.counts.excused, total: c.total })}</span><span>{t('academics.attendance.thresholds', { warn: c.warning_percent, deny: c.denial_percent })}</span></div>
-            <ul className="mt-3 max-h-56 space-y-1 overflow-y-auto pe-1">
+            <AbsenceBar label={c.course_code} percent={c.absence_percent} warn={c.warning_percent} deny={c.denial_percent} level={c.level === 'denial' ? 'danger' : c.level === 'warning' ? 'warn' : 'ok'} showScale className="mt-3" />
+            <div className="mt-1 flex justify-between text-xs text-muted"><span>{t('academics.attendance.counts', { p: c.counts.present, a: c.counts.absent, l: c.counts.late, e: c.counts.excused, total: c.total })}</span><span>{t('academics.attendance.thresholds', { warn: c.warning_percent, deny: c.denial_percent })}</span></div>
+            <ul tabIndex={0} aria-label={t('attendance.sessionsOf', { course: c.course_code })} className="mt-3 max-h-56 space-y-1 overflow-y-auto rounded-lg pe-1">
               {c.sessions.slice().reverse().map((s) => (
                 <li key={s.id} id={`s-${s.id}`} className={clsx('flex items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-xs', focus === s.id && 'bg-brand-500/10 ring-1 ring-brand-500/40')}>
                   <span className="num text-muted">{weekdayName(new Date(`${s.session_date}T00:00:00Z`).getUTCDay(), locale).slice(0, 3)} {fmtDate(s.session_date, locale)} · {s.start_time}</span>
@@ -107,7 +108,7 @@ export function AttendancePage() {
         ))}
       </div>
       <Modal open={!!draftFor} onClose={() => setDraftFor(null)} title={t('academics.attendance.newExcuse')} description={t('academics.attendance.newExcuseHint')} footer={<><Button variant="ghost" onClick={() => setDraftFor(null)}>{t('common.cancel')}</Button><Button onClick={create} loading={busy} icon={<FileText className="h-4 w-4" />}>{t('academics.attendance.createDraft')}</Button></>}>
-        <ul className="mb-3 space-y-1 text-sm">{draftFor?.map((s) => <li key={s.id} className="flex items-center justify-between rounded-xl border border-line p-2"><span><span className="font-semibold">{s.course_code}</span> · {fmtDate(s.session_date, locale)} {s.start_time}–{s.end_time}</span><span className="font-mono text-[10px] text-muted">{s.id}</span></li>)}</ul>
+        <ul className="mb-3 space-y-1 text-sm">{draftFor?.map((s) => <li key={s.id} className="flex items-center justify-between rounded-xl border border-line p-2"><span><span className="font-semibold">{s.course_code}</span> · {fmtDate(s.session_date, locale)} {s.start_time}–{s.end_time}</span><span className="font-mono text-xs text-muted">{s.id}</span></li>)}</ul>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {([['medical', Stethoscope, t('academics.excuses.type.medical'), t('academics.excuses.type.medicalHint')], ['event', Trophy, t('academics.excuses.type.event'), t('academics.excuses.type.eventHint')], ['other', HelpCircle, t('academics.excuses.type.other'), t('academics.excuses.type.otherHint')]] as const).map(([k, Icon, label, hint]) => (
             <button key={k} type="button" onClick={() => setType(k)} className={clsx('rounded-2xl border p-3 text-start text-sm transition', type === k ? 'border-brand-500 bg-brand-500/10' : 'border-line hover:border-brand-400')} aria-pressed={type === k}><Icon className="mb-1 h-4 w-4 text-brand-600" /><div className="font-semibold">{label}</div><div className="text-xs text-muted">{hint}</div></button>

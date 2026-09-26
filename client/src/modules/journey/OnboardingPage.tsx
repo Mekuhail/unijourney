@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { CheckCircle2, Circle, Compass, ArrowRight, UserRound } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge, Button, Callout, Card, EmptyState, ErrorState, KeyValue, Progress, SectionTitle, Skeleton } from '@/components/ui';
+import { Badge, Button, Callout, Card, EmptyState, ErrorState, KeyValue, Progress, SectionTitle, Skeleton, ButtonLink } from '@/components/ui';
 import { useToast } from '@/components/ui/toast';
 import { useI18n } from '@/i18n';
 import { api, errorMessage } from '@/lib/api';
@@ -22,12 +22,12 @@ export function OnboardingPage() {
       <PageHeader eyebrow={t('nav.journey')} title={t('journey.onboarding')} subtitle={t('journey.onboardingSubtitle')} actions={q.data?.complete && <Badge tone="success" dot>{t('journey.allDone')}</Badge>} />
       {!!q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
       {q.loading && !q.data && <Skeleton className="h-64" />}
-      {q.data && !q.data.exists && <EmptyState icon={<Compass className="h-6 w-6" />} title={t('journey.noOnboarding')} body={t('journey.noOnboardingBody')} action={<Link to="/journey/admission"><Button variant="outline">{t('journey.mod.admission')}</Button></Link>} />}
+      {q.data && !q.data.exists && <EmptyState icon={<Compass className="h-6 w-6" />} title={t('journey.noOnboarding')} body={t('journey.noOnboardingBody')} action={<ButtonLink to="/journey/admission" variant="outline">{t('journey.mod.admission')}</ButtonLink>} />}
       {q.data?.exists && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
           <Card>
             <div className="mb-4 flex items-center justify-between text-sm"><span className="font-semibold">{q.data.done}/{q.data.total} {t('journey.stepsDone')}</span><span className="text-muted">{Math.round((q.data.done / Math.max(1, q.data.total)) * 100)}%</span></div>
-            <Progress value={q.data.done} max={q.data.total} tone={q.data.complete ? 'success' : 'brand'} />
+            <Progress label={t('journey.stepsDone')} value={q.data.done} max={q.data.total} tone={q.data.complete ? 'success' : 'brand'} />
             <ol className="mt-5 space-y-2">
               {q.data.steps.map((s, i) => (
                 <li key={s.key} className="card-2 flex flex-wrap items-center gap-3 p-3">
@@ -36,7 +36,7 @@ export function OnboardingPage() {
                     <div className="font-medium">{l(s.label_en, s.label_ar)}</div>
                     <div className="text-xs text-muted">{s.status === 'done' ? `${t('status.done')} · ${fmtDate(s.completed_at, locale)}` : t('status.pending')}</div>
                   </div>
-                  <Link to={s.link} className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline">{t('common.open')}<ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" /></Link>
+                  <Link to={s.link} className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline min-h-11">{t('common.open')}<ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" /></Link>
                   {s.status !== 'done' && <Button size="sm" variant="outline" onClick={() => void complete(s.key)}>{t('journey.markDone')}</Button>}
                 </li>
               ))}

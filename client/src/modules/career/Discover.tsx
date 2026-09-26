@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { motion } from 'motion/react';
-import { Bookmark, BookmarkCheck, ExternalLink, Link2, RefreshCw, Search, MapPin, CalendarClock, ClipboardCheck, Sparkles } from 'lucide-react';
+import { Bookmark, BookmarkCheck, ExternalLink, Link2, RefreshCw, Search, MapPin, CalendarClock, ClipboardCheck, Sparkles, SlidersHorizontal } from 'lucide-react';
 import clsx from 'clsx';
 import SpotlightCard from '@/components/reactbits/SpotlightCard';
 import { Badge, Button, Callout, EmptyState, ErrorState, Field, Input, Modal, Select, Skeleton, StatusPill, Toggle } from '@/components/ui';
@@ -24,6 +23,7 @@ export function Discover() {
   const [f, setF] = useState<Filters>(EMPTY);
   const [detail, setDetail] = useState<Opportunity | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const q = useQuery(() => api<OppList>('/career/opportunities', { query: { q: f.q, type: f.type, city: f.city, remote: f.remote, field: f.field, skill: f.skill, deadlineBefore: f.deadlineBefore, includeExpired: f.includeExpired ? '1' : '', saved: f.saved ? '1' : '' } }), [JSON.stringify(f)], { refreshOn: ['career'] });
   const facets = q.data?.facets;
@@ -59,32 +59,37 @@ export function Discover() {
 
   return (
     <div className="space-y-4">
-      <div className="card p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-          <Field label={t('common.search')} className="flex-1">
-            <div className="relative"><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" /><Input value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} placeholder={t('career.searchPlaceholder')} className="ps-9" /></div>
-          </Field>
+      <div className="flex items-end gap-2">
+        <Field label={t('common.search')} className="min-w-0 flex-1">
+          <div className="relative"><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" /><Input type="search" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} placeholder={t('career.searchPlaceholder')} className="ps-9" /></div>
+        </Field>
+        <Button variant={active > 0 ? 'secondary' : 'outline'} icon={<SlidersHorizontal className="h-4 w-4" />} onClick={() => setFiltersOpen(true)} aria-haspopup="dialog">{t('career.filters')}{active > 0 && <span className="num rounded-full bg-brand-500 px-1.5 text-xs font-bold text-ink-950">{active}</span>}</Button>
+      </div>
+
+      <Modal open={filtersOpen} onClose={() => setFiltersOpen(false)} title={t('career.filters')} footer={<>{active > 0 && <Button variant="ghost" onClick={() => setF({ ...EMPTY, q: f.q })}>{t('career.clearFilters')}</Button>}<Button onClick={() => setFiltersOpen(false)}>{q.data ? t('career.showResults', { n: q.data.total }) : t('common.close')}</Button></>}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label={t('career.type')}><Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="">{t('common.all')}</option>{facets?.types.map((x) => <option key={x} value={x}>{TYPE_LABEL[x] ?? x}</option>)}</Select></Field>
           <Field label={t('career.city')}><Select value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })}><option value="">{t('common.all')}</option>{facets?.cities.filter(Boolean).map((x) => <option key={x} value={x}>{x}</option>)}</Select></Field>
           <Field label={t('career.remote')}><Select value={f.remote} onChange={(e) => setF({ ...f, remote: e.target.value })}><option value="">{t('common.all')}</option>{facets?.remote.map((x) => <option key={x} value={x}>{t(`career.remote.${x}`)}</option>)}</Select></Field>
           <Field label={t('career.field')}><Select value={f.field} onChange={(e) => setF({ ...f, field: e.target.value })}><option value="">{t('common.all')}</option>{facets?.fields.filter(Boolean).map((x) => <option key={x} value={x}>{x}</option>)}</Select></Field>
           <Field label={t('career.deadlineBefore')}><Input type="date" value={f.deadlineBefore} onChange={(e) => setF({ ...f, deadlineBefore: e.target.value })} /></Field>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted">{t('career.skills')}:</span>
-          {(facets?.skills ?? []).slice(0, 18).map((s) => (
-            <button key={s} type="button" onClick={() => setF({ ...f, skill: f.skill === s ? '' : s })} className={clsx('rounded-lg border px-2 py-0.5 text-[11px] font-medium transition', f.skill === s ? 'border-brand-500 bg-brand-500 text-white' : 'border-line bg-surface-2 hover:border-brand-400')}>{s}</button>
-          ))}
-          <div className="ms-auto flex flex-wrap items-center gap-3">
-            <Toggle checked={f.saved} onChange={(v) => setF({ ...f, saved: v })} label={t('career.savedOnly')} />
-            <Toggle checked={f.includeExpired} onChange={(v) => setF({ ...f, includeExpired: v })} label={t('career.includeExpired')} />
-            {active > 0 && <Button size="sm" variant="ghost" onClick={() => setF(EMPTY)}>{t('career.clearFilters')}</Button>}
+        <fieldset className="mt-4">
+          <legend className="mb-2 text-sm font-medium">{t('career.skills')}</legend>
+          <div className="flex flex-wrap gap-2">
+            {(facets?.skills ?? []).slice(0, 18).map((s) => (
+              <button key={s} type="button" aria-pressed={f.skill === s} onClick={() => setF({ ...f, skill: f.skill === s ? '' : s })} className={clsx('min-h-9 rounded-xl border px-3 text-sm font-medium transition touch:min-h-11', f.skill === s ? 'border-brand-500 bg-brand-500 text-ink-950' : 'border-line bg-surface-2 hover:border-brand-400')}>{s}</button>
+            ))}
           </div>
+        </fieldset>
+        <div className="mt-4 space-y-3">
+          <Toggle checked={f.saved} onChange={(v) => setF({ ...f, saved: v })} label={t('career.savedOnly')} />
+          <Toggle checked={f.includeExpired} onChange={(v) => setF({ ...f, includeExpired: v })} label={t('career.includeExpired')} />
         </div>
-      </div>
+      </Modal>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm text-muted">{q.data ? t('career.results', { n: q.data.total }) : t('common.loading')} · <Badge tone="gold">{t('common.demoData')}</Badge></div>
+        <div className="text-sm text-muted" aria-live="polite">{q.data ? t('career.results', { n: q.data.total }) : t('common.loading')}</div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" icon={<Link2 className="h-4 w-4" />} onClick={() => setImportOpen(true)}>{t('career.addLink')}</Button>
           <Button variant="secondary" size="sm" icon={<RefreshCw className={clsx('h-4 w-4', busy === 'feed' && 'animate-spin')} />} loading={busy === 'feed'} onClick={() => void refresh()}>{t('career.refreshFeed')}</Button>
@@ -97,7 +102,7 @@ export function Discover() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {q.data?.items.map((o) => (
           <div key={o.id}>
-            <SpotlightCard className={clsx('!border-line !bg-surface !p-0 h-full !rounded-[1.25rem] shadow-[var(--shadow-soft)]', o.expired && 'opacity-70')} spotlightColor="rgba(240, 118, 43, 0.18)">
+            <SpotlightCard className={clsx('!border-line !bg-surface !p-0 h-full !rounded-[1.25rem] shadow-[var(--shadow-soft)]')} spotlightColor="rgba(240, 118, 43, 0.18)">
               <div className="flex h-full flex-col p-4">
                 <button type="button" onClick={() => setDetail(o)} className="flex items-start gap-3 text-start">
                   <MatchRing score={o.match?.score ?? 0} label={t('career.match')} />
@@ -147,7 +152,7 @@ function OpportunityDrawer({ o, onClose, onSave, onTrack, busy }: { o: Opportuni
   return (
     <Modal open={!!o} onClose={onClose} title={o?.title ?? ''} description={o ? `${o.company} · ${TYPE_LABEL[o.type] ?? o.type}` : ''} size="lg" footer={o && (
       <>
-        {o.url && <a href={o.url} target="_blank" rel="noreferrer" className="me-auto inline-flex items-center gap-1 text-sm text-brand-600 hover:underline"><ExternalLink className="h-4 w-4" />{t('career.sourceLink')}</a>}
+        {o.url && <a href={o.url} target="_blank" rel="noreferrer" className="me-auto inline-flex items-center gap-1 text-sm text-brand-600 hover:underline min-h-11"><ExternalLink className="h-4 w-4" />{t('career.sourceLink')}</a>}
         <Button variant="outline" loading={busy === o.id} onClick={() => onSave(o)}>{o.saved ? t('career.unsave') : t('career.save')}</Button>
         {o.applicationId ? <Button onClick={() => { onClose(); nav(`/career/applications/${o.applicationId}`); }}>{t('career.openTracker')}</Button> : <Button disabled={o.expired} loading={busy === o.id} onClick={() => onTrack(o)}>{t('career.track')}</Button>}
       </>

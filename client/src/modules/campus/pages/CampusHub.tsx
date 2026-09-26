@@ -4,7 +4,7 @@ import { useI18n } from '@/i18n';
 import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge, Button, Card, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPill } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPill, SectionLink } from '@/components/ui';
 import SpotlightCard from '@/components/reactbits/SpotlightCard';
 import type { Club, EventItem } from '../types';
 import { EventCard } from '../lib';
@@ -53,14 +53,14 @@ export function CampusHub() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
         <section>
-          <SectionTitle action={<Link to="/campus/events" className="text-xs font-semibold text-brand-600 hover:underline">{t('campus.hub.allEvents')}</Link>}>{t('campus.hub.upcoming')}</SectionTitle>
+          <SectionTitle action={<SectionLink to="/campus/events">{t('campus.hub.allEvents')}</SectionLink>}>{t('campus.hub.upcoming')}</SectionTitle>
           {events.loading && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32" />)}</div>}
           {events.error ? <ErrorState error={events.error} onRetry={() => void events.refetch()} /> : null}
           {events.data && upcoming.length === 0 && <EmptyState icon={<CalendarDays className="h-6 w-6" />} title={t('common.empty')} />}
           {upcoming.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{upcoming.map((e) => <EventCard key={e.id} e={e} />)}</div>}
         </section>
         <section>
-          <SectionTitle action={<Link to="/campus/clubs" className="text-xs font-semibold text-brand-600 hover:underline">{t('campus.hub.browseClubs')}</Link>}>{t('campus.hub.myClubs')}</SectionTitle>
+          <SectionTitle action={<SectionLink to="/campus/clubs">{t('campus.hub.browseClubs')}</SectionLink>}>{t('campus.hub.myClubs')}</SectionTitle>
           {clubs.loading && <Skeleton className="h-40" />}
           {clubs.data && myClubs.length === 0 && <EmptyState title={t('campus.hub.noClubs')} action={<Button size="sm" onClick={() => nav('/campus/clubs')}>{t('campus.hub.browseClubs')}</Button>} />}
           <ul className="space-y-2">

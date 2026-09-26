@@ -16,12 +16,12 @@ export function BrandMark({ size = 32 }: { size?: number }) {
 export function Brand({ compact }: { compact?: boolean }) {
   const { t } = useI18n();
   return (
-    <Link to="/today" className="flex items-center gap-3">
+    <Link to="/today" className="flex min-h-11 min-w-11 items-center gap-3" aria-label={compact ? t('app.name') : undefined}>
       <BrandMark />
       {!compact && (
         <span className="leading-tight">
           <span className="block text-base font-bold tracking-tight">{t('app.name')}</span>
-          <span className="block text-[11px] text-muted">Al Yamamah University · {t('app.demo')}</span>
+          <span className="block text-xs text-muted">Al Yamamah University · {t('app.demo')}</span>
         </span>
       )}
     </Link>

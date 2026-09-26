@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { GraduationCap, CheckCircle2, Circle, Briefcase, FlaskConical, AlertTriangle, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge, Button, Callout, Card, CopyId, ErrorState, Progress, SectionTitle, Skeleton, StatusPill } from '@/components/ui';
+import { Badge, Button, Callout, Card, CopyId, ErrorState, Progress, SectionTitle, Skeleton, StatusPill, ButtonLink } from '@/components/ui';
 import { useToast } from '@/components/ui/toast';
 import { useI18n } from '@/i18n';
 import { ApiError, api, errorMessage } from '@/lib/api';
@@ -39,7 +39,7 @@ export function GraduationPage() {
           </div>
           <Card>
             <div className="mb-2 flex items-center justify-between text-sm"><span className="font-semibold">{t('journey.overall')}</span><span className="num text-muted">{Math.round((d.audit.earned / Math.max(1, d.audit.total_required)) * 100)}%</span></div>
-            <Progress value={d.audit.earned} max={d.audit.total_required} tone={d.audit.remaining === 0 ? 'success' : 'brand'} />
+            <Progress label={t('journey.overall')} value={d.audit.earned} max={d.audit.total_required} tone={d.audit.remaining === 0 ? 'success' : 'brand'} />
             <p className="mt-2 text-xs text-muted">{d.policy_note}</p>
           </Card>
 
@@ -50,7 +50,7 @@ export function GraduationPage() {
               <SectionTitle>{t('journey.requestStatus')} <StatusPill status={d.request.status} className="ms-2" /></SectionTitle>
               <div className="flex flex-wrap items-center gap-3">{d.request.receipt && <><CopyId value={d.request.receipt.ref} /><Badge tone="gold">{d.request.receipt.label}</Badge></>}<span className="text-sm text-muted">{fmtDateTime(d.request.submitted_at, locale)}</span></div>
               {d.request.reviewer_note && <p className="mt-2 text-sm">{t('journey.registrarNote')}: {d.request.reviewer_note}</p>}
-              {d.request.status === 'approved' && <div className="mt-3"><Link to="/career?handoff=1"><Button variant="gold" icon={<Briefcase className="h-4 w-4" />}>{t('journey.openHandoff')}</Button></Link></div>}
+              {d.request.status === 'approved' && <div className="mt-3"><ButtonLink to="/career?handoff=1" variant="gold" icon={<Briefcase className="h-4 w-4" />}>{t('journey.openHandoff')}</ButtonLink></div>}
             </Card>
           )}
 
@@ -60,12 +60,12 @@ export function GraduationPage() {
               {d.audit.buckets.map((b) => (
                 <Card key={b.id}>
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div className="font-semibold">{l(b.label_en, b.label_ar)}</div><div className="num text-sm text-muted">{b.earned_credits}/{b.required_credits} {t('common.credits')}{b.in_progress_credits ? ` · +${b.in_progress_credits} ${t('status.enrolled').toLowerCase()}` : ''}{b.remaining_credits ? <span className="ms-2 text-warn">· {b.remaining_credits} {t('journey.stat.remaining').toLowerCase()}</span> : <CheckCircle2 className="ms-2 inline h-4 w-4 text-success" />}</div></div>
-                  <Progress value={b.earned_credits} max={b.required_credits} tone={b.remaining_credits === 0 ? 'success' : 'brand'} />
-                  <div className="mt-3 flex flex-wrap gap-1.5">{b.courses.map((c) => <span key={c.code} title={`${c.title_en}${c.term ? ` · ${c.term}` : ''}${c.grade ? ` · ${c.grade}` : ''}`} className={clsx('inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-medium', COURSE_TONE[c.status])}>{c.code}<span className="opacity-70">{c.credits}</span></span>)}</div>
+                  <Progress label={l(b.label_en, b.label_ar)} value={b.earned_credits} max={b.required_credits} tone={b.remaining_credits === 0 ? 'success' : 'brand'} />
+                  <div className="mt-3 flex flex-wrap gap-1.5">{b.courses.map((c) => <span key={c.code} title={`${c.title_en}${c.term ? ` · ${c.term}` : ''}${c.grade ? ` · ${c.grade}` : ''}`} className={clsx('inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-medium', COURSE_TONE[c.status])}>{c.code}<span className="opacity-70">{c.credits}</span></span>)}</div>
                 </Card>
               ))}
               {d.audit.unmet.length > 0 && <Card><SectionTitle>{t('journey.unmet')}</SectionTitle><ul className="space-y-1 text-sm">{d.audit.unmet.map((u) => <li key={u.bucket} className="flex flex-wrap items-center gap-2"><AlertTriangle className="h-4 w-4 text-warn" /><span className="font-medium">{u.bucket}</span><span className="text-muted">{u.remaining_credits} {t('common.credits')}</span>{u.suggestions.length > 0 && <span className="text-xs text-muted">{t('journey.suggested')}: {u.suggestions.join(', ')}</span>}</li>)}</ul></Card>}
-              <div className="flex flex-wrap gap-2 text-[11px] text-muted">{Object.keys(COURSE_TONE).map((k) => <span key={k} className={clsx('rounded-lg border px-2 py-0.5', COURSE_TONE[k])}>{t(`status.${k}`)}</span>)}</div>
+              <div className="flex flex-wrap gap-2 text-xs text-muted">{Object.keys(COURSE_TONE).map((k) => <span key={k} className={clsx('rounded-lg border px-2 py-0.5', COURSE_TONE[k])}>{t(`status.${k}`)}</span>)}</div>
             </div>
             <div className="space-y-4">
               <Card>
@@ -75,7 +75,7 @@ export function GraduationPage() {
               <Card>
                 <SectionTitle>{t('journey.coop')}</SectionTitle>
                 <div className="flex items-center gap-3"><div className={clsx('grid h-10 w-10 place-items-center rounded-xl', d.coop.counts ? 'bg-success/15 text-success' : 'bg-warn/15 text-warn')}><Briefcase className="h-5 w-5" /></div><div className="text-sm"><div className="font-semibold">{d.coop.code} · {d.coop.title_en}</div><div className="text-xs text-muted"><StatusPill status={d.coop.status === 'missing' ? 'pending' : d.coop.status} /> {d.coop.term_label ?? ''} {d.coop.evidence ? `· ${d.coop.evidence}` : ''}</div></div></div>
-                <Link to="/career?tab=tracker" className="mt-2 inline-block text-xs text-brand-600 hover:underline">{t('journey.coopLink')}</Link>
+                <Link to="/career?tab=tracker" className="inline-flex min-h-11 items-center mt-2 text-xs text-brand-600 hover:underline">{t('journey.coopLink')}</Link>
               </Card>
               {d.audit.estimate && <Callout tone="info" title={t('journey.estimate', { n: d.audit.estimate.terms_remaining, term: d.audit.estimate.earliest_completion_term })}>{d.audit.estimate.assumptions}</Callout>}
               {d.audit.remaining === 0 && <Callout tone="success" title={t('journey.allMet')}>{t('journey.allMetBody')}</Callout>}
@@ -93,7 +93,7 @@ export function GraduationPage() {
               <Card>
                 <SectionTitle>{t('journey.handoffTitle')}</SectionTitle>
                 <p className="text-sm text-muted">{t('journey.handoffBody')}</p>
-                <Link to="/career?handoff=1" className="mt-2 inline-block"><Button size="sm" variant="outline" icon={<Briefcase className="h-4 w-4" />}>{t('journey.openHandoff')}</Button></Link>
+                <ButtonLink to="/career?handoff=1" className="mt-2" size="sm" variant="outline" icon={<Briefcase className="h-4 w-4" />}>{t('journey.openHandoff')}</ButtonLink>
               </Card>
             </div>
           </div>

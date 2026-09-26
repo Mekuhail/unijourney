@@ -2,6 +2,12 @@
 @import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* Touch-sized controls (44px targets) on coarse pointers and phone widths */
+@custom-variant touch {
+  @media (pointer: coarse), (max-width: 639.98px) {
+    @slot;
+  }
+}
 
 @theme {
   --font-sans: "Inter", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
@@ -14,14 +20,14 @@
   --color-brand-300: #ffa470;
   --color-brand-400: #f98c4a;
   --color-brand-500: #f0762b;
-  --color-brand-600: #d65f17;
-  --color-brand-700: #b04a10;
+  --color-brand-600: #a9470f; /* text-safe on cream/white (≥4.5:1); lifted in dark mode below */
+  --color-brand-700: #8f3c0d;
   --color-brand-800: #8a3a10;
   --color-brand-900: #5e270b;
   --color-gold-100: #f6ebdb;
   --color-gold-300: #e2c79c;
   --color-gold-500: #c8975b;
-  --color-gold-700: #9a6d35;
+  --color-gold-700: #7f5a2b; /* ≥4.5:1 on gold-100 and white */
   --color-ink-50: #f7f3ee;
   --color-ink-100: #ece5dd;
   --color-ink-200: #d9cfc4;
@@ -68,9 +74,20 @@
   --color-warn: var(--warn);
   --color-danger: var(--danger);
   --color-info: var(--info);
+  --color-on-strong: var(--on-strong);
 }
 
 :root {
+  /* Layer scale: use these instead of ad hoc z-index values */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 40;
+  --z-dropdown: 50;
+  --z-overlay: 90;
+  --z-modal: 100;
+  --z-toast: 110;
+  --z-tooltip: 120;
+  --z-skip: 200;
   --bg: #f7f3ee;
   --surface: #ffffff;
   --surface-2: #fbf8f4;
@@ -78,11 +95,12 @@
   --muted: #6b635c;
   --line: #e8e1d9;
   --accent: #f0762b;
-  --accent-fg: #ffffff;
-  --success: #1f8a5b;
-  --warn: #c98a12;
-  --danger: #c8433b;
-  --info: #2f6fdb;
+  --accent-fg: #14120f;
+  --on-strong: #ffffff; /* text on solid success/danger fills */
+  --success: #146c46;
+  --warn: #7d5a00;
+  --danger: #a8352f;
+  --info: #2358b5;
   --shadow-soft: 0 10px 30px -12px rgb(30 27 24 / 0.18);
   color-scheme: light;
 }
@@ -95,9 +113,12 @@
   --line: #332e29;
   --accent: #f58a47;
   --accent-fg: #1a120c;
+  --on-strong: #14120f;
+  --color-brand-600: #f58a47; /* orange text on dark surfaces */
+  --color-gold-700: #d9b98a;
   --success: #3fbf82;
   --warn: #e2a82f;
-  --danger: #e0655d;
+  --danger: #ee7f77;
   --info: #6c9cf0;
   --shadow-soft: 0 12px 34px -14px rgb(0 0 0 / 0.7);
   color-scheme: dark;
@@ -116,6 +137,8 @@ body {
 
 /* Focus visibility (keyboard) */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+/* Headings and regions focused programmatically (route changes) take focus without a ring */
+[tabindex="-1"]:focus { outline: none; }
 
 /* Utility classes used across modules */
 .glass { background: color-mix(in oklab, var(--surface) 78%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid color-mix(in oklab, var(--line) 80%, transparent); }
@@ -123,6 +146,14 @@ body {
 .card-2 { background: var(--surface-2); border: 1px solid var(--line); border-radius: 1rem; }
 .scroll-thin { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--muted) 40%, transparent) transparent; }
 .num { font-variant-numeric: tabular-nums; }
+
+/* Horizontal scroll rows: no visible scrollbar, soft fade on the edge that has more content */
+.scroll-row { scrollbar-width: none; -webkit-overflow-scrolling: touch; --fade-start: 0px; --fade-end: 0px; --fade-dir: right;
+  mask-image: linear-gradient(to var(--fade-dir), transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%); }
+.scroll-row::-webkit-scrollbar { display: none; }
+.scroll-row[data-fade-start] { --fade-start: 28px; }
+.scroll-row[data-fade-end] { --fade-end: 28px; }
+[dir="rtl"] .scroll-row { --fade-dir: left; }
 
 
 @media (prefers-reduced-motion: reduce) {
@@ -146,12 +177,12 @@ body {
 .uj-end--dest { background: var(--danger); border-radius: 30%; }
 
 /* Permanent labels: tier 1 (main buildings, gates) from z16.5+, tier 2 (everything else) from z18 */
-.leaflet-tooltip.uj-label { background: none; border: 0; box-shadow: none; padding: 0; font: 650 11px/1.15 Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif; color: #2a2622; letter-spacing: -0.005em; white-space: nowrap; text-shadow: 0 0 2px #fff, 0 0 3px #fff, 0 0 4px #fff, 0 0 6px rgba(255,255,255,.9); }
+.leaflet-tooltip.uj-label { background: none; border: 0; box-shadow: none; padding: 0; font: 650 12px/1.15 Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif; color: #2a2622; letter-spacing: -0.005em; white-space: nowrap; text-shadow: 0 0 2px #fff, 0 0 3px #fff, 0 0 4px #fff, 0 0 6px rgba(255,255,255,.9); }
 .leaflet-tooltip.uj-label::before { display: none; }
 .dark .leaflet-tooltip.uj-label, .uj-sat .leaflet-tooltip.uj-label { color: #f3eee8; text-shadow: 0 0 2px #000, 0 0 3px #000, 0 0 5px rgba(0,0,0,.85); }
-.leaflet-tooltip.uj-label--sel { font-weight: 800; font-size: 12px; color: var(--accent); }
+.leaflet-tooltip.uj-label--sel { font-weight: 800; font-size: 13px; color: var(--accent); }
 .uj-z16 .uj-label--t2 { display: none; }
-.uj-z16 .uj-label--t1 { font-size: 10px; }
+.uj-z16 .uj-label--t1 { font-size: 12px; }
 .uj-z17 .uj-label--t2 { display: none; }
 .uj-z16 .uj-minor, .uj-z17 .uj-minor { display: none; }
 .leaflet-tooltip.uj-tip { background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-soft); font: 600 12px/1.3 Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif; padding: 5px 9px; }
@@ -159,10 +190,10 @@ body {
 
 /* Controls and attribution in the product's palette */
 .uj-map .leaflet-bar { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-soft); }
-.uj-map .leaflet-bar a { background: var(--surface); color: var(--fg); border-bottom-color: var(--line); width: 36px; height: 36px; line-height: 36px; font-size: 18px; }
+.uj-map .leaflet-bar a { background: var(--surface); color: var(--fg); border-bottom-color: var(--line); width: 44px; height: 44px; line-height: 44px; font-size: 20px; }
 .uj-map .leaflet-bar a:hover { background: var(--surface-2); color: var(--accent); }
 .uj-map .leaflet-top.leaflet-right, .uj-map .leaflet-top.leaflet-left { top: 52px; }
-.uj-map .leaflet-control-attribution { background: color-mix(in oklab, var(--surface) 82%, transparent); color: var(--muted); font-size: 10px; border-radius: 8px 0 0 0; padding: 1px 6px; }
+.uj-map .leaflet-control-attribution { background: color-mix(in oklab, var(--surface) 82%, transparent); color: var(--muted); font-size: 12px; border-radius: 8px 0 0 0; padding: 1px 6px; }
 .uj-map .leaflet-control-attribution a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
 .uj-map .leaflet-bottom { bottom: 56px; }
 .uj-shape { transition: fill-opacity .2s ease; }
@@ -179,8 +210,8 @@ input, textarea { caret-color: var(--accent); }
 :root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-left: env(safe-area-inset-left, 0px); --safe-right: env(safe-area-inset-right, 0px); }
 .pad-safe-x { padding-left: max(0.75rem, var(--safe-left)); padding-right: max(0.75rem, var(--safe-right)); }
 .dock-safe { padding-bottom: calc(0.5rem + var(--safe-bottom)); }
-@media (pointer: coarse) {
-  main button, main a[role="button"], main input[type="checkbox"], main input[type="radio"] { min-height: 2.5rem; }
+@media (pointer: coarse), (max-width: 639.98px) {
+  main button, main a[role="button"], main input[type="checkbox"], main input[type="radio"] { min-height: 2.75rem; } /* 44px touch targets */
   main input:not([type="checkbox"]):not([type="radio"]), main select, main textarea { font-size: 16px; } /* prevents iOS zoom on focus */
 }
 @media (max-width: 640px) {
@@ -188,7 +219,7 @@ input, textarea { caret-color: var(--accent); }
   h1 { overflow-wrap: anywhere; }
 }
 @media (min-width: 768px) and (max-width: 1023px) { .tablet-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (display-mode: standalone) { header.glass { padding-top: var(--safe-top); } }
+@media (display-mode: standalone) { .app-header { padding-top: var(--safe-top); } }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* Print: excuse / receipt previews */

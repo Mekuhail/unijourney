@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Lock } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import type { CalendarEntry } from '@shared/types';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button, Badge, EmptyState } from '@/components/ui';
-import { fmtTime, weekdayName } from '@/lib/format';
+import { fmtDate, fmtTime, weekdayName } from '@/lib/format';
 import { useDemoStatus } from '@/shell/DemoClock';
 import { Link } from 'react-router';
 import clsx from 'clsx';
@@ -33,36 +33,46 @@ export function WeekCalendar({ entries, anchor, onAnchor, compact }: { entries: 
     <div>
       {onAnchor && (
         <div className="mb-3 flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => onAnchor(addDays(anchor, -7))} aria-label="Previous week"><ChevronLeft className="h-4 w-4 rtl:rotate-180" /></Button>
+          <Button variant="outline" size="icon" onClick={() => onAnchor(addDays(anchor, -7))} aria-label={t('calendar.prevWeek')}><ChevronLeft className="h-4 w-4 rtl:rotate-180" /></Button>
           <Button variant="outline" size="sm" onClick={() => onAnchor(today)}>{t('common.today')}</Button>
-          <Button variant="outline" size="icon" onClick={() => onAnchor(addDays(anchor, 7))} aria-label="Next week"><ChevronRight className="h-4 w-4 rtl:rotate-180" /></Button>
-          <span className="ms-2 text-sm text-muted">{days[0]} → {days[6]}</span>
+          <Button variant="outline" size="icon" onClick={() => onAnchor(addDays(anchor, 7))} aria-label={t('calendar.nextWeek')}><ChevronRight className="h-4 w-4 rtl:rotate-180" /></Button>
+          <span className="ms-2 text-sm text-muted">{fmtDate(days[0], locale, { day: 'numeric', month: 'short' })} – {fmtDate(days[6], locale, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
         </div>
       )}
       <div className="grid grid-cols-1 gap-2 md:grid-cols-7">
         {days.map((d) => {
           const wd = new Date(`${d}T00:00:00Z`).getUTCDay();
-          const isWeekend = wd === 5 || wd === 6;
           const list = byDay.get(d) ?? [];
+          const shown = compact ? list.slice(0, 4) : list;
+          const isToday = d === today;
           return (
-            <div key={d} className={clsx('card-2 min-h-[120px] p-2', d === today && 'ring-2 ring-brand-500/50', isWeekend && 'opacity-80')}>
-              <div className="mb-1.5 flex items-center justify-between px-1 text-xs">
-                <span className="font-semibold">{weekdayName(wd, locale)}</span>
-                <span className={clsx('num rounded-full px-1.5', d === today && 'bg-brand-500 text-white')}>{d.slice(8)}</span>
+            <section key={d} aria-label={`${weekdayName(wd, locale)} ${fmtDate(d, locale)}`} className={clsx('card-2 p-2', list.length > 0 && 'md:min-h-[120px]', isToday && 'ring-2 ring-brand-500/50')}>
+              <div className={clsx('flex items-center justify-between gap-2 px-1 text-xs', list.length > 0 && 'mb-1.5')}>
+                <span className="font-semibold">{weekdayName(wd, locale)}{isToday && <span className="sr-only"> ({t('common.today')})</span>}</span>
+                {list.length === 0 && <span className="flex-1 text-muted md:hidden">{t('calendar.noClasses')}</span>}
+                <span className={clsx('num rounded-full px-1.5 py-0.5', isToday && 'bg-brand-500 font-semibold text-ink-950')}>{d.slice(8)}</span>
               </div>
-              <ul className="space-y-1">
-                {list.slice(0, compact ? 4 : 50).map((e) => (
-                  <li key={e.id}>
-                    <Link to={e.link ?? '/calendar'} className="block rounded-lg border border-line bg-surface p-1.5 text-[11px] leading-tight hover:border-brand-400">
-                      <span className="flex items-center gap-1.5"><span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', kindTone[e.kind] ?? 'bg-muted')} /><span className="num text-muted">{fmtTime(e.start_at, locale)}</span>{e.immovable && <span title="Fixed" className="text-[9px]">🔒</span>}</span>
-                      <span className="block truncate font-medium">{e.title}</span>
-                      {e.location_text && <span className="block truncate text-muted">{e.location_text}</span>}
-                    </Link>
-                  </li>
-                ))}
-                {compact && list.length > 4 && <li className="px-1 text-[10px] text-muted">+{list.length - 4}</li>}
-              </ul>
-            </div>
+              {list.length === 0 ? (
+                <p className="hidden px-1 text-xs text-muted md:block">{t('calendar.noClasses')}</p>
+              ) : (
+                <ul className="space-y-1">
+                  {shown.map((e) => (
+                    <li key={e.id}>
+                      <Link to={e.link ?? '/calendar'} className="block rounded-lg border border-line bg-surface p-1.5 text-xs leading-snug hover:border-brand-400 touch:min-h-11">
+                        <span className="flex items-center gap-1.5">
+                          <span aria-hidden className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', kindTone[e.kind] ?? 'bg-muted')} />
+                          <span className="num text-muted">{fmtTime(e.start_at, locale)}</span>
+                          {e.immovable && <span className="inline-flex items-center gap-0.5 text-muted" title={t('calendar.fixed')}><Lock className="h-3 w-3" aria-hidden /><span className="sr-only">{t('calendar.fixed')}</span></span>}
+                        </span>
+                        <span className="line-clamp-2 font-medium">{e.title}</span>
+                        {e.location_text && <span className="block truncate text-muted">{e.location_text}</span>}
+                      </Link>
+                    </li>
+                  ))}
+                  {compact && list.length > 4 && <li><Link to="/calendar" className="flex min-h-9 items-center px-1 text-xs font-medium text-brand-600 hover:underline touch:min-h-11">{t('calendar.more', { n: list.length - 4 })}</Link></li>}
+                </ul>
+              )}
+            </section>
           );
         })}
       </div>

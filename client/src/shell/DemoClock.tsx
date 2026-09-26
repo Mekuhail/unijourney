@@ -19,7 +19,7 @@ export function DemoClockChip() {
     <Link to="/demo" className="hidden items-center gap-2 rounded-full border border-line bg-surface-2 px-3 py-1.5 text-xs text-muted transition hover:border-brand-400 hover:text-fg md:inline-flex" title={t('shell.demoClock')}>
       <Clock className="h-3.5 w-3.5 text-brand-500" />
       <span className="num">{fmtDateTime(data.clock, locale)}</span>
-      <span className="rounded-full bg-gold-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-700 dark:bg-gold-700/30 dark:text-gold-300">{data.tz.replace('Asia/', '')}</span>
+      <span className="rounded-full bg-gold-100 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-gold-700 dark:bg-gold-700/30 dark:text-gold-300">{data.tz.replace('Asia/', '')}</span>
     </Link>
   );
 }
