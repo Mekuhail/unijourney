@@ -131,7 +131,7 @@ describe('admission journey', () => {
     expect(acc.body.data!.user.student_no).toMatch(/^2026\d{5}$/);
     expect(acc.body.data!.user.program_id).toBe('bse');
     expect(acc.body.data!.application.status).toBe('enrolled');
-    expect(db().count('users')).toBe(9); // no new user row was created
+    expect(db().count('users', "id NOT LIKE 'u_m_%'")).toBe(9); // no new user row was created
     const mine = await omar().get<Mine>('/admission/applications/mine');
     expect(mine.body.data!.active!.personal.national_id_last4).toBe('4321');
     expect(mine.body.data!.active!.personal.full_name).toBe('Omar Al-Qahtani');

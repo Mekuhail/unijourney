@@ -48,7 +48,7 @@ export function ConflictList({ conflicts }: { conflicts: ConflictItem[] }) {
       {conflicts.map((c) => (
         <li key={c.entry.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warn/30 bg-warn/10 px-3 py-2 text-sm">
           <span className="flex items-center gap-2"><StatusPill status={c.entry.kind === 'class' ? 'enrolled' : c.entry.kind} /><span className="font-medium">{c.entry.title}</span></span>
-          <span className="num text-xs text-muted">{fmtTime(c.entry.start_at, locale)} – {fmtTime(c.entry.end_at, locale)} · {c.overlapMinutes} {t('common.minutes')}</span>
+          <span className="num text-xs">{fmtTime(c.entry.start_at, locale)} – {fmtTime(c.entry.end_at, locale)} · {c.overlapMinutes} {t('common.minutes')}</span>
         </li>
       ))}
     </ul>

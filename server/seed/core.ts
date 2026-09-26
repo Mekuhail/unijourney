@@ -6,6 +6,7 @@ import { j } from '../core/db.ts';
 import { nowIso } from '../core/clock.ts';
 import { haversine, offset } from './geo.ts';
 import type { SeedContext } from './context.ts';
+import { seedMembers } from './members.ts';
 import { RIYADH_PLACES, RIYADH_ROOMS, RIYADH_LIFT_BUILDINGS, RIYADH_FIELD_WAY, RIYADH_WALKWAYS, px, pxPoly } from './riyadh-map.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -234,6 +235,7 @@ function seedKhobar(d: Db) {
 
 export function seedCore(d: Db): SeedContext['users'] {
   const users = seedUsers(d);
+  seedMembers(d);
   seedCampuses(d);
   return users;
 }

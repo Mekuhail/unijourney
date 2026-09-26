@@ -9,9 +9,31 @@ export interface Club {
   lead: UserBrief | null;
   my_membership: { id: string; status: string; role: string; requested_at: string; decided_at: string | null; note: string | null } | null;
   member_count: number; pending_count: number; upcoming_events: number; tracks: string[]; is_lead: boolean;
+  profile: ClubProfile; officers: Officer[]; following: boolean; follower_count: number; next_event: { id: string; title_en: string; title_ar: string; start_at: string } | null;
+  posts_this_week: number; can_moderate: boolean; for_you?: ForYou | null;
 }
 
-export interface ClubMember { id: string; user_id: string; status: string; role: string; requested_at: string; decided_at?: string | null; note?: string | null; name_en: string; name_ar: string; avatar_color: string; student_no?: string | null; program_id?: string | null; level?: number }
+export interface ClubTag { key: string; en: string; ar: string }
+export interface ClubProfile { tagline_en: string; tagline_ar: string; tags: ClubTag[]; meets_en: string; meets_ar: string; join_policy: 'open' | 'approval'; join_question_en: string | null; join_question_ar: string | null; founded: string | null; audience: 'all' | 'riyadh' | 'khobar' }
+export interface Officer { membership_id: string; user_id: string; role: 'lead' | 'officer'; title_en: string | null; title_ar: string | null; name_en: string; name_ar: string; avatar_color: string; program_id: string | null }
+export interface ForYou { score: number; same_campus: boolean; reasons: Array<{ key: string; params: Record<string, string | number> }> }
+
+export interface PostAuthor { id: string; name_en: string; name_ar: string; avatar_color: string; program_id: string | null; role: 'lead' | 'officer' | 'member' | null; title_en: string | null; title_ar: string | null }
+export interface PostComment { id: string; author_id: string; body: string; created_at: string; author: PostAuthor | null; is_answer: boolean; can_delete: boolean }
+export type PostKind = 'announcement' | 'discussion' | 'question' | 'poll';
+export interface Post {
+  id: string; club_id: string; kind: PostKind; body: string; created_at: string; edited_at: string | null; pinned: boolean; pinned_until: string | null; hidden: boolean;
+  author: PostAuthor | null; event: { id: string; title_en: string; title_ar: string; start_at: string; end_at: string } | null;
+  reactions: number; reacted: boolean; comments: PostComment[]; answer_comment_id: string | null;
+  poll: { total: number; my_vote: string | null; options: Array<{ id: string; label: string; votes: number | null }> } | null;
+  can: { edit: boolean; delete: boolean; pin: boolean; comment: boolean; react: boolean; vote: boolean; accept: boolean; report: boolean };
+  club?: { id: string; name_en: string; name_ar: string; color: string };
+}
+export interface PostList { pinned: Post[]; items: Post[]; members_only_hidden: number; can_post: Record<'announcement' | 'discussion' | 'question' | 'poll', boolean>; open_reports: number }
+export interface ClubReport { id: string; post_id: string; comment_id: string | null; reason: string; note: string | null; status: string; created_at: string; post_body: string; post_kind: string; hidden: boolean; comment_body: string | null; author: UserBrief | null }
+export interface CheckinState { opens_at: string; closes_at: string; open: boolean; checked_in: { at: string; method: string } | null; count: number; code: string | null; qr_payload: string | null; is_organiser: boolean }
+
+export interface ClubMember { id: string; user_id: string; status: string; role: string; requested_at: string; decided_at?: string | null; note?: string | null; name_en: string; name_ar: string; avatar_color: string; student_no?: string | null; program_id?: string | null; level?: number; title_en?: string | null; title_ar?: string | null; answer?: string | null }
 
 export interface ConflictItem { entry: CalendarEntry; overlapMinutes: number; isClass: boolean }
 
@@ -24,10 +46,10 @@ export interface EventItem {
 }
 
 export interface Suggestions { excuseDraftAvailable: boolean; attendanceIds: string[]; mapLink: string | null; studyRepairLink: string; note?: string }
-export interface EventDetail extends EventItem { suggestions: Suggestions }
+export interface EventDetail extends EventItem { suggestions: Suggestions; checkin: CheckinState | null }
 export interface RsvpResult { rsvp: { status: string }; event: EventItem; conflicts: ConflictItem[]; suggestions: Suggestions }
 
-export interface ClubDetail extends Club { events: Array<EventItem & { upcoming: boolean }>; members: ClubMember[] }
+export interface ClubDetail extends Club { events: Array<EventItem & { upcoming: boolean }>; members: ClubMember[]; roster_visible: boolean }
 
 export interface CardData {
   user: { id: string; name_en: string; name_ar: string; student_no: string | null; stage: string; level: number; avatar_color: string };

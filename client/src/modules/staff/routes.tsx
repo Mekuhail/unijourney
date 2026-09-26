@@ -1,5 +1,5 @@
 import { Link, Route, Routes } from 'react-router';
-import { ShieldCheck, ClipboardList, Users, Search, GraduationCap, FileCheck, BookOpen } from 'lucide-react';
+import { ShieldCheck, ClipboardList, Users, Search, GraduationCap, FileCheck, BookOpen, MessageSquareHeart } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, EmptyState } from '@/components/ui';
 import { useSession } from '@/lib/session';
@@ -8,12 +8,14 @@ import { AcademicsStaffRoutes } from '../academics/staff';
 import { CampusStaffRoutes } from '../campus/staff';
 import { CareerStaffRoutes } from '../career/staff';
 import { JourneyStaffRoutes } from '../journey/staff';
+import { QualityDesk } from '../feedback/QualityDesk';
 import type { Role } from '@shared/types';
 
 const QUEUES: Array<{ to: string; title: string; body: string; roles: Role[]; icon: typeof ShieldCheck }> = [
   { to: '/staff/academics/excuses', title: 'Absence excuse review', body: 'Exact-session excuse requests with evidence, decisions and requests for information.', roles: ['reviewer'], icon: ClipboardList },
   { to: '/staff/campus/clubs', title: 'Club membership & events', body: 'Approve join requests and manage events for clubs you lead.', roles: ['club_lead'], icon: Users },
   { to: '/staff/campus/lost-found', title: 'Lost & found security desk', body: 'Recent requests, found items, mark found with a collection point, verify handover.', roles: ['security'], icon: Search },
+  { to: '/staff/feedback', title: 'Quality & help desk', body: 'Course feedback KPIs below target, held responses, “you said, we did” actions and help requests.', roles: ['reviewer', 'registrar'], icon: MessageSquareHeart },
   { to: '/staff/campus/resources', title: 'Resource moderation', body: 'Publish or reject uploaded notes and handle reports.', roles: ['reviewer', 'registrar'], icon: BookOpen },
   { to: '/staff/journey/admissions', title: 'Admission applications', body: 'Review submitted applications and record decisions (demo).', roles: ['admission_officer'], icon: FileCheck },
   { to: '/staff/journey/graduation', title: 'Graduation requests', body: 'Audit snapshots, clearances and decisions.', roles: ['registrar'], icon: GraduationCap }
@@ -48,6 +50,7 @@ export function StaffRoutes() {
       <Route path="campus/*" element={<CampusStaffRoutes />} />
       <Route path="career/*" element={<CareerStaffRoutes />} />
       <Route path="journey/*" element={<JourneyStaffRoutes />} />
+      <Route path="feedback" element={<QualityDesk />} />
     </Routes>
   );
 }

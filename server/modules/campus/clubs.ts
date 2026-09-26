@@ -7,7 +7,9 @@ import { newId, stableHash } from '../../core/ids.ts';
 import { nowIso } from '../../core/clock.ts';
 import { notify } from '../../core/notify.ts';
 import { audit } from '../../core/audit.ts';
+import type { User } from '../../../shared/types.ts';
 import { eventTags, getClub, getEvent, isLeadOf, isPast, locationSummary, nowLocalIso, requireLeadOf, userBrief, type ClubRow, type EventRow } from './shared.ts';
+import { communitySummary, profileOf, recommendFor } from './community.ts';
 
 export const clubsRouter = Router();
 
@@ -16,7 +18,8 @@ function membershipOf(clubId: string, userId: string) {
   return db().get('SELECT * FROM memberships WHERE club_id = ? AND user_id = ?', clubId, userId) ?? null;
 }
 
-function clubView(c: ClubRow, userId: string) {
+function clubView(c: ClubRow, u: User) {
+  const userId = u.id;
   const mine = membershipOf(c.id, userId);
   const member_count = db().count('memberships', "club_id = ? AND status = 'active'", c.id);
   const pending_count = db().count('memberships', "club_id = ? AND status = 'pending'", c.id);
@@ -29,7 +32,8 @@ function clubView(c: ClubRow, userId: string) {
     member_count,
     pending_count,
     upcoming_events,
-    tracks
+    tracks,
+    ...communitySummary(c, u)
   };
 }
 
@@ -37,7 +41,7 @@ function clubView(c: ClubRow, userId: string) {
 clubsRouter.get('/clubs', h((req, res) => {
   const u = requireUser(req);
   const rows = db().all<ClubRow>('SELECT * FROM clubs ORDER BY name_en');
-  ok(res, rows.map((c) => ({ ...clubView(c, u.id), is_lead: isLeadOf(u, c) })));
+  ok(res, rows.map((c) => ({ ...clubView(c, u), is_lead: isLeadOf(u, c), for_you: recommendFor(c, u) })));
 }));
 
 clubsRouter.get('/clubs/:id', h((req, res) => {
@@ -52,11 +56,15 @@ clubsRouter.get('/clubs/:id', h((req, res) => {
     my_rsvp: (db().get('SELECT status FROM rsvps WHERE event_id = ? AND user_id = ?', e.id, u.id)?.status as string | undefined) ?? null,
     upcoming: !isPast(e.end_at)
   }));
-  // Members: full roster only for the lead; everyone else sees active members' names (club roster is not sensitive).
-  const members = db().all(lead
-    ? 'SELECT m.*, u.name_en, u.name_ar, u.avatar_color, u.student_no, u.program_id FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.club_id = ? ORDER BY m.requested_at'
-    : "SELECT m.id, m.user_id, m.status, m.role, m.requested_at, u.name_en, u.name_ar, u.avatar_color FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.club_id = ? AND m.status = 'active' ORDER BY m.requested_at", c.id);
-  ok(res, { ...clubView(c, u.id), is_lead: lead, events, members });
+  // Roster: the lead sees every membership row; active members see fellow members' names and programmes; everyone
+  // else sees only the officers (in clubView) and the count. Student numbers are never shown here.
+  const isActive = membershipOf(c.id, u.id)?.status === 'active';
+  const members = lead
+    ? db().all("SELECT m.id, m.user_id, m.status, m.role, m.requested_at, m.decided_at, m.note, u.name_en, u.name_ar, u.avatar_color, u.program_id, u.level, t.title_en, t.title_ar, a.answer FROM memberships m JOIN users u ON u.id = m.user_id LEFT JOIN club_member_titles t ON t.membership_id = m.id LEFT JOIN club_join_answers a ON a.membership_id = m.id WHERE m.club_id = ? AND m.status IN ('active','pending') ORDER BY CASE m.role WHEN 'lead' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END, m.requested_at", c.id)
+    : isActive
+      ? db().all("SELECT m.id, m.user_id, m.status, m.role, m.requested_at, u.name_en, u.name_ar, u.avatar_color, u.program_id, t.title_en, t.title_ar FROM memberships m JOIN users u ON u.id = m.user_id LEFT JOIN club_member_titles t ON t.membership_id = m.id WHERE m.club_id = ? AND m.status = 'active' ORDER BY CASE m.role WHEN 'lead' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END, m.requested_at", c.id)
+      : [];
+  ok(res, { ...clubView(c, u), is_lead: lead, events, members, roster_visible: lead || isActive });
 }));
 
 // ------------------------------------------------------------------ join / leave
@@ -64,20 +72,28 @@ clubsRouter.post('/clubs/:id/join', h((req, res) => {
   const u = requireUser(req);
   if (!hasRole(u, 'student', 'club_lead')) throw forbidden('Only students can join clubs');
   const c = getClub(req.params.id as string);
+  const body = parse(z.object({ answer: z.string().trim().max(500).optional() }), req.body ?? {});
   const existing = membershipOf(c.id, u.id);
   const now = nowIso();
+  // Open clubs admit at once; approval clubs create a request for the lead (Engage / CampusGroups join models).
+  const policy = profileOf(c.id).join_policy;
+  const status = policy === 'open' ? 'active' : 'pending';
   const result = db().tx(() => {
     if (existing && (existing.status === 'pending' || existing.status === 'active')) return { membership: existing, created: false };
+    let id: string;
     if (existing) {
-      db().update('memberships', existing.id as string, { status: 'pending', requested_at: now, decided_at: null, decided_by: null, note: null });
+      id = existing.id as string;
+      db().update('memberships', id, { status, role: 'member', requested_at: now, decided_at: status === 'active' ? now : null, decided_by: null, note: null });
     } else {
-      db().insert('memberships', { id: newId('mem'), club_id: c.id, user_id: u.id, status: 'pending', role: 'member', requested_at: now, decided_at: null, decided_by: null, note: null });
+      id = newId('mem');
+      db().insert('memberships', { id, club_id: c.id, user_id: u.id, status, role: 'member', requested_at: now, decided_at: status === 'active' ? now : null, decided_by: null, note: null });
     }
-    if (c.lead_id) notify(c.lead_id, { module: 'campus', kind: 'membership_request', title: `New join request: ${c.name_en}`, body: `${u.name_en} asked to join. Review it in the club desk.`, link: '/staff/campus/clubs' });
-    audit(u.id, 'club.join', 'membership', c.id, {});
+    if (body.answer) db().run('INSERT INTO club_join_answers (membership_id, answer, created_at) VALUES (?, ?, ?) ON CONFLICT(membership_id) DO UPDATE SET answer = excluded.answer, created_at = excluded.created_at', id, body.answer, now);
+    if (c.lead_id && status === 'pending') notify(c.lead_id, { module: 'campus', kind: 'membership_request', title: `New join request: ${c.name_en}`, body: `${u.name_en} asked to join. Review it in the club desk.`, link: '/staff/campus/clubs' });
+    audit(u.id, 'club.join', 'membership', c.id, { policy });
     return { membership: membershipOf(c.id, u.id), created: true };
   });
-  ok(res, { ...result, club: clubView(c, u.id) }, result.created ? 201 : 200);
+  ok(res, { ...result, club: clubView(c, u) }, result.created ? 201 : 200);
 }));
 
 clubsRouter.post('/clubs/:id/leave', h((req, res) => {
@@ -85,18 +101,19 @@ clubsRouter.post('/clubs/:id/leave', h((req, res) => {
   const c = getClub(req.params.id as string);
   const existing = membershipOf(c.id, u.id);
   if (!existing) throw notFound('You are not a member of this club');
-  if (existing.status === 'left') return ok(res, { membership: existing, club: clubView(c, u.id) });
+  if (existing.status === 'left') return ok(res, { membership: existing, club: clubView(c, u) });
   if (c.lead_id === u.id) throw conflict('A club lead cannot leave their own club in the demo; hand over leadership first');
-  db().update('memberships', existing.id as string, { status: 'left', decided_at: nowIso(), decided_by: u.id });
+  db().update('memberships', existing.id as string, { status: 'left', role: 'member', decided_at: nowIso(), decided_by: u.id });
+  db().run('DELETE FROM club_member_titles WHERE membership_id = ?', existing.id as string);
   audit(u.id, 'club.leave', 'membership', existing.id as string, {});
-  ok(res, { membership: membershipOf(c.id, u.id), club: clubView(c, u.id) });
+  ok(res, { membership: membershipOf(c.id, u.id), club: clubView(c, u) });
 }));
 
 // ------------------------------------------------------------------ lead: requests
 clubsRouter.get('/clubs/:id/requests', h((req, res) => {
   const c = getClub(req.params.id as string);
   requireLeadOf(req, c);
-  const rows = db().all("SELECT m.*, u.name_en, u.name_ar, u.avatar_color, u.student_no, u.program_id, u.level FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.club_id = ? AND m.status = 'pending' ORDER BY m.requested_at", c.id);
+  const rows = db().all("SELECT m.*, u.name_en, u.name_ar, u.avatar_color, u.student_no, u.program_id, u.level, a.answer FROM memberships m JOIN users u ON u.id = m.user_id LEFT JOIN club_join_answers a ON a.membership_id = m.id WHERE m.club_id = ? AND m.status = 'pending' ORDER BY m.requested_at", c.id);
   ok(res, rows);
 }));
 

@@ -20,6 +20,7 @@ export interface Client {
   get<T = unknown>(path: string): Promise<{ status: number; body: { ok: boolean; data?: T; error?: { code: string; message: string; details?: unknown } } }>;
   post<T = unknown>(path: string, body?: unknown): Promise<{ status: number; body: { ok: boolean; data?: T; error?: { code: string; message: string; details?: unknown } } }>;
   put<T = unknown>(path: string, body?: unknown): Promise<{ status: number; body: { ok: boolean; data?: T; error?: { code: string; message: string; details?: unknown } } }>;
+  patch<T = unknown>(path: string, body?: unknown): Promise<{ status: number; body: { ok: boolean; data?: T; error?: { code: string; message: string; details?: unknown } } }>;
   del<T = unknown>(path: string): Promise<{ status: number; body: { ok: boolean; data?: T; error?: { code: string; message: string; details?: unknown } } }>;
 }
 
@@ -39,6 +40,7 @@ export async function startServer(): Promise<TestServer> {
       get: (p) => call('GET', p) as never,
       post: (p, b) => call('POST', p, b ?? {}) as never,
       put: (p, b) => call('PUT', p, b ?? {}) as never,
+      patch: (p, b) => call('PATCH', p, b ?? {}) as never,
       del: (p) => call('DELETE', p) as never
     };
   };

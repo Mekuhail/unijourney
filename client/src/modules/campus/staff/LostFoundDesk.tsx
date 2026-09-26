@@ -92,7 +92,7 @@ function RequestControl({ r, points }: { r: LostFoundRequest; points: LfLocation
         ...(r.handover ? [{ k: t('campus.staff.lf.handoverVerifiedBy'), v: String((r.handover as { verified_by?: string }).verified_by ?? '').replace(/_/g, ' ') }] : [])
       ]} />
       <div>
-        <div className="mb-1 text-xs font-semiboldr text-muted">{t('campus.staff.lf.file')}</div>
+        <div className="mb-1 text-xs font-semibold text-muted">{t('campus.staff.lf.file')}</div>
         {r.document ? (
           <div className="space-y-2">
             {isImage && <img src={r.document.url} alt={r.document.filename} className="max-h-40 rounded-xl border border-line" />}

@@ -66,9 +66,10 @@ function RequestRow({ club, m }: { club: Club; m: ClubMember }) {
     <li className="card p-4">
       <div className="flex items-center gap-3">
         <Avatar name={m.name_en} color={m.avatar_color} />
-        <div className="min-w-0 flex-1"><div className="font-semibold">{l(m.name_en, m.name_ar)}</div><div className="text-xs text-muted">{m.program_id?.toUpperCase()} · L{m.level} · #{m.student_no} · {fmtDateTime(m.requested_at, locale)}</div></div>
+        <div className="min-w-0 flex-1"><div className="font-semibold">{l(m.name_en, m.name_ar)}</div><div className="text-xs text-muted">{[m.program_id?.toUpperCase(), `L${m.level}`, m.student_no ? `#${m.student_no}` : null, fmtDateTime(m.requested_at, locale)].filter(Boolean).join(' · ')}</div></div>
         <StatusPill status={m.status} />
       </div>
+      {m.answer && <p dir="auto" className="mt-3 rounded-xl bg-surface-2 p-3 text-sm"><span className="block text-xs font-semibold text-muted">{t('campus.clubs.joinAnswerLabel')}</span>{m.answer}</p>}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
         <Field label={t('campus.staff.clubs.decisionNote')} className="flex-1"><Input value={note} onChange={(e) => setNote(e.target.value)} /></Field>
         <div className="flex gap-2"><Button variant="success" loading={busy === 'active'} onClick={() => void decide('active')}>{t('campus.clubs.approve')}</Button><Button variant="outline" loading={busy === 'rejected'} onClick={() => void decide('rejected')}>{t('campus.clubs.reject')}</Button></div>

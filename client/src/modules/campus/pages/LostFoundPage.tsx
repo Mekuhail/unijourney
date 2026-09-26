@@ -87,7 +87,7 @@ export function RequestDetails({ r }: { r: LostFoundRequest }) {
         </table>
       </div>
       <div>
-        <div className="mb-1.5 text-xs font-semiboldr text-muted">{t('campus.lf.timeline')}</div>
+        <div className="mb-1.5 text-xs font-semibold text-muted">{t('campus.lf.timeline')}</div>
         <ol className="space-y-1.5 border-s border-line ps-4">
           {r.timeline.map((ti, i) => <li key={i} className="text-sm"><span className="num text-xs text-muted">{fmtDateTime(ti.at, locale)}</span> · <StatusPill status={ti.status} />{ti.note && <span className="ms-2 text-muted">{ti.note}</span>}</li>)}
         </ol>
@@ -172,7 +172,7 @@ function StatusLookup({ initialId }: { initialId: string }) {
       {result && 'restricted' in result && (
         <Card><Callout tone="warn">{t('campus.lf.restricted')}</Callout><div className="mt-3 flex items-center gap-3 text-sm"><CopyId value={result.public_id} /><StatusPill status={result.status} /><span className="num text-xs text-muted">{fmtDateTime(result.updated_at, locale)}</span></div></Card>
       )}
-      {result && !('restricted' in result) && <Card><div className="mb-3 text-sm font-semiboldr text-muted">{t('campus.lf.details')}</div><RequestDetails r={result} /></Card>}
+      {result && !('restricted' in result) && <Card><div className="mb-3 text-sm font-semibold text-muted">{t('campus.lf.details')}</div><RequestDetails r={result} /></Card>}
     </div>
   );
 }

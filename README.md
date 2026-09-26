@@ -42,6 +42,9 @@ enforces ownership and roles. The demo clock is frozen at **Sunday 27 Sep 2026, 
 | Reem Al-Ghamdi | admissions officer + registrar |
 | Abdullah Al-Anazi | campus security (lost & found) |
 
+Club rosters, discussions and the anonymous course-feedback aggregates are filled by 27 synthetic community members
+(`server/seed/members.ts`). They are not personas and do not appear in the persona switcher.
+
 ## Devices
 
 The UI adapts from 360 px phones to desktops: a sidebar on large screens, a bottom dock on phones and portrait tablets,
@@ -53,7 +56,7 @@ widgets (timetable, prerequisite chains, calendar). It is installable as a PWA (
 ```
 server/core        session, db (node:sqlite), clock, http, approvals, calendar, notify, documents, policies, today aggregate
 server/adapters    UniversityPortal (demo), DocumentExtraction, OpportunitySource, Mailbox, AI intent — all keyless by default
-server/modules     academics · admission · campus · career · graduation (routes, services, seeds)
+server/modules     academics · admission · campus · career · graduation · feedback (routes, services, seeds)
 server/seed        personas, campuses (Riyadh from OpenStreetMap, Khobar approximate), curriculum data, fixtures
 client/src         shell, UI kit, React Bits, i18n (en/ar), modules (today, academics, campus, career, journey, staff, demo)
 shared             types shared by server and client
@@ -68,3 +71,4 @@ docs               RUN, DEMO, COVERAGE, TESTS, INTEGRATIONS, ATTRIBUTION, CONVEN
 * `docs/TESTS.md` — test evidence and manual checks.
 * `docs/INTEGRATIONS.md` — real vs simulated vs future integrations.
 * `docs/ATTRIBUTION.md` — third-party attribution and licence notes.
+* `docs/research/CLUBS-COMMUNITY-FEEDBACK.md` — clubs & community and KPI course feedback: research and decisions.

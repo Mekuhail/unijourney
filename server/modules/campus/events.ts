@@ -10,6 +10,7 @@ import { notify } from '../../core/notify.ts';
 import { audit } from '../../core/audit.ts';
 import type { User } from '../../../shared/types.ts';
 import { eventTags, getClub, getEvent, getLocation, isLeadOf, isPast, locationSummary, requireLeadOf, type EventRow } from './shared.ts';
+import { checkinState } from './community.ts';
 
 export const eventsRouter = Router();
 
@@ -94,7 +95,8 @@ eventsRouter.get('/events/:id', h((req, res) => {
   ensureVisible(e, u);
   const view = eventView(e, u);
   const attendanceIds = overlappingAttendance(u.id, e);
-  ok(res, { ...view, suggestions: { excuseDraftAvailable: view.conflicts.some((c) => c.isClass), attendanceIds, mapLink: view.map_link, studyRepairLink: '/academics/study?repair=event' } });
+  const checkin = e.kind === 'club' || e.kind === 'university' ? checkinState(e.id, u) : null;
+  ok(res, { ...view, checkin, suggestions: { excuseDraftAvailable: view.conflicts.some((c) => c.isClass), attendanceIds, mapLink: view.map_link, studyRepairLink: '/academics/study?repair=event' } });
 }));
 
 // ------------------------------------------------------------------ RSVP

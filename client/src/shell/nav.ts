@@ -1,4 +1,4 @@
-import { Sun, GraduationCap, Users, Briefcase, Route, ShieldCheck, FlaskConical, GitBranch, Map as MapIcon, BookOpen, PackageSearch, Trophy, BadgeCheck, type LucideIcon } from 'lucide-react';
+import { Sun, GraduationCap, Users, Briefcase, Route, ShieldCheck, FlaskConical, GitBranch, Map as MapIcon, BookOpen, PackageSearch, Trophy, BadgeCheck, MessageSquareHeart, type LucideIcon } from 'lucide-react';
 import type { Role } from '@shared/types';
 
 /**
@@ -21,13 +21,15 @@ export const PORTFOLIO: NavItem = { to: '/portfolio', key: 'nav.portfolio', icon
 export const CAREER: NavItem = { to: '/career', key: 'nav.career', icon: Briefcase };
 export const COMPETITIONS: NavItem = { to: '/competitions', key: 'nav.competitions', icon: Trophy };
 export const JOURNEY: NavItem = { to: '/journey', key: 'nav.journey', icon: Route };
+export const FEEDBACK: NavItem = { to: '/feedback', key: 'nav.feedback', icon: MessageSquareHeart };
 
-/** Side menu, grouped so eleven destinations stay scannable. */
+/** Side menu, grouped so twelve destinations stay scannable. */
 export const NAV_GROUPS: NavGroup[] = [
   { key: null, items: [TODAY] },
   { key: 'nav.group.study', items: [ACADEMICS, PREREQS, RESOURCES] },
   { key: 'nav.group.campus', items: [CAMPUS_LIFE, MAP, LOST_FOUND] },
-  { key: 'nav.group.future', items: [PORTFOLIO, CAREER, COMPETITIONS, JOURNEY] }
+  { key: 'nav.group.future', items: [PORTFOLIO, CAREER, COMPETITIONS, JOURNEY] },
+  { key: 'nav.group.help', items: [FEEDBACK] }
 ];
 
 /** Phone bottom bar: the five most frequent destinations; everything else is in the menu. */

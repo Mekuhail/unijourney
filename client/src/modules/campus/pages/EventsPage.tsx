@@ -12,6 +12,7 @@ import { Badge, Button, Callout, Card, ConfirmDialog, EmptyState, ErrorState, Fi
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import type { EventDetail, EventItem, RsvpResult } from '../types';
 import { ConflictList, EventCard, KindBadge, fmtRange } from '../lib';
+import { CheckinPanel } from '../community';
 
 type Filter = 'all' | 'club' | 'external' | 'university' | 'personal' | 'mine';
 
@@ -186,6 +187,8 @@ export function EventDetailPage() {
           )}
         </div>
         <div className="space-y-4">
+          {e.checkin && !e.is_past && <CheckinPanel eventId={e.id} state={e.checkin} />}
+          {e.checkin && e.is_past && e.checkin.checked_in && <CheckinPanel eventId={e.id} state={e.checkin} />}
           <Card>
             <KeyValue items={[
               { k: t('campus.events.when'), v: <span className="num">{fmtRange(e.start_at, e.end_at, locale)}</span> },

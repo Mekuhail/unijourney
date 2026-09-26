@@ -762,3 +762,154 @@ CREATE TABLE IF NOT EXISTS clearance_items (
   note TEXT,
   UNIQUE(student_id, key)
 );
+
+-- ---------------------------------------------------------------- club community (campus)
+-- New tables rather than new columns: the schema has no migration step and existing volumes keep their tables.
+CREATE TABLE IF NOT EXISTS club_profiles (
+  club_id TEXT PRIMARY KEY REFERENCES clubs(id) ON DELETE CASCADE,
+  tagline_en TEXT NOT NULL DEFAULT '', tagline_ar TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '[]',          -- interest keys used for "For you" ranking
+  meets_en TEXT NOT NULL DEFAULT '', meets_ar TEXT NOT NULL DEFAULT '',
+  join_policy TEXT NOT NULL DEFAULT 'approval',   -- open|approval
+  join_question_en TEXT, join_question_ar TEXT,
+  founded TEXT,
+  audience TEXT NOT NULL DEFAULT 'all'      -- all|riyadh|khobar (staff-set)
+);
+
+CREATE TABLE IF NOT EXISTS club_member_titles (
+  membership_id TEXT PRIMARY KEY REFERENCES memberships(id) ON DELETE CASCADE,
+  title_en TEXT NOT NULL, title_ar TEXT NOT NULL DEFAULT '',
+  show_in_roster INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS club_join_answers (
+  membership_id TEXT PRIMARY KEY REFERENCES memberships(id) ON DELETE CASCADE,
+  answer TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS club_follows (
+  club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (club_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS club_posts (
+  id TEXT PRIMARY KEY,
+  club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,                 -- announcement|discussion|question|poll
+  body TEXT NOT NULL,
+  event_id TEXT,
+  pinned_until TEXT,                  -- announcements only; NULL = not pinned
+  answer_comment_id TEXT,             -- questions: the accepted answer
+  hidden INTEGER NOT NULL DEFAULT 0,  -- auto-hidden after repeated reports, pending the lead's review
+  created_at TEXT NOT NULL,
+  edited_at TEXT,
+  removed_at TEXT, removed_by TEXT, removed_reason TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_club_posts_club ON club_posts(club_id, created_at);
+
+CREATE TABLE IF NOT EXISTS club_comments (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL REFERENCES club_posts(id) ON DELETE CASCADE,
+  author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  removed_at TEXT, removed_by TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_club_comments_post ON club_comments(post_id, created_at);
+
+CREATE TABLE IF NOT EXISTS club_reactions (
+  post_id TEXT NOT NULL REFERENCES club_posts(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS club_poll_options (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL REFERENCES club_posts(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  sort INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS club_poll_votes (
+  post_id TEXT NOT NULL REFERENCES club_posts(id) ON DELETE CASCADE,
+  option_id TEXT NOT NULL REFERENCES club_poll_options(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS club_reports (
+  id TEXT PRIMARY KEY,
+  club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  post_id TEXT NOT NULL REFERENCES club_posts(id) ON DELETE CASCADE,
+  comment_id TEXT,
+  reporter_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL,               -- spam|harassment|off_topic|personal_info|other
+  note TEXT,
+  status TEXT NOT NULL DEFAULT 'open',  -- open|dismissed|removed
+  created_at TEXT NOT NULL,
+  resolved_at TEXT, resolved_by TEXT,
+  UNIQUE(post_id, comment_id, reporter_id)
+);
+
+CREATE TABLE IF NOT EXISTS event_checkins (
+  event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  method TEXT NOT NULL,               -- qr_self|lead_manual
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (event_id, user_id)
+);
+
+-- ---------------------------------------------------------------- feedback & help
+-- Course feedback is anonymous in every read path: student_id exists only to check eligibility and stop duplicates.
+CREATE TABLE IF NOT EXISTS course_feedback (
+  id TEXT PRIMARY KEY,
+  student_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_code TEXT NOT NULL,
+  term TEXT NOT NULL,
+  section_id TEXT,
+  instructor TEXT NOT NULL,
+  phase TEXT NOT NULL DEFAULT 'end_of_term',   -- end_of_term|mid_term
+  ratings TEXT NOT NULL,             -- {"clarity":1..5,"grading":..,"support":..,"organisation":..,"workload":..,"value":..}
+  recommend INTEGER,                 -- 1|0|NULL
+  hours_per_week INTEGER,
+  comment TEXT NOT NULL DEFAULT '',  -- private: turned into theme counts, never returned to other students
+  themes TEXT NOT NULL DEFAULT '[]', -- [{"key":"examples","tone":"strength"|"suggestion"}]
+  status TEXT NOT NULL DEFAULT 'published',   -- published|held|rejected
+  flags TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(student_id, course_code, term)
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_course ON course_feedback(course_code, term);
+CREATE INDEX IF NOT EXISTS idx_feedback_instructor ON course_feedback(instructor, term);
+
+CREATE TABLE IF NOT EXISTS feedback_actions (
+  id TEXT PRIMARY KEY,
+  course_code TEXT,
+  instructor TEXT,
+  kpi TEXT NOT NULL,
+  body_en TEXT NOT NULL, body_ar TEXT NOT NULL DEFAULT '',
+  author_id TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS help_tickets (
+  id TEXT PRIMARY KEY,
+  public_id TEXT NOT NULL UNIQUE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category TEXT NOT NULL,            -- bug|suggestion|question|account|other
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  page TEXT,
+  status TEXT NOT NULL DEFAULT 'open',   -- open|answered|closed
+  reply TEXT,
+  replied_by TEXT,
+  replied_at TEXT,
+  created_at TEXT NOT NULL
+);

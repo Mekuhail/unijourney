@@ -24,6 +24,7 @@ const JourneyRoutes = lazy(() => import('./modules/journey/routes').then((m) => 
 const StaffRoutes = lazy(() => import('./modules/staff/routes').then((m) => ({ default: m.StaffRoutes })));
 const PrereqChainsPage = lazy(() => import('./modules/prereqs/PrereqChainsPage').then((m) => ({ default: m.PrereqChainsPage })));
 const PortfolioPage = lazy(() => import('./modules/career/PortfolioPage').then((m) => ({ default: m.PortfolioPage })));
+const FeedbackRoutes = lazy(() => import('./modules/feedback/routes').then((m) => ({ default: m.FeedbackRoutes })));
 const CompetitionsPage = lazy(() => import('./modules/career/CompetitionsPage').then((m) => ({ default: m.CompetitionsPage })));
 const DemoPanel = lazy(() => import('./modules/demo/DemoPanel').then((m) => ({ default: m.DemoPanel })));
 
@@ -54,6 +55,7 @@ export function App() {
                   <Route path="/campus/*" element={<Suspense fallback={<Loading />}><CampusRoutes /></Suspense>} />
                   <Route path="/portfolio" element={<Suspense fallback={<Loading />}><PortfolioPage /></Suspense>} />
                   <Route path="/competitions" element={<Suspense fallback={<Loading />}><CompetitionsPage /></Suspense>} />
+                  <Route path="/feedback/*" element={<Suspense fallback={<Loading />}><FeedbackRoutes /></Suspense>} />
                   <Route path="/career/*" element={<Suspense fallback={<Loading />}><CareerRoutes /></Suspense>} />
                   <Route path="/journey/*" element={<Suspense fallback={<Loading />}><JourneyRoutes /></Suspense>} />
                   <Route path="/staff/*" element={<Suspense fallback={<Loading />}><StaffRoutes /></Suspense>} />

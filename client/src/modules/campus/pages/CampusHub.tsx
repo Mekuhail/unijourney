@@ -8,17 +8,18 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, Button, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPill, SectionLink } from '@/components/ui';
 import type { Club, EventItem } from '../types';
 import { EventCard } from '../lib';
+import { CommunityFeed } from '../community';
 
 /** Campus Life: clubs and events. The map, learning resources and lost & found have their own pages in the menu. */
 export function CampusHub() {
-  const { t, l } = useI18n();
+  const { t, l, locale } = useI18n();
   const nav = useNavigate();
   const events = useQuery(() => api<EventItem[]>('/campus/events', { query: { from: '2026-09-27' } }), [], { refreshOn: ['calendar', 'campus'] });
   const clubs = useQuery(() => api<Club[]>('/campus/clubs'), [], { refreshOn: ['campus'] });
   const upcoming = (events.data ?? []).filter((e) => !e.is_past && e.kind !== 'personal');
   const going = upcoming.filter((e) => e.my_rsvp?.status === 'going');
   const myClubs = (clubs.data ?? []).filter((c) => c.my_membership && c.my_membership.status !== 'left');
-  const suggestions = (clubs.data ?? []).filter((c) => !c.my_membership || c.my_membership.status === 'left').sort((a, b) => b.upcoming_events - a.upcoming_events || b.member_count - a.member_count).slice(0, 3);
+  const suggestions = (clubs.data ?? []).filter((c) => c.for_you).sort((a, b) => b.for_you!.score - a.for_you!.score || b.member_count - a.member_count).slice(0, 3);
   const ready = !!events.data && !!clubs.data;
 
   return (
@@ -35,7 +36,10 @@ export function CampusHub() {
           {events.loading && !events.data && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32" />)}</div>}
           {events.error ? <ErrorState error={events.error} onRetry={() => void events.refetch()} /> : null}
           {events.data && upcoming.length === 0 && <EmptyState icon={<CalendarDays className="h-6 w-6" />} title={t('common.empty')} />}
-          {upcoming.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{upcoming.slice(0, 6).map((e) => <EventCard key={e.id} e={e} />)}</div>}
+          {upcoming.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{upcoming.slice(0, 4).map((e) => <EventCard key={e.id} e={e} />)}</div>}
+          <div className="mt-8">
+            <CommunityFeed limit={3} header={<><SectionTitle id="feed-h" action={<SectionLink to="/campus/clubs">{t('campus.hub.browseClubs')}</SectionLink>}>{t('community.feed')}</SectionTitle><p className="-mt-2 mb-3 text-sm text-muted">{t('community.feedBody')}</p></>} />
+          </div>
         </section>
         <div className="min-w-0 space-y-6">
           <section aria-labelledby="hub-clubs">
@@ -68,7 +72,7 @@ export function CampusHub() {
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: c.color, color: readableOn(c.color) }}><Users className="h-4 w-4" aria-hidden /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold">{l(c.name_en, c.name_ar)}</span>
-                        <span className="block text-xs text-muted">{t(`campus.clubs.categories.${c.category}`)} · {t('campus.clubs.upcomingCount', { n: c.upcoming_events })}</span>
+                        <span className="block truncate text-xs text-muted">{c.for_you?.reasons[0] ? t(c.for_you.reasons[0].key, { ...c.for_you.reasons[0].params, list: String(locale === 'ar' ? c.for_you.reasons[0].params.list_ar ?? '' : c.for_you.reasons[0].params.list_en ?? '') }) : `${t(`campus.clubs.categories.${c.category}`)} · ${t('campus.clubs.upcomingCount', { n: c.upcoming_events })}`}</span>
                       </span>
                       <ArrowRight className="h-4 w-4 shrink-0 text-muted rtl:rotate-180" aria-hidden />
                     </Link>

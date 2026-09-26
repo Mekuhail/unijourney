@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { config } from './config.ts';
 import { db } from './db.ts';
 import { ok, h, parse, bad, forbidden, notFound } from './http.ts';
+import { isSyntheticMember } from '../seed/members.ts';
 import { attachUser, DEFAULT_PERSONA, getUser, listUsers, requireUser, SESSION_COOKIE, signSession } from './auth.ts';
 import { listNotifications, markRead, unreadCount, listEmails, getEmail } from './notify.ts';
 import { listEntries } from './calendar.ts';
@@ -23,7 +24,7 @@ coreRouter.get('/session/me', h((req, res) => {
 
 coreRouter.get('/session/personas', h((req, res) => {
   if (!config.demoMode) throw forbidden('Persona switching is only available in demo mode');
-  ok(res, listUsers().map((u) => ({ id: u.id, name_en: u.name_en, name_ar: u.name_ar, roles: u.roles, stage: u.stage, campus_id: u.campus_id, avatar_color: u.avatar_color, program_id: u.program_id, department: u.department })));
+  ok(res, listUsers().filter((u) => !isSyntheticMember(u.id)).map((u) => ({ id: u.id, name_en: u.name_en, name_ar: u.name_ar, roles: u.roles, stage: u.stage, campus_id: u.campus_id, avatar_color: u.avatar_color, program_id: u.program_id, department: u.department })));
 }));
 
 coreRouter.post('/session/switch', h((req, res) => {

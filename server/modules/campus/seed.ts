@@ -6,6 +6,7 @@ import { sendEmail, notify } from '../../core/notify.ts';
 import { makePdf, makePng } from '../../seed/fixtures.ts';
 import type { SeedContext } from '../../seed/context.ts';
 import { foundEmailHtml } from './lostfound.ts';
+import { seedCommunity } from './seedCommunity.ts';
 
 /**
  * Campus Life seed: clubs, memberships, events (+ RSVPs → calendar), achievements, original study resources (+ PDFs),
@@ -88,6 +89,9 @@ export function seedCampus(ctx: SeedContext) {
 
   // ------------------------------------------------------------------ lost & found
   seedLostFound(ctx);
+
+  // ------------------------------------------------------------------ club community (posts, profiles, members)
+  seedCommunity(ctx);
 }
 
 // ====================================================================== resources

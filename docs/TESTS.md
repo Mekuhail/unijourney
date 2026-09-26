@@ -3,11 +3,18 @@
 Run on 2026-09-26 (Asia/Riyadh) with `npm test` (vitest 3, Node v25.2.1, in-memory SQLite, fixtures reseeded per file).
 
 ```
-Test Files  19 passed (19)
-Tests  162 passed (162)
+Test Files  21 passed (21)
+Tests  185 passed (185)
 ```
 
-New in the portfolio release: `tests/career.portfolio.test.ts` (evidence-weighted skills, consent gating, LinkedIn
+New in the community and feedback release: `tests/campus.community.test.ts` (member-only visibility and private rosters,
+posting rules and the text filter, announcement notifications and pins, polls, accepted answers, report thresholds and
+the lead's moderation queue, officer roles, open vs approval joins with join answers, explainable "For you" ranking, the
+community feed, QR self check-in) and `tests/feedback.test.ts` (the five-response privacy threshold, comment themes in
+English and Arabic, no comments or identities in public KPIs, eligibility from the transcript, one response per course,
+held responses, "you said, we did" notifications, help tickets).
+
+Earlier, in the portfolio release: `tests/career.portfolio.test.ts` (evidence-weighted skills, consent gating, LinkedIn
 export import and erase, LinkedIn URL rules, JSON Resume export, co-op credit-hour eligibility, cross-student isolation,
 competition lifecycle and calendar entries, verified awards, LinkedIn ZIP parsing, GitHub summary with a mocked API).
 
@@ -149,3 +156,29 @@ competition lifecycle and calendar entries, verified awards, LinkedIn ZIP parsin
 - Screenshot-based visual verification of every module page was limited because the app's browser pane was hidden for part of the session; those pages were verified through their rendered text/DOM and the API instead.
 - Google Maps provider is type-checked but was not exercised at runtime (no key configured).
 - Optional AI-backed parsing/explanations were not exercised (no key); deterministic fallbacks are what the tests cover.
+
+### tests/campus.community.test.ts
+- ✅ club community: visibility and posting > non-members read announcements only; the roster is members-only while officers stay public
+- ✅ club community: visibility and posting > members start discussions; announcements are for moderators; abusive text and phone numbers are refused
+- ✅ club community: visibility and posting > a lead announcement notifies every other active member and can be pinned
+- ✅ club community: visibility and posting > poll results appear after voting; questions take an accepted answer from the asker
+- ✅ club community: reports and moderation > three reports hide a post until the lead reviews it; dismissing restores it
+- ✅ club community: reports and moderation > removing a reported post notifies the author; students cannot open the queue
+- ✅ club community: reports and moderation > the lead can make a member an officer, who can then pin announcements
+- ✅ club community: follow, join policies, recommendations, feed > open clubs admit at once; approval clubs keep the join answer for the lead
+- ✅ club community: follow, join policies, recommendations, feed > suggests clubs by shared interests and explains why
+- ✅ club community: follow, join policies, recommendations, feed > the feed mixes posts from joined clubs with announcements from followed clubs
+- ✅ QR self check-in > accepts the poster code during the event window and records a verified achievement
+- ✅ QR self check-in > refuses check-in outside the window
+
+### tests/feedback.test.ts
+- ✅ KPI aggregation > withholds every number below the minimum number of responses
+- ✅ KPI aggregation > turns comments into strengths and suggestions in English and Arabic
+- ✅ public KPI pages > never exposes comments or who responded
+- ✅ public KPI pages > hides KPIs for a course-term below the threshold but still counts the responses
+- ✅ public KPI pages > lists instructors with a teaching index and filters by college and search
+- ✅ giving feedback > offers Spring courses at end of term and current courses as a mid-term check-in
+- ✅ giving feedback > accepts one anonymous response per course, refuses courses not on the record and abusive text
+- ✅ giving feedback > holds all-caps or link-heavy comments for the quality office
+- ✅ quality office and help desk > staff review held responses (masked) and close the loop with a department action
+- ✅ quality office and help desk > students open help tickets and see staff replies
