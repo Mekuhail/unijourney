@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router';
 import { useEdgeFade } from '@/components/ui/useEdgeFade';
-import { motion } from 'motion/react';
+import * as M from 'motion/react-m';
 import clsx from 'clsx';
 import { CheckCircle2, AlertTriangle, XCircle, Lock, LayoutDashboard, Map, ListChecks, CalendarDays, UserCheck, FileText, BookOpenCheck, Check, ChevronLeft } from 'lucide-react';
 import { useI18n } from '@/i18n';
@@ -28,7 +28,7 @@ export function AcademicsNav() {
       <nav ref={row} aria-label={t('nav.academics')} className="scroll-row flex gap-1 overflow-x-auto">
         {SUB.map((s) => (
           <NavLink key={s.to} to={s.to} end={s.end} className={({ isActive }) => clsx('relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors touch:min-h-11', isActive ? 'text-fg' : 'text-muted hover:text-fg')}>
-            {({ isActive }) => (<>{isActive && <motion.span layoutId="acad-tab" className="absolute inset-0 rounded-xl bg-surface shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}<span className="relative flex items-center gap-2 whitespace-nowrap"><s.icon className="h-4 w-4" />{t(s.key)}</span></>)}
+            {({ isActive }) => (<>{isActive && <M.span layoutId="acad-tab" className="absolute inset-0 rounded-xl bg-surface shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}<span className="relative flex items-center gap-2 whitespace-nowrap"><s.icon className="h-4 w-4" />{t(s.key)}</span></>)}
           </NavLink>
         ))}
       </nav>
@@ -155,7 +155,7 @@ export function DayLoadBars({ before, after, days = 14 }: { before?: DayLoad[]; 
             <div className="relative h-5 rounded-md bg-line/50" title={`${t('academics.study.capacity')}: ${l.capacity} · ${t('academics.study.calendarLoad')}: ${l.calendar_min}`}>
               <div className="absolute inset-y-0 start-0 rounded-md border-e-2 border-muted/50" style={{ width: `${(l.capacity / max) * 100}%` }} />
               {b && b.task_min !== l.task_min && <div className={clsx('absolute inset-y-1 start-0 rounded-md opacity-40', b.over ? 'bg-danger' : 'bg-muted')} style={{ width: `${(b.task_min / max) * 100}%` }} />}
-              <motion.div initial={{ width: 0 }} animate={{ width: `${(l.task_min / max) * 100}%` }} className={clsx('absolute inset-y-1 start-0 rounded-md', l.over ? 'bg-danger' : 'bg-success')} />
+              <M.div initial={{ width: 0 }} animate={{ width: `${(l.task_min / max) * 100}%` }} className={clsx('absolute inset-y-1 start-0 rounded-md', l.over ? 'bg-danger' : 'bg-success')} />
               <span className="num absolute inset-y-0 end-1.5 flex items-center text-xs font-semibold">{l.task_min}/{l.capacity}{l.over && ' !'}</span>
             </div>
           </div>

@@ -81,6 +81,7 @@
   /* Layer scale: use these instead of ad hoc z-index values */
   --z-base: 0;
   --z-raised: 10;
+  --z-map-ui: 500; /* inside the map's isolated stacking context: above Leaflet panes, below its controls */
   --z-sticky: 40;
   --z-dropdown: 50;
   --z-overlay: 90;
@@ -134,6 +135,11 @@ body {
   text-rendering: optimizeLegibility;
 }
 [dir="rtl"] body, body[dir="rtl"], html[dir="rtl"] { font-family: var(--font-arabic); }
+
+/* Readable measure: running text is capped at ~70 characters per line (utilities can override) */
+@layer base {
+  main p, main dd, [role="dialog"] p { max-width: 70ch; }
+}
 
 /* Focus visibility (keyboard) */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
@@ -211,7 +217,7 @@ input, textarea { caret-color: var(--accent); }
 
 /* Device adaptation: safe areas (notches / home indicator), touch targets, tablets */
 :root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-left: env(safe-area-inset-left, 0px); --safe-right: env(safe-area-inset-right, 0px); }
-.pad-safe-x { padding-left: max(0.75rem, var(--safe-left)); padding-right: max(0.75rem, var(--safe-right)); }
+.pad-safe-x { padding-left: max(1rem, var(--safe-left)); padding-right: max(1rem, var(--safe-right)); }
 .dock-safe { padding-bottom: calc(0.5rem + var(--safe-bottom)); }
 @media (pointer: coarse), (max-width: 639.98px) {
   main button, main a[role="button"], main input[type="checkbox"], main input[type="radio"] { min-height: 2.75rem; } /* 44px touch targets */

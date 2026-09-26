@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import * as M from 'motion/react-m';
 import { Check, ChevronLeft } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
@@ -26,7 +26,7 @@ export function StepHeader({ steps, current, onSelect, reached }: { steps: Array
                 <span className={clsx('grid h-7 w-7 place-items-center rounded-full text-xs font-bold', active ? 'bg-brand-500 text-ink-950' : done ? 'bg-success text-on-strong' : 'bg-line text-muted')}>{done ? <Check className="h-4 w-4" /> : i + 1}</span>
                 <span className="whitespace-nowrap font-medium">{s.label}</span>
               </button>
-              {i < steps.length - 1 && <span className="relative h-0.5 w-6 overflow-hidden rounded bg-line sm:w-10"><motion.span className="absolute inset-y-0 start-0 bg-success" initial={false} animate={{ width: done ? '100%' : '0%' }} transition={{ duration: 0.2 }} /></span>}
+              {i < steps.length - 1 && <span className="relative h-0.5 w-6 overflow-hidden rounded bg-line sm:w-10"><M.span className="absolute inset-y-0 start-0 bg-success" initial={false} animate={{ width: done ? '100%' : '0%' }} transition={{ duration: 0.2 }} /></span>}
             </li>
           );
         })}

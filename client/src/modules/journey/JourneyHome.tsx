@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { motion } from 'motion/react';
+import * as M from 'motion/react-m';
 import { FileText, BadgeCheck, Compass, GraduationCap, Briefcase, School, ArrowRight, type LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -43,7 +43,7 @@ export function JourneyHome() {
         <SectionTitle>{t('journey.timeline')}</SectionTitle>
         <ol className="relative grid gap-3 md:grid-cols-6">
           <div className="absolute inset-x-6 top-7 hidden h-1 rounded bg-line md:block" aria-hidden>
-            <motion.div className="h-full rounded bg-gradient-to-r from-brand-500 to-gold-500" initial={{ width: 0 }} animate={{ width: idx < 0 ? '0%' : `${(idx / (STAGES.length - 1)) * 100}%` }} transition={{ duration: reducedMotion ? 0 : 1.1, ease: 'easeOut' }} />
+            <M.div className="h-full rounded bg-gradient-to-r from-brand-500 to-gold-500" initial={{ width: 0 }} animate={{ width: idx < 0 ? '0%' : `${(idx / (STAGES.length - 1)) * 100}%` }} transition={{ duration: reducedMotion ? 0 : 1.1, ease: 'easeOut' }} />
           </div>
           {STAGES.map((s, i) => {
             const meta = STAGE_META[s];
@@ -51,7 +51,7 @@ export function JourneyHome() {
             return (
               <li key={s} className="relative">
                 <Link to={meta.to} className={clsx('group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition hover:bg-surface-2', state === 'current' && 'bg-brand-500/5 ring-1 ring-brand-500/40')}>
-                  <span className={clsx('relative grid h-9 w-9 place-items-center rounded-full border-2 bg-surface transition', state === 'done' && 'border-success text-success', state === 'current' && 'border-brand-500 text-brand-600 shadow-[0_0_0_6px_rgba(240,118,43,0.15)]', (state === 'next' || state === 'none') && 'border-line text-muted')}><meta.icon className="h-4 w-4" />{state === 'current' && !reducedMotion && <motion.span className="absolute inset-0 rounded-full border-2 border-brand-500" animate={{ scale: [1, 1.5], opacity: [0.7, 0] }} transition={{ repeat: Infinity, duration: 1.8 }} />}</span>
+                  <span className={clsx('relative grid h-9 w-9 place-items-center rounded-full border-2 bg-surface transition', state === 'done' && 'border-success text-success', state === 'current' && 'border-brand-500 text-brand-600 shadow-[0_0_0_6px_rgba(240,118,43,0.15)]', (state === 'next' || state === 'none') && 'border-line text-muted')}><meta.icon className="h-4 w-4" />{state === 'current' && !reducedMotion && <M.span className="absolute inset-0 rounded-full border-2 border-brand-500" animate={{ scale: [1, 1.5], opacity: [0.7, 0] }} transition={{ repeat: Infinity, duration: 1.8 }} />}</span>
                   <span className={clsx('text-sm font-semibold', state === 'current' ? 'text-fg' : 'text-muted')}>{t(`journey.stage.${s}`)}</span>
                   <span className="text-xs text-muted">{t(`journey.stageBody.${s}`)}</span>
                   {state === 'current' && <Badge tone="brand" dot>{t('journey.youAreHere')}</Badge>}

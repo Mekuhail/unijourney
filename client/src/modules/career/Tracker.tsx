@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { motion } from 'motion/react';
+import * as M from 'motion/react-m';
 import { Plus, CalendarClock, Mail, ChevronRight, KanbanSquare } from 'lucide-react';
 import clsx from 'clsx';
 import { Badge, Button, EmptyState, ErrorState, Field, Input, Modal, Select, Skeleton, StatusPill } from '@/components/ui';
@@ -39,7 +39,7 @@ export function Tracker() {
               <header className="mb-2 flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-wide text-muted"><span>{t(`career.col.${col.key}`)}</span><span className="rounded-full bg-line px-1.5 text-xs">{col.items.length}</span></header>
               <div className="flex flex-col gap-2">
                 {col.items.map((a) => (
-                  <motion.article key={a.id} layout className="card p-3 text-sm">
+                  <M.article key={a.id} layout className="card p-3 text-sm">
                     <Link to={`/career/applications/${a.id}`} className="block">
                       <div className="flex items-start justify-between gap-2"><span className="line-clamp-2 font-semibold leading-snug">{a.title}</span><ChevronRight className="h-4 w-4 shrink-0 text-muted rtl:rotate-180" /></div>
                       <div className="text-xs text-muted">{a.company}</div>
@@ -55,7 +55,7 @@ export function Tracker() {
                       <span className="text-xs text-muted">{a.last_event ? fmtDate(a.last_event.created_at, locale) : ''}</span>
                       <Button size="sm" variant="outline" onClick={() => setStatusFor(a)}>{t('career.changeStatus')}</Button>
                     </div>
-                  </motion.article>
+                  </M.article>
                 ))}
                 {col.items.length === 0 && <div className="rounded-xl border border-dashed border-line p-3 text-center text-xs text-muted">{t('common.empty')}</div>}
               </div>

@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, type ComponentProps, type KeyboardEvent as ReactKeyboardEvent, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'motion/react';
+import {AnimatePresence} from 'motion/react';
+import * as M from 'motion/react-m';
 import clsx from 'clsx';
 import { Loader2, X, Inbox, AlertTriangle, CheckCircle2, Info, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
@@ -178,19 +179,19 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', des
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-ink-950/55 p-0 sm:items-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-          <motion.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={`${id}-t`} className={clsx('card max-h-[92vh] w-full overflow-hidden rounded-b-none sm:rounded-b-[1.25rem]', w)} initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
-            <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+        <M.div className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center bg-ink-950/55 p-0 sm:items-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+          <M.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={`${id}-t`} className={clsx('card flex max-h-[92dvh] w-full flex-col overflow-hidden !p-0 rounded-b-none sm:rounded-b-[1.25rem]', w)} initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4">
               <div>
                 <h2 id={`${id}-t`} className="text-lg font-semibold">{title}</h2>
-                {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
+                {description && <p className="mt-0.5 max-w-[70ch] text-sm text-muted">{description}</p>}
               </div>
               <button onClick={onClose} aria-label={t('common.close')} className="-me-2 -mt-1 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-muted hover:bg-line/60 hover:text-fg"><X className="h-5 w-5" /></button>
             </div>
-            <div className="scroll-thin max-h-[calc(92vh-130px)] overflow-y-auto px-5 py-4">{children}</div>
-            {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
-          </motion.div>
-        </motion.div>
+            <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+            {footer && <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3" style={{ paddingBottom: 'max(0.75rem, var(--safe-bottom))' }}>{footer}</div>}
+          </M.div>
+        </M.div>
       )}
     </AnimatePresence>,
     document.body
@@ -226,7 +227,7 @@ export function Tabs<T extends string>({ value, onChange, items, className, labe
           const active = it.value === value;
           return (
             <button key={it.value} type="button" role="tab" aria-selected={active} tabIndex={active ? 0 : -1} onClick={() => onChange(it.value)} className={clsx('relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors touch:min-h-11', active ? 'text-fg' : 'text-muted hover:text-fg')}>
-              {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-xl bg-surface shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+              {active && <M.span layoutId="tab-pill" className="absolute inset-0 rounded-xl bg-surface shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
               <span className="relative flex items-center gap-2 whitespace-nowrap">{it.icon}{it.label}{it.count !== undefined && <span className="num rounded-full bg-line px-1.5 text-xs font-semibold text-muted">{it.count}</span>}</span>
             </button>
           );
@@ -242,7 +243,7 @@ export function EmptyState({ icon, title, body, action, className }: { icon?: Re
     <div className={clsx('card-2 flex flex-col items-center justify-center gap-2 px-6 py-10 text-center', className)}>
       <div className="grid h-12 w-12 place-items-center rounded-2xl bg-line/60 text-muted">{icon ?? <Inbox className="h-6 w-6" />}</div>
       <div className="text-base font-semibold">{title}</div>
-      {body && <div className="max-w-md text-sm text-muted">{body}</div>}
+      {body && <p className="max-w-md text-sm text-muted">{body}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
@@ -270,7 +271,7 @@ export function Callout({ tone: t = 'info', title, children, icon }: { tone?: 'i
   return (
     <div className={clsx('flex gap-3 rounded-2xl border p-3.5 text-sm', cls)}>
       <span className="mt-0.5 shrink-0">{ic}</span>
-      <div className="min-w-0 flex-1">{title && <div className="font-semibold">{title}</div>}<div className="text-fg/85">{children}</div></div>
+      <div className="min-w-0 flex-1">{title && <div className="font-semibold">{title}</div>}<div className="max-w-[70ch] text-fg/85">{children}</div></div>
     </div>
   );
 }
@@ -281,7 +282,7 @@ export function Progress({ value, max = 100, className, tone: t = 'brand', label
   const c = { brand: 'bg-brand-500', success: 'bg-success', warn: 'bg-warn', danger: 'bg-danger', gold: 'bg-gold-500' }[t];
   return (
     <div className={clsx('h-2 w-full overflow-hidden rounded-full bg-line', className)} role="progressbar" aria-label={label} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-      <motion.div className={clsx('h-full rounded-full', c)} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
+      <M.div className={clsx('h-full rounded-full', c)} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
     </div>
   );
 }

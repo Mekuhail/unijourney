@@ -170,7 +170,7 @@ export function PrereqChainsPage() {
             <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} className="ps-9" placeholder="SWE 302, Operating Systems…" />
             {matches.length > 0 && (
-              <ul className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
+              <ul className="absolute z-[var(--z-dropdown)] mt-1 w-full overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
                 {matches.map((m) => <li key={m.code}><button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-line/60" onClick={() => { setSelected(m.code); setQ(''); nodeRefs.current.get(m.code)?.scrollIntoView({ block: 'center', inline: 'center', behavior: reducedMotion ? 'auto' : 'smooth' }); }}><span className="font-mono text-xs text-brand-600">{m.code}</span><span className="truncate">{l(m.title_en, m.title_ar)}</span></button></li>)}
               </ul>
             )}

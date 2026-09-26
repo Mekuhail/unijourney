@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
-import { motion } from 'motion/react';
+import * as M from 'motion/react-m';
 import { Bell, Languages, Moon, Sun, Monitor, Menu as MenuIcon, X, IdCard, Users, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
@@ -30,7 +30,7 @@ function SideNav() {
         <NavLink key={it.to} to={it.to} className={({ isActive }) => clsx('group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', isActive ? 'text-fg' : 'text-muted hover:text-fg hover:bg-line/50')}>
           {({ isActive }) => (
             <>
-              {isActive && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-xl bg-brand-500/10 ring-1 ring-brand-500/30" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
+              {isActive && <M.span layoutId="nav-active" className="absolute inset-0 rounded-xl bg-brand-500/10 ring-1 ring-brand-500/30" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
               <it.icon className={clsx('relative h-[18px] w-[18px]', isActive ? 'text-brand-600' : 'text-muted group-hover:text-fg')} />
               <span className="relative">{t(it.key)}</span>
             </>

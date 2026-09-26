@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { AnimatePresence, motion } from 'motion/react';
+import {AnimatePresence} from 'motion/react';
+import * as M from 'motion/react-m';
 import { ExternalLink, MapPin, Upload, Trash2, CheckCircle2, AlertTriangle, FileText, PartyPopper, Info } from 'lucide-react';
 import clsx from 'clsx';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -59,17 +60,17 @@ function ProgramExplorer() {
           <SectionTitle>{l(college, items[0].college_ar)}</SectionTitle>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {items.map((p) => (
-              <motion.article key={p.id} layout className="card flex flex-col p-4">
+              <M.article key={p.id} layout className="card flex flex-col p-4">
                 <div className="flex items-start justify-between gap-2"><div><div className="font-semibold">{l(p.name_en, p.name_ar)}</div><div className="text-xs text-muted">{p.degree} · {p.code}</div></div><Badge tone="neutral">{p.total_credits} {t('common.credits')}</Badge></div>
                 <p className="mt-2 line-clamp-3 text-sm text-muted">{l(p.description_en, p.description_ar)}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">{p.campus_ids.map((c) => <Badge key={c} tone="brand"><MapPin className="h-3 w-3" />{campusName(c, t)}</Badge>)}<span className="text-xs text-muted">{p.duration_years} {t('journey.years')}</span></div>
                 <button type="button" className="mt-2 text-start text-xs text-brand-600 hover:underline" onClick={() => setOpen(open === p.id ? null : p.id)}>{open === p.id ? t('common.less') : t('journey.criteria')}</button>
-                <AnimatePresence initial={false}>{open === p.id && <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-xs text-muted">{p.criteria.map((c) => <li key={c.key} className="flex gap-1.5 py-0.5"><Info className="mt-0.5 h-3 w-3 shrink-0" /><span>{l(c.label_en, c.label_ar)} <span className="opacity-70">– {c.note}</span></span></li>)}</motion.ul>}</AnimatePresence>
+                <AnimatePresence initial={false}>{open === p.id && <M.ul initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-xs text-muted">{p.criteria.map((c) => <li key={c.key} className="flex gap-1.5 py-0.5"><Info className="mt-0.5 h-3 w-3 shrink-0" /><span>{l(c.label_en, c.label_ar)} <span className="opacity-70">– {c.note}</span></span></li>)}</M.ul>}</AnimatePresence>
                 <div className="mt-auto flex items-center justify-between pt-3">
                   {p.source_url && <a href={p.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg min-h-11"><ExternalLink className="h-3.5 w-3.5" />{t('journey.officialPage')}</a>}
                   <Button size="sm" onClick={() => { setApply(p); setApplyCampus(p.campus_ids[0] ?? 'riyadh'); }}>{t('journey.apply')}</Button>
                 </div>
-              </motion.article>
+              </M.article>
             ))}
           </div>
         </section>
@@ -101,13 +102,13 @@ function ApplicationFlow({ app }: { app: AdmApp }) {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="text-sm"><span className="font-semibold">{app.program ? l(app.program.name_en, app.program.name_ar) : app.program_id}</span> · {campusName(app.campus_id, t)} · <StatusPill status={app.status} /></div>{app.status === 'needs_information' && app.reviewer_note && <Callout tone="warn" title={t('journey.officerNote')}>{app.reviewer_note}</Callout>}</div>
         <StepHeader steps={steps} current={step} reached={Math.max(reached, step)} onSelect={setStep} />
         <AnimatePresence initial={false} mode="popLayout">
-          <motion.div key={step} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }} className="mt-4">
+          <M.div key={step} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }} className="mt-4">
             {step === 0 && <ProgramStep app={app} onNext={() => setStep(1)} />}
             {step === 1 && <PersonalStep app={app} onNext={() => setStep(2)} onBack={() => setStep(0)} />}
             {step === 2 && <DocumentsStep app={app} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
             {step === 3 && <ReviewStep app={app} onNext={() => setStep(4)} onBack={() => setStep(2)} goto={setStep} />}
             {step === 4 && <SubmitStep app={app} onBack={() => setStep(3)} onSubmitted={() => { setEditing(false); toast.success(t('journey.submitted')); }} />}
-          </motion.div>
+          </M.div>
         </AnimatePresence>
       </Card>
       <p className="text-xs text-muted">{t('journey.timelineLast')}: {app.timeline.length ? `${app.timeline[app.timeline.length - 1].note} · ${fmtDateTime(app.timeline[app.timeline.length - 1].at, locale)}` : '—'}</p>
@@ -282,7 +283,7 @@ function StatusView({ app, onEdit }: { app: AdmApp; onEdit?: () => void }) {
             {app.timeline.map((e, i) => <li key={i} className="mb-3 last:mb-0"><span className={clsx('absolute -start-[7px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-surface', i === app.timeline.length - 1 ? 'bg-brand-500' : 'bg-line')} /><div className="flex flex-wrap items-center gap-2 text-sm"><StatusPill status={e.status} /><span>{e.note}</span></div><div className="text-xs text-muted">{fmtDateTime(e.at, locale)}</div></li>)}
           </ol>
         </Card>
-        {celebrate && <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center text-sm text-muted">🎓 {t('journey.welcome')}</motion.div>}
+        {celebrate && <M.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center text-sm text-muted">🎓 {t('journey.welcome')}</M.div>}
       </div>
       <Card>
         <SectionTitle>{t('journey.summary')}</SectionTitle>

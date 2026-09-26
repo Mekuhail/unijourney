@@ -1,6 +1,7 @@
 import type { SpringOptions } from 'motion/react';
 import { useRef, useState } from 'react';
-import { motion, useMotionValue, useSpring } from 'motion/react';
+import {useMotionValue, useSpring} from 'motion/react';
+import * as M from 'motion/react-m';
 
 interface TiltedCardProps {
   imageSrc: React.ComponentProps<'img'>['src'];
@@ -106,7 +107,7 @@ export default function TiltedCard({
         </div>
       )}
 
-      <motion.div
+      <M.div
         className="relative [transform-style:preserve-3d]"
         style={{
           width: imageWidth,
@@ -116,7 +117,7 @@ export default function TiltedCard({
           scale
         }}
       >
-        <motion.img
+        <M.img
           src={imageSrc}
           alt={altText}
           className="absolute top-0 left-0 object-cover rounded-[15px] will-change-transform [transform:translateZ(0)]"
@@ -127,14 +128,14 @@ export default function TiltedCard({
         />
 
         {displayOverlayContent && overlayContent && (
-          <motion.div className="absolute top-0 left-0 z-[2] will-change-transform [transform:translateZ(30px)]">
+          <M.div className="absolute top-0 left-0 z-[2] will-change-transform [transform:translateZ(30px)]">
             {overlayContent}
-          </motion.div>
+          </M.div>
         )}
-      </motion.div>
+      </M.div>
 
       {showTooltip && (
-        <motion.figcaption
+        <M.figcaption
           className="pointer-events-none absolute left-0 top-0 rounded-[4px] bg-white px-[10px] py-[4px] text-xs text-[#2d2d2d] opacity-0 z-[3] hidden sm:block"
           style={{
             x,
@@ -144,7 +145,7 @@ export default function TiltedCard({
           }}
         >
           {captionText}
-        </motion.figcaption>
+        </M.figcaption>
       )}
     </figure>
   );

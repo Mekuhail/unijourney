@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'motion/react';
+import {AnimatePresence} from 'motion/react';
+import * as M from 'motion/react-m';
 import { Link } from 'react-router';
 import { Bell, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
@@ -24,8 +25,8 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[var(--z-overlay)] bg-ink-950/45" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-          <motion.aside role="dialog" aria-label={t('nav.notifications')} className="absolute inset-y-0 end-0 flex w-[min(100vw,400px)] flex-col bg-surface shadow-2xl" initial={{ x: locale === 'ar' ? -40 : 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: locale === 'ar' ? -40 : 40, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}>
+        <M.div className="fixed inset-0 z-[var(--z-overlay)] bg-ink-950/45" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+          <M.aside role="dialog" aria-label={t('nav.notifications')} className="absolute inset-y-0 end-0 flex w-[min(100vw,400px)] flex-col bg-surface shadow-2xl" initial={{ x: locale === 'ar' ? -40 : 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: locale === 'ar' ? -40 : 40, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}>
             <div className="flex items-center justify-between border-b border-line px-4 py-3">
               <h2 className="flex items-center gap-2 font-semibold"><Bell className="h-4 w-4 text-brand-500" />{t('nav.notifications')}</h2>
               <div className="flex items-center gap-1">
@@ -50,8 +51,8 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
                 ))}
               </ul>
             </div>
-          </motion.aside>
-        </motion.div>
+          </M.aside>
+        </M.div>
       )}
     </AnimatePresence>,
     document.body

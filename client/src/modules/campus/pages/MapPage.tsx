@@ -129,7 +129,7 @@ export function MapPage() {
           )}
 
           {/* Category filters */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] p-3">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-[var(--z-map-ui)] p-3">
             <div className="scroll-thin pointer-events-auto flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label={t('map.filters')}>
               {CATEGORIES.filter((c) => counts.get(c)).map((c) => {
                 const on = !hidden.has(c);
@@ -147,7 +147,7 @@ export function MapPage() {
           </div>
 
           {/* Bottom overlay: status + recenter, and a route/selection bar on small screens */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[500] flex flex-col gap-2 p-3">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[var(--z-map-ui)] flex flex-col gap-2 p-3">
             {(routeOk || d) && (
               <div className="pointer-events-auto glass flex items-center gap-3 rounded-2xl px-3 py-2 shadow-lg lg:hidden">
                 {routeOk ? (
