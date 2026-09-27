@@ -1028,3 +1028,54 @@ CREATE TABLE IF NOT EXISTS parking_bays (
   closed_reason TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_parking_bays_lot ON parking_bays(lot_id, ordinal);
+
+-- ---------------------------------------------------------------- study planner: professor announcements (academics)
+-- Added by migration 'planner-v1'. A course email is parsed into an assessment, which becomes a to-do and a calendar
+-- entry for every enrolled student; manual tasks keep using study_tasks, with exact times in study_task_times.
+CREATE TABLE IF NOT EXISTS course_emails (
+  id TEXT PRIMARY KEY,
+  course_code TEXT NOT NULL,
+  term TEXT NOT NULL,
+  section_id TEXT,                      -- NULL = every section of the course this term
+  from_name TEXT NOT NULL,
+  from_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'email', -- email|lms|syllabus
+  received_at TEXT NOT NULL,
+  assessment_id TEXT,
+  parse_note TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_course_emails_course ON course_emails(course_code, term);
+
+CREATE TABLE IF NOT EXISTS course_assessments (
+  id TEXT PRIMARY KEY,
+  course_code TEXT NOT NULL,
+  term TEXT NOT NULL,
+  section_id TEXT,
+  kind TEXT NOT NULL,                   -- quiz|midterm|final|assignment|project|lab|presentation
+  number INTEGER,
+  title TEXT NOT NULL,                  -- the announcement's own subject line
+  description TEXT NOT NULL,            -- the announcement's own text
+  due_at TEXT NOT NULL,
+  end_at TEXT,
+  all_day INTEGER NOT NULL DEFAULT 0,
+  location_id TEXT,
+  location_text TEXT,
+  email_id TEXT,
+  status TEXT NOT NULL DEFAULT 'scheduled',   -- scheduled|cancelled
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS study_task_times (
+  task_id TEXT PRIMARY KEY REFERENCES study_tasks(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL DEFAULT 'task',    -- task|reminder|assessment
+  due_at TEXT,                          -- exact date-time (ISO); NULL = no time
+  start_at TEXT, end_at TEXT,           -- a block on the schedule (drag to move)
+  remind_at TEXT,
+  reminded INTEGER NOT NULL DEFAULT 0,
+  urgency TEXT NOT NULL DEFAULT 'medium',   -- high|medium|low
+  assessment_id TEXT
+);

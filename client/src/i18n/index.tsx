@@ -14,10 +14,11 @@ import { communityDict } from '../modules/campus/i18nCommunity';
 import { socialDict } from '../modules/campus/i18nSocial';
 import { parkingDict } from '../modules/campus/map/parkingI18n';
 import { shellDict } from '../shell/i18nShell';
+import { plannerDict } from '../modules/academics/plannerI18n';
 import { feedbackDict } from '../modules/feedback/i18n';
 
 type Dict = Record<string, string>;
-const dicts: Array<{ en: Dict; ar: Dict }> = [coreDict, todayDict, academicsDict, campusDict, careerDict, journeyDict, prereqsDict, mapDict, careerPortfolioDict, polishDict, communityDict, feedbackDict, socialDict, parkingDict, shellDict];
+const dicts: Array<{ en: Dict; ar: Dict }> = [coreDict, todayDict, academicsDict, campusDict, careerDict, journeyDict, prereqsDict, mapDict, careerPortfolioDict, polishDict, communityDict, feedbackDict, socialDict, parkingDict, plannerDict, shellDict];
 const merged: Record<Locale, Dict> = {
   en: Object.assign({}, ...dicts.map((d) => d.en)),
   ar: Object.assign({}, ...dicts.map((d) => d.ar))

@@ -1,4 +1,5 @@
 import type { SeedContext } from '../../seed/context.ts';
+import { seedPlanner } from './assessments.ts';
 import { j } from '../../core/db.ts';
 import { localToIso, nowIso } from '../../core/clock.ts';
 import { upsertEntry } from '../../core/calendar.ts';
@@ -248,6 +249,9 @@ export function seedAcademics(ctx: SeedContext) {
     created_at: localToIso('2026-09-18', '10:05'), updated_at: localToIso('2026-09-19', '08:40')
   });
   d.insert('portal_operations', { id: 'op_seed_excuse_faisal', kind: 'excuse', student_id: F, payload_hash: 'seed', idempotency_key: 'excuse:exc_faisal_seed_01:r2:seed', status: 'committed', result: j({ portal_request_id: 'EX-2026-0088', simulated: true }), created_at: localToIso('2026-09-18', '10:27'), completed_at: localToIso('2026-09-18', '10:27') });
+
+  // 10. professors' announcements: quizzes, midterms and deadlines land in each student's planner automatically
+  seedPlanner(d, ctx.today);
 }
 
 function roomName(d: SeedContext['db'], id: string): string {

@@ -31,7 +31,19 @@ export function listNotifications(userId: string, limit = 50): Notification[] {
   return db().all<Notification>('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?', userId, limit);
 }
 
+/**
+ * Modules can register a check that turns due items (e.g. planner reminders) into notifications. It runs whenever the
+ * unread count is read, so reminders arrive even when the student is on another page.
+ */
+const pendingSources: Array<(userId: string) => void> = [];
+export function registerPendingNotifications(fn: (userId: string) => void) {
+  if (!pendingSources.includes(fn)) pendingSources.push(fn);
+}
+
 export function unreadCount(userId: string): number {
+  for (const f of pendingSources) {
+    try { f(userId); } catch (e) { console.error('[notify] pending source failed', e); }
+  }
   return db().count('notifications', 'user_id = ? AND read_at IS NULL', userId);
 }
 

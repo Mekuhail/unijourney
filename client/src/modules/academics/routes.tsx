@@ -5,7 +5,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { TimetablePage } from './pages/TimetablePage';
 import { AttendancePage } from './pages/AttendancePage';
 import { ExcusesListPage, ExcuseDetailPage } from './pages/ExcusesPage';
-import { StudyPage } from './pages/StudyPage';
+import { PlannerPage } from './pages/PlannerPage';
 import { CoursePage } from './pages/CoursePage';
 
 /** Academics module routes, mounted at /academics/*. */
@@ -19,7 +19,7 @@ export function AcademicsRoutes() {
       <Route path="attendance" element={<AttendancePage />} />
       <Route path="excuses" element={<ExcusesListPage />} />
       <Route path="excuses/:id" element={<ExcuseDetailPage />} />
-      <Route path="study" element={<StudyPage />} />
+      <Route path="study" element={<PlannerPage />} />
       <Route path="courses/:code" element={<CoursePage />} />
       <Route path="*" element={<Navigate to="/academics" replace />} />
     </Routes>

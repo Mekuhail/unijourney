@@ -71,7 +71,7 @@ describe('parking occupancy', () => {
     expect(k.lots.map((l) => l.id)).toEqual(['khb_parking']);
     expect(k.lots[0].polygon).not.toBeNull();
     db().exec('DELETE FROM parking_bays'); db().exec('DELETE FROM parking_lots');
-    setSetting('migrations_applied', ['community-social-v1']);
+    setSetting('migrations_applied', ['community-social-v1', 'planner-v1']);
     expect(runMigrations(db())).toEqual(['parking-v1']);
     expect(db().count('parking_lots')).toBe(7);
     expect(runMigrations(db())).toEqual([]);
