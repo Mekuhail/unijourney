@@ -1,6 +1,18 @@
 /** Strings for the club community: directory, club pages, posts, moderation and event check-in. */
 export const communityDict = {
   en: {
+    'community.pastHighlight': 'Past highlight',
+    'community.source': 'Source',
+    'community.eventCta': 'See event',
+    'community.photoAdd': 'Add photos',
+    'community.photoUploading': 'Uploading…',
+    'community.photoType': 'Use a PNG, JPEG or WebP image.',
+    'community.photoAlt': 'Describe photo {n} for people who cannot see it',
+    'community.photoAltPh': 'Describe the photo (required)',
+    'community.photoCaption': 'Caption for photo {n}',
+    'community.photoCaptionPh': 'Caption (optional)',
+    'community.photoRemove': 'Remove photo {n}',
+    'community.photoAltNeeded': 'Add a short description to every photo before posting.',
     'campus.clubs.categories.design': 'Design',
     'campus.clubs.categories.law': 'Law',
     'campus.clubs.subtitle': 'Find your people. Follow a club to see its announcements, or join to take part in discussions and events.',
@@ -167,6 +179,18 @@ export const communityDict = {
     'campus.checkin.cameraNote': 'The demo has no camera access; enter the code printed under the QR instead.'
   },
   ar: {
+    'community.pastHighlight': 'من الأرشيف',
+    'community.source': 'المصدر',
+    'community.eventCta': 'عرض الفعالية',
+    'community.photoAdd': 'إضافة صور',
+    'community.photoUploading': 'جارٍ الرفع…',
+    'community.photoType': 'استخدم صورة PNG أو JPEG أو WebP.',
+    'community.photoAlt': 'صف الصورة {n} لمن لا يستطيع رؤيتها',
+    'community.photoAltPh': 'صف الصورة (مطلوب)',
+    'community.photoCaption': 'تعليق الصورة {n}',
+    'community.photoCaptionPh': 'تعليق (اختياري)',
+    'community.photoRemove': 'حذف الصورة {n}',
+    'community.photoAltNeeded': 'أضف وصفًا قصيرًا لكل صورة قبل النشر.',
     'campus.clubs.categories.design': 'التصميم',
     'campus.clubs.categories.law': 'القانون',
     'campus.clubs.subtitle': 'اعثر على مجتمعك. تابع النادي لترى إعلاناته، أو انضم لتشارك في النقاشات والفعاليات.',

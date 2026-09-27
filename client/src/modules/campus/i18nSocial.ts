@@ -1,6 +1,7 @@
 /** Strings for the campus community: entry on Campus Life, feed, workshops, people, profiles and messages. */
 export const socialDict = {
   en: {
+    'social.rail.label': 'Coming up and people',
     'nav.community': 'Community',
     'module.community': 'Community',
     'community.helpful': 'Like',
@@ -200,6 +201,7 @@ export const socialDict = {
     'social.staff.removed': 'Removed; the author was told.'
   },
   ar: {
+    'social.rail.label': 'القادم والأشخاص',
     'nav.community': 'المجتمع',
     'module.community': 'المجتمع',
     'community.helpful': 'إعجاب',

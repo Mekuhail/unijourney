@@ -28,7 +28,10 @@ export interface Post {
   poll: { total: number; my_vote: string | null; options: Array<{ id: string; label: string; votes: number | null }> } | null;
   can: { edit: boolean; delete: boolean; pin: boolean; comment: boolean; react: boolean; vote: boolean; accept: boolean; report: boolean };
   club?: { id: string; name_en: string; name_ar: string; color: string };
+  gallery?: PostImage[];
+  source?: { url: string; label_en: string; label_ar: string | null; happened_on: string | null; highlight: number } | null;
 }
+export interface PostImage { id: string; url: string; width: number; height: number; alt_en: string; alt_ar: string | null; caption_en: string | null; caption_ar: string | null; credit_en: string | null; credit_ar: string | null }
 export interface PostList { pinned: Post[]; items: Post[]; members_only_hidden: number; can_post: Record<'announcement' | 'discussion' | 'question' | 'poll', boolean>; open_reports: number }
 export interface ClubReport { id: string; post_id: string; comment_id: string | null; reason: string; note: string | null; status: string; created_at: string; post_body: string; post_kind: string; hidden: boolean; comment_body: string | null; author: UserBrief | null }
 export interface CheckinState { opens_at: string; closes_at: string; open: boolean; checked_in: { at: string; method: string } | null; count: number; code: string | null; qr_payload: string | null; is_organiser: boolean }

@@ -2,9 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import clsx from 'clsx';
 import { QRCodeSVG } from 'qrcode.react';
-import { MapPin, Megaphone, MessageCircle, HelpCircle, BarChart3, Pin, PinOff, ThumbsUp, MoreHorizontal, Flag, Trash2, Pencil, CheckCircle2, CalendarDays, EyeOff, Plus, X, QrCode, ShieldCheck, Lock } from 'lucide-react';
+import { MapPin, Megaphone, MessageCircle, HelpCircle, BarChart3, Pin, PinOff, ThumbsUp, MoreHorizontal, Flag, Trash2, Pencil, CheckCircle2, CalendarDays, EyeOff, Plus, X, QrCode, ShieldCheck, Lock, ExternalLink, ImagePlus } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { api, errorMessage } from '@/lib/api';
+import { api, apiUpload, errorMessage } from '@/lib/api';
 import { refreshAll } from '@/lib/bus';
 import { useQuery } from '@/lib/useQuery';
 import { fmtDate, fmtRelative, fmtTime } from '@/lib/format';
@@ -12,7 +12,8 @@ import { useToast } from '@/components/ui/toast';
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu';
 import { Avatar, Badge, Button, Callout, ConfirmDialog, EmptyState, ErrorState, Field, Input, Modal, Select, Skeleton, Textarea, Toggle } from '@/components/ui';
 import { useDemoStatus } from '@/shell/DemoClock';
-import type { CheckinState, ClubReport, EventItem, FeedPost, Post, PostAuthor, PostKind, PostList } from './types';
+import type { CheckinState, ClubReport, EventItem, FeedPost, Post, PostAuthor, PostImage, PostKind, PostList } from './types';
+import type { DocumentMeta } from '@shared/types';
 
 const KIND_ICON: Record<PostKind, typeof Megaphone> = { announcement: Megaphone, discussion: MessageCircle, question: HelpCircle, poll: BarChart3 };
 const KIND_TONE: Record<PostKind, 'brand' | 'neutral' | 'info' | 'gold'> = { announcement: 'brand', discussion: 'neutral', question: 'info', poll: 'gold' };
@@ -93,6 +94,29 @@ function ReportDialog({ open, onClose, post, commentId }: { open: boolean; onClo
       </fieldset>
       <Field label={t('community.reportNote')} className="mt-3"><Textarea rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
     </Modal>
+  );
+}
+
+/** Club photos: reserved space from the stored size (no layout shift), alt text always, captions and credit when given. */
+function Gallery({ images }: { images: PostImage[] }) {
+  const { l } = useI18n();
+  const [broken, setBroken] = useState<Set<string>>(new Set());
+  const one = images.length === 1;
+  return (
+    <div className={clsx('mt-3 grid gap-1.5 overflow-hidden rounded-xl', one ? 'grid-cols-1' : 'grid-cols-2')}>
+      {images.map((m, i) => (
+        <figure key={m.id} className={clsx('min-w-0', images.length === 3 && i === 0 && 'col-span-2')}>
+          <div className="overflow-hidden rounded-xl border border-line bg-surface-2" style={{ aspectRatio: one || (images.length === 3 && i === 0) ? `${m.width} / ${m.height}` : '1 / 1' }}>
+            {broken.has(m.id)
+              ? <div className="grid h-full place-items-center p-4 text-center text-sm text-muted" dir="auto">{l(m.alt_en, m.alt_ar)}</div>
+              : <img src={m.url} alt={l(m.alt_en, m.alt_ar)} width={m.width} height={m.height} loading="lazy" decoding="async" onError={() => setBroken((b) => new Set(b).add(m.id))} className="h-full w-full object-cover" />}
+          </div>
+          {(m.caption_en || m.credit_en) && (
+            <figcaption className="mt-1 text-xs text-muted" dir="auto">{m.caption_en ? l(m.caption_en, m.caption_ar) : ''}{m.caption_en && m.credit_en ? ' · ' : ''}{m.credit_en ? l(m.credit_en, m.credit_ar) : ''}</figcaption>
+          )}
+        </figure>
+      ))}
+    </div>
   );
 }
 
@@ -188,10 +212,18 @@ export function PostCard({ post: initial, showClub, highlight, onRemoved }: { po
           {feed.media.alt && <figcaption className="sr-only">{feed.media.alt}</figcaption>}
         </figure>
       )}
+      {post.gallery && post.gallery.length > 0 && <Gallery images={post.gallery} />}
+      {post.source && (
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+          {post.source.highlight ? <span className="rounded-md bg-gold-500/20 px-1.5 py-0.5 font-semibold text-gold-700">{t('community.pastHighlight')}{post.source.happened_on ? ` · ${fmtDate(post.source.happened_on, locale)}` : ''}</span> : null}
+          <a href={post.source.url} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center gap-1 font-medium text-brand-600 hover:underline sm:min-h-0">{t('community.source')}: {l(post.source.label_en, post.source.label_ar)}<ExternalLink className="h-3 w-3" aria-hidden /></a>
+        </p>
+      )}
       {post.event && (
         <Link to={`/campus/events/${post.event.id}`} className="mt-3 flex min-h-11 items-center gap-3 rounded-xl border border-line px-3 py-2 text-sm transition hover:border-brand-400">
           <CalendarDays className="h-4 w-4 shrink-0 text-brand-600" aria-hidden />
           <span className="min-w-0 flex-1"><span className="block truncate font-medium">{l(post.event.title_en, post.event.title_ar || post.event.title_en)}</span><span className="num block text-xs text-muted">{fmtDate(post.event.start_at, locale, { weekday: 'short' })} · {fmtTime(post.event.start_at, locale)}</span></span>
+          <span className="shrink-0 text-sm font-semibold text-brand-600">{t('community.eventCta')}</span>
         </Link>
       )}
       {post.poll && <Poll post={post} onChange={setPost} />}
@@ -258,6 +290,22 @@ export function Composer({ clubId, can, events, onPosted }: { clubId: string; ca
   const [eventId, setEventId] = useState('');
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Photos: up to four, each with alt text; the size is read here so the feed can reserve space.
+  const [photos, setPhotos] = useState<Array<{ id: string; url: string; width: number; height: number; alt: string; caption: string }>>([]);
+  const [uploading, setUploading] = useState(false);
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      for (const f of [...files].slice(0, 4 - photos.length)) {
+        if (!/^image\/(png|jpeg|webp)$/.test(f.type)) { toast.error(t('community.photoType')); continue; }
+        const url = URL.createObjectURL(f);
+        const size = await new Promise<{ w: number; h: number }>((res) => { const img = new Image(); img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight }); img.onerror = () => res({ w: 1200, h: 675 }); img.src = url; });
+        const doc = await apiUpload<DocumentMeta>('/documents', f, { kind: 'post_media', label: 'Club post image' });
+        setPhotos((p) => [...p, { id: doc.id, url, width: size.w, height: size.h, alt: '', caption: '' }]);
+      }
+    } catch (e) { toast.error(errorMessage(e)); } finally { setUploading(false); }
+  };
   if (!kinds.length) return null;
   if (!expanded) {
     return (
@@ -266,12 +314,12 @@ export function Composer({ clubId, can, events, onPosted }: { clubId: string; ca
       </button>
     );
   }
-  const valid = body.trim().length >= 2 && (kind !== 'poll' || options.filter((o) => o.trim()).length >= 2);
+  const valid = body.trim().length >= 2 && (kind !== 'poll' || options.filter((o) => o.trim()).length >= 2) && photos.every((p) => p.alt.trim().length >= 3);
   const submit = async () => {
     setBusy(true);
     try {
-      const p = await api<Post>(`/campus/clubs/${clubId}/posts`, { method: 'POST', body: { kind, body: body.trim(), event_id: eventId || null, pin: kind === 'announcement' ? pin : undefined, notify: kind === 'announcement' || kind === 'poll' ? notifyAll : undefined, options: kind === 'poll' ? options.map((o) => o.trim()).filter(Boolean) : undefined } });
-      setBody(''); setOptions(['', '']); setPin(false); setEventId(''); setExpanded(false);
+      const p = await api<Post>(`/campus/clubs/${clubId}/posts`, { method: 'POST', body: { kind, body: body.trim(), event_id: eventId || null, pin: kind === 'announcement' ? pin : undefined, notify: kind === 'announcement' || kind === 'poll' ? notifyAll : undefined, options: kind === 'poll' ? options.map((o) => o.trim()).filter(Boolean) : undefined, media: kind !== 'poll' && photos.length ? photos.map((p) => ({ document_id: p.id, alt: p.alt.trim(), caption: p.caption.trim() || undefined, width: p.width, height: p.height })) : undefined } });
+      setBody(''); setOptions(['', '']); setPin(false); setEventId(''); setExpanded(false); setPhotos([]);
       toast.success(t('community.posted'));
       onPosted(p);
       refreshAll('community');
@@ -299,6 +347,31 @@ export function Composer({ clubId, can, events, onPosted }: { clubId: string; ca
             </div>
           ))}
           {options.length < 5 && <Button size="sm" variant="ghost" icon={<Plus className="h-4 w-4" aria-hidden />} onClick={() => setOptions([...options, ''])}>{t('community.addOption')}</Button>}
+        </div>
+      )}
+      {kind !== 'poll' && (
+        <div className="mt-3">
+          {photos.length > 0 && (
+            <ul className="mb-2 space-y-2">
+              {photos.map((p, i) => (
+                <li key={p.id} className="flex gap-3 rounded-xl border border-line p-2">
+                  <img src={p.url} alt="" className="h-16 w-24 shrink-0 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <Input aria-label={t('community.photoAlt', { n: i + 1 })} placeholder={t('community.photoAltPh')} maxLength={200} value={p.alt} onChange={(e) => setPhotos(photos.map((x, j) => (j === i ? { ...x, alt: e.target.value } : x)))} dir="auto" />
+                    <Input aria-label={t('community.photoCaption', { n: i + 1 })} placeholder={t('community.photoCaptionPh')} maxLength={200} value={p.caption} onChange={(e) => setPhotos(photos.map((x, j) => (j === i ? { ...x, caption: e.target.value } : x)))} dir="auto" />
+                  </div>
+                  <button type="button" aria-label={t('community.photoRemove', { n: i + 1 })} onClick={() => setPhotos(photos.filter((_, j) => j !== i))} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-muted hover:bg-line/60"><X className="h-4 w-4" aria-hidden /></button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {photos.length < 4 && (
+            <label className={clsx('inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl px-3 text-sm font-medium text-brand-600 hover:bg-line/50 sm:min-h-9', uploading && 'opacity-60')}>
+              <ImagePlus className="h-4 w-4" aria-hidden />{uploading ? t('community.photoUploading') : t('community.photoAdd')}
+              <input type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" disabled={uploading} onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+            </label>
+          )}
+          {photos.some((p) => p.alt.trim().length < 3) && <p className="mt-1 text-xs text-warn">{t('community.photoAltNeeded')}</p>}
         </div>
       )}
       {(kind === 'announcement' || kind === 'poll') && (

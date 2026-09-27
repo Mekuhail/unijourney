@@ -1091,3 +1091,9 @@ CREATE INDEX IF NOT EXISTS idx_peer_links_a ON peer_links(a_id, term);
 CREATE INDEX IF NOT EXISTS idx_peer_links_b ON peer_links(b_id, term);
 CREATE TABLE IF NOT EXISTS peer_shares (link_id TEXT NOT NULL REFERENCES peer_links(id) ON DELETE CASCADE, user_id TEXT NOT NULL, course_code TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (link_id, user_id, course_code));
 CREATE TABLE IF NOT EXISTS peer_proposals (id TEXT PRIMARY KEY, link_id TEXT NOT NULL REFERENCES peer_links(id) ON DELETE CASCADE, from_id TEXT NOT NULL, to_id TEXT NOT NULL, course_code TEXT NOT NULL, section_id TEXT NOT NULL, note TEXT, status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, result TEXT);
+
+-- Club post media: uploads (documents) or curated demo illustrations (asset_path), always with alt text and size.
+CREATE TABLE IF NOT EXISTS club_post_media (id TEXT PRIMARY KEY, post_id TEXT NOT NULL REFERENCES club_posts(id) ON DELETE CASCADE, sort INTEGER NOT NULL DEFAULT 0, kind TEXT NOT NULL DEFAULT 'image', document_id TEXT, asset_path TEXT, width INTEGER NOT NULL, height INTEGER NOT NULL, alt_en TEXT NOT NULL, alt_ar TEXT, caption_en TEXT, caption_ar TEXT, credit_en TEXT, credit_ar TEXT, created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_club_post_media_post ON club_post_media(post_id, sort);
+-- Attribution for posts that retell a real, public YU event (past highlights): the original link and its date.
+CREATE TABLE IF NOT EXISTS club_post_sources (post_id TEXT PRIMARY KEY REFERENCES club_posts(id) ON DELETE CASCADE, url TEXT NOT NULL, label_en TEXT NOT NULL, label_ar TEXT, happened_on TEXT, highlight INTEGER NOT NULL DEFAULT 0);

@@ -11,6 +11,7 @@ import { audit } from '../../core/audit.ts';
 import { config } from '../../core/config.ts';
 import { checkText } from '../../core/moderation.ts';
 import { getClub, getEvent, isLeadOf, nowLocalIso, userBrief, type ClubRow } from './shared.ts';
+import { getDocument, registerDocumentGrant } from '../../core/documents.ts';
 
 /**
  * Club community: announcements, member discussions, questions with accepted answers, polls, reactions, comments,
@@ -164,6 +165,23 @@ function isPinned(p: PostRow) {
   return !!p.pinned_until && p.pinned_until >= nowIso();
 }
 
+/** Images on a club post: an upload (served through the documents API) or a curated demo illustration. */
+export function galleryOf(postId: string) {
+  return db().all<{ id: string; document_id: string | null; asset_path: string | null; width: number; height: number; alt_en: string; alt_ar: string | null; caption_en: string | null; caption_ar: string | null; credit_en: string | null; credit_ar: string | null }>(
+    'SELECT * FROM club_post_media WHERE post_id = ? ORDER BY sort', postId)
+    .map((m) => ({ id: m.id, url: m.asset_path ?? `/api/documents/${m.document_id}/file`, width: m.width, height: m.height, alt_en: m.alt_en, alt_ar: m.alt_ar, caption_en: m.caption_en, caption_ar: m.caption_ar, credit_en: m.credit_en, credit_ar: m.credit_ar }));
+}
+/** Where a post's story comes from, for past highlights of real YU events: a link, a date, and a label. */
+export function sourceOf(postId: string) {
+  return db().get<{ url: string; label_en: string; label_ar: string | null; happened_on: string | null; highlight: number }>('SELECT url, label_en, label_ar, happened_on, highlight FROM club_post_sources WHERE post_id = ?', postId) ?? null;
+}
+
+// Uploaded images on a club post are visible to whoever can see the post.
+registerDocumentGrant((doc) => {
+  if (doc.kind !== 'post_media') return false;
+  return !!db().get('SELECT 1 FROM club_post_media m JOIN club_posts p ON p.id = m.post_id WHERE m.document_id = ? AND p.removed_at IS NULL', doc.id);
+});
+
 export function postView(p: PostRow, club: ClubRow, u: User) {
   const mod = canModerate(u, club);
   const member = isMember(u, club);
@@ -183,6 +201,8 @@ export function postView(p: PostRow, club: ClubRow, u: User) {
     pinned: isPinned(p), pinned_until: p.pinned_until, hidden: !!p.hidden,
     author: authorView(club.id, p.author_id),
     event,
+    gallery: galleryOf(p.id),
+    source: sourceOf(p.id),
     reactions: db().count('club_reactions', 'post_id = ?', p.id),
     reacted: !!db().get('SELECT 1 FROM club_reactions WHERE post_id = ? AND user_id = ?', p.id, u.id),
     comments,
@@ -246,7 +266,9 @@ const postBody = z.object({
   event_id: z.string().optional().nullable(),
   pin: z.boolean().optional(),
   notify: z.boolean().optional(),
-  options: z.array(z.string().trim().min(1).max(80)).min(2).max(5).optional()
+  options: z.array(z.string().trim().min(1).max(80)).min(2).max(5).optional(),
+  // Up to four images, each with alt text; dimensions let the feed reserve space (no layout shift).
+  media: z.array(z.object({ document_id: z.string().min(3), alt: z.string().trim().min(3).max(200), caption: z.string().trim().max(200).optional(), width: z.number().int().min(1).max(12000), height: z.number().int().min(1).max(12000) })).max(4).optional()
 });
 
 communityRouter.post('/clubs/:id/posts', h((req, res) => {
@@ -264,7 +286,12 @@ communityRouter.post('/clubs/:id/posts', h((req, res) => {
   // Slow mode: 6 posts per member per club per hour (Discord-style), moderators exempt.
   const hourAgo = new Date(now().getTime() - 3600e3).toISOString();
   if (!mod && db().count('club_posts', 'club_id = ? AND author_id = ? AND created_at >= ?', club.id, u.id, hourAgo) >= 6) throw rateLimited('Slow mode: you can post again in a little while.');
-  const text = assertCleanText([body.body, ...(body.options ?? [])].join('\n'));
+  const text = assertCleanText([body.body, ...(body.options ?? []), ...(body.media ?? []).flatMap((m) => [m.alt, m.caption ?? ''])].join('\n'));
+  for (const m of body.media ?? []) {
+    const d = getDocument(m.document_id);
+    if (!d || d.owner_id !== u.id || d.kind !== 'post_media' || !/^image\/(png|jpeg|webp)$/.test(d.mime)) throw unprocessable('Attach PNG, JPEG or WebP images you uploaded');
+    if (db().get('SELECT 1 FROM club_post_media WHERE document_id = ?', d.id) || db().get('SELECT 1 FROM social_posts WHERE media_document_id = ?', d.id)) throw conflict('That image is already attached to another post');
+  }
   if (body.pin && db().count('club_posts', 'club_id = ? AND removed_at IS NULL AND pinned_until >= ?', club.id, nowIso()) >= 3) throw conflict('Three posts are already pinned. Unpin one first.');
   const id = newId('post');
   const at = nowIso();
@@ -275,6 +302,7 @@ communityRouter.post('/clubs/:id/posts', h((req, res) => {
       answer_comment_id: null, hidden: text.flags.includes('links') ? 1 : 0, created_at: at, edited_at: null, removed_at: null, removed_by: null, removed_reason: null
     });
     (body.options ?? []).forEach((label, i) => db().insert('club_poll_options', { id: `${id}_o${i + 1}`, post_id: id, label, sort: i }));
+    (body.media ?? []).forEach((m, i) => db().insert('club_post_media', { id: `${id}_m${i + 1}`, post_id: id, sort: i, kind: 'image', document_id: m.document_id, asset_path: null, width: m.width, height: m.height, alt_en: m.alt, alt_ar: null, caption_en: m.caption ?? null, caption_ar: null, credit_en: null, credit_ar: null, created_at: at }));
     if ((body.kind === 'announcement' || body.kind === 'poll') && body.notify !== false) {
       for (const m of clubMembersToNotify(club, u.id)) notify(m, { module: 'campus', kind: 'club_announcement', title: `${club.name_en}: ${body.kind === 'poll' ? 'new poll' : 'announcement'}`, body: body.body.slice(0, 140), link: `/campus/clubs/${club.id}?post=${id}` });
     }

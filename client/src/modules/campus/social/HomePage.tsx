@@ -164,7 +164,8 @@ export function CommunityHome() {
           <h2 className="sr-only">{t('social.nav.feed')}</h2>
           <div className="space-y-4">{feed.data?.items.map((p) => <PostCard key={`${p.type}-${p.id}`} post={p} showClub onRemoved={() => void feed.refetch()} />)}</div>
         </div>
-        <aside className="hidden min-w-0 space-y-8 lg:block">
+        {/* Wide screens: the rail stays in view while the feed scrolls, below the sticky header and never taller than the screen. */}
+        <aside aria-label={t('social.rail.label')} className="scroll-thin hidden min-w-0 space-y-8 lg:sticky lg:top-[4.5rem] lg:block lg:max-h-[calc(100dvh-5.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pe-1">
           {workshops(false)}
           <section aria-labelledby="rail-people">
             <div className="mb-2 flex items-center justify-between gap-2"><h2 id="rail-people" className="font-display text-lg">{t('social.rail.people')}</h2><Link to="/campus/community/people" className="text-sm font-medium text-brand-600 hover:underline">{t('social.rail.allPeople')}</Link></div>
