@@ -1,11 +1,11 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import clsx from 'clsx';
 import {
   Award, BookOpen, Briefcase, CheckCircle2, Code2, Download, ExternalLink, FileArchive, FolderGit2, GraduationCap, Languages as LanguagesIcon,
-  Link2, ListTodo, Pencil, Plus, RefreshCw, ShieldCheck, Star, Trash2, Upload, UserRound, IdCard, Trophy, ArrowRight
+  Link2, ListTodo, Pencil, Plus, RefreshCw, ShieldCheck, Star, Trash2, Upload, UserRound, IdCard, Trophy, ArrowRight, ArrowUp, ArrowDown
 } from 'lucide-react';
-import { Avatar, Badge, Button, Callout, Card, EmptyState, ErrorState, Field, Input, Modal, Progress, SectionTitle, Select, Skeleton, Textarea, Toggle } from '@/components/ui';
+import { Avatar, Badge, Button, ButtonLink, Callout, Card, EmptyState, ErrorState, Field, Input, Modal, Progress, SectionTitle, Select, Skeleton, Textarea, Toggle } from '@/components/ui';
 import { useToast } from '@/components/ui/toast';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -31,7 +31,7 @@ function monthLabel(v: string | null, locale: 'en' | 'ar'): string {
 
 function Section({ id, title, icon, action, children }: { id: string; title: string; icon: ReactNode; action?: ReactNode; children: ReactNode }) {
   return (
-    <Card as="section" aria-labelledby={id}>
+    <Card as="section" aria-labelledby={id} className="scroll-mt-32">
       <SectionTitle id={id} action={action}><span className="flex items-center gap-2">{icon}{title}</span></SectionTitle>
       {children}
     </Card>
@@ -46,72 +46,124 @@ function VerificationBadge({ item }: { item: PortfolioItem }) {
   return <Badge tone="neutral">{t('portfolio.verified.self')}</Badge>;
 }
 
-function ItemRow({ item, onEdit, onDelete, onVisibility }: { item: PortfolioItem; onEdit: () => void; onDelete: () => void; onVisibility: (v: Visibility) => void }) {
+function ItemRow({ item, first, last, onEdit, onDelete, onVisibility, onMove, onReviewed }: { item: PortfolioItem; first: boolean; last: boolean; onEdit: () => void; onDelete: () => void; onVisibility: (v: Visibility) => void; onMove: (d: -1 | 1) => void; onReviewed: () => void }) {
   const { t, locale } = useI18n();
   const dates = [monthLabel(item.start_date, locale), item.end_date && item.end_date !== item.start_date ? monthLabel(item.end_date, locale) : !item.end_date && item.start_date && item.kind !== 'award' ? t('portfolio.present') : ''].filter(Boolean).join(' – ');
   const linkable = item.kind === 'award' || item.kind === 'certificate';
   return (
-    <li className="py-3 first:pt-0 last:pb-0">
+    <li className="py-4 first:pt-0 last:pb-0">
+      {item.needs_review && (
+        <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl bg-info/10 px-3 py-2 text-sm">
+          <span className="min-w-0 flex-1">{t('portfolio.review.note')}</span>
+          <Button size="sm" variant="outline" onClick={onEdit}>{t('portfolio.review.check')}</Button>
+          <Button size="sm" onClick={onReviewed}>{t('portfolio.review.done')}</Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <h3 dir="auto" className="font-semibold leading-snug">{item.url ? <a href={item.url} target="_blank" rel="noreferrer noopener" className="hover:text-brand-600 hover:underline">{item.title}</a> : item.title}</h3>
-          <p className="text-sm text-muted">{[item.org, dates].filter(Boolean).join(' · ')}</p>
+          <p className="text-sm text-muted" dir="auto">{[item.org, item.location, dates].filter(Boolean).join(' · ')}</p>
         </div>
         <VerificationBadge item={item} />
       </div>
-      {item.description && <p className="mt-1 text-sm">{item.description}</p>}
+      {item.description && <p className="mt-1 text-sm" dir="auto">{item.description}</p>}
+      {item.outcomes.length > 0 && <ul className="mt-1 list-disc space-y-0.5 ps-5 text-sm" dir="auto">{item.outcomes.map((o, i) => <li key={i}>{o}</li>)}</ul>}
       {item.skills.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{item.skills.map((s) => <SkillChip key={s}>{s}</SkillChip>)}</div>}
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <Select aria-label={t('portfolio.visibility')} value={item.visibility} onChange={(e) => onVisibility(e.target.value as Visibility)} className="!w-auto !py-1.5 text-sm">
+        <Select aria-label={`${t('portfolio.visibility')}: ${item.title}`} value={item.visibility} disabled={item.needs_review} onChange={(e) => onVisibility(e.target.value as Visibility)} className="!w-auto !py-1.5 text-sm">
           {(['private', 'staff', 'employers'] as Visibility[]).map((v) => <option key={v} value={v}>{t(`portfolio.visibility.${v}`)}</option>)}
         </Select>
         {linkable && <a href={addToLinkedinUrl({ name: item.title, org: item.org || 'Al Yamamah University', date: item.end_date ?? item.start_date, url: item.url, credentialId: item.credential_id })} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-sm font-medium text-brand-600 hover:underline sm:min-h-8"><ExternalLink className="h-4 w-4" aria-hidden />{t('portfolio.addToLinkedin')}</a>}
         <span className="ms-auto flex gap-1">
-          <Button size="icon" variant="ghost" aria-label={t('common.edit')} title={t('common.edit')} onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
-          {item.verification !== 'university' && <Button size="icon" variant="ghost" aria-label={t('common.delete')} title={t('common.delete')} onClick={onDelete}><Trash2 className="h-4 w-4 text-danger" /></Button>}
+          <Button size="icon" variant="ghost" aria-label={t('portfolio.moveUp', { title: item.title })} disabled={first} onClick={() => onMove(-1)}><ArrowUp className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" aria-label={t('portfolio.moveDown', { title: item.title })} disabled={last} onClick={() => onMove(1)}><ArrowDown className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" aria-label={`${t('common.edit')}: ${item.title}`} title={t('common.edit')} onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
+          {item.verification !== 'university' && <Button size="icon" variant="ghost" aria-label={`${t('common.delete')}: ${item.title}`} title={t('common.delete')} onClick={onDelete}><Trash2 className="h-4 w-4 text-danger" /></Button>}
         </span>
       </div>
     </li>
   );
 }
 
-type Draft = { id?: string; kind: ItemKind; title: string; org: string; start_date: string; end_date: string; description: string; url: string; skills: string; visibility: Visibility; locked?: boolean };
-const emptyDraft = (kind: ItemKind): Draft => ({ kind, title: '', org: '', start_date: '', end_date: '', description: '', url: '', skills: '', visibility: 'private' });
+type Draft = { id?: string; kind: ItemKind; title: string; org: string; location: string; start_date: string; end_date: string; description: string; outcomes: string; url: string; skills: string; visibility: Visibility; locked?: boolean; needs_review?: boolean };
+const emptyDraft = (kind: ItemKind): Draft => ({ kind, title: '', org: '', location: '', start_date: '', end_date: '', description: '', outcomes: '', url: '', skills: '', visibility: 'private' });
+const DATE_RE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 
+/** A profile-style editor: labels that fit the kind of entry, examples, checks as you type, and a preview. */
 function ItemDialog({ draft, onClose, onSaved }: { draft: Draft | null; onClose: () => void; onSaved: () => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const toast = useToast();
   const [d, setD] = useState<Draft | null>(draft);
   const [busy, setBusy] = useState(false);
+  const [touched, setTouched] = useState(false);
   if (draft && d?.id !== draft.id && d?.kind !== draft.kind) setD(draft);
   const cur = d ?? draft;
   if (!cur) return null;
   const set = (patch: Partial<Draft>) => setD({ ...cur, ...patch });
+  const k = cur.kind;
+  const lbl = (field: 'title' | 'org') => t(`portfolio.f.${field}.${['experience', 'volunteer', 'project', 'certificate', 'award', 'education', 'language'].includes(k) ? k : 'other'}`);
+  const errors: Record<string, string> = {};
+  if (!cur.title.trim()) errors.title = t('portfolio.err.title');
+  if (cur.start_date && !DATE_RE.test(cur.start_date)) errors.start = t('portfolio.err.date');
+  if (cur.end_date && !DATE_RE.test(cur.end_date)) errors.end = t('portfolio.err.date');
+  if (!errors.start && !errors.end && cur.start_date && cur.end_date && cur.end_date < cur.start_date) errors.end = t('portfolio.err.order');
+  if (cur.url && !/^https?:\/\/\S+\.\S+/.test(cur.url.trim())) errors.url = t('portfolio.err.url');
+  const outcomes = cur.outcomes.split('\n').map((x) => x.replace(/^[-•*]\s*/, '').trim()).filter(Boolean);
+  if (outcomes.length > 6) errors.outcomes = t('portfolio.err.outcomes');
+  const valid = Object.keys(errors).length === 0;
+  const show = (key: string) => (touched || key !== 'title') && errors[key];
   const save = async () => {
+    setTouched(true);
+    if (!valid) return;
     setBusy(true);
-    const body = { kind: cur.kind, title: cur.title.trim(), org: cur.org.trim(), start_date: cur.start_date || null, end_date: cur.end_date || null, description: cur.description.trim(), url: cur.url.trim() || null, skills: cur.skills.split(',').map((x) => x.trim()).filter(Boolean), visibility: cur.visibility };
+    const body = { kind: cur.kind, title: cur.title.trim(), org: cur.org.trim(), location: cur.location.trim() || null, start_date: cur.start_date || null, end_date: cur.end_date || null, description: cur.description.trim(), outcomes, url: cur.url.trim() || null, skills: cur.skills.split(',').map((x) => x.trim()).filter(Boolean), visibility: cur.visibility, ...(cur.needs_review ? { reviewed: true } : {}) };
     try {
       if (cur.id) await api(`/career/portfolio/items/${cur.id}`, { method: 'PATCH', body });
       else await api('/career/portfolio/items', { body });
-      toast.success(t('portfolio.saved'));
+      toast.success(t('portfolio.saved'), t('portfolio.savedBody'));
       refreshAll('career');
       onSaved();
-    } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); }
+    } catch (e) { toast.error(t('portfolio.couldNotSave'), errorMessage(e)); } finally { setBusy(false); }
   };
+  const dates = [cur.start_date ? monthLabel(cur.start_date, locale) : '', cur.end_date ? monthLabel(cur.end_date, locale) : cur.start_date ? t('portfolio.present') : ''].filter(Boolean).join(' – ');
   return (
-    <Modal open onClose={onClose} title={cur.id ? t('portfolio.editItem') : t('portfolio.addItem')} footer={<><Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button><Button loading={busy} disabled={!cur.title.trim()} onClick={() => void save()}>{t('common.save')}</Button></>}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label={t('portfolio.kind')}><Select value={cur.kind} disabled={!!cur.id} onChange={(e) => set({ kind: e.target.value as ItemKind })}>{(['project', 'experience', 'volunteer', 'certificate', 'award', 'language', 'education'] as ItemKind[]).map((k) => <option key={k} value={k}>{t(`portfolio.kind.${k}`)}</option>)}</Select></Field>
-        <Field label={t('portfolio.visibility')}><Select value={cur.visibility} onChange={(e) => set({ visibility: e.target.value as Visibility })}>{(['private', 'staff', 'employers'] as Visibility[]).map((v) => <option key={v} value={v}>{t(`portfolio.visibility.${v}`)}</option>)}</Select></Field>
-        <Field label={t('portfolio.title')} required className="sm:col-span-2"><Input value={cur.title} disabled={cur.locked} onChange={(e) => set({ title: e.target.value })} maxLength={160} /></Field>
-        <Field label={t('portfolio.org')} className="sm:col-span-2"><Input value={cur.org} disabled={cur.locked} onChange={(e) => set({ org: e.target.value })} maxLength={160} /></Field>
-        <Field label={t('portfolio.start')} hint={t('portfolio.dateHint')}><Input value={cur.start_date} disabled={cur.locked} onChange={(e) => set({ start_date: e.target.value })} placeholder="2026-03" /></Field>
-        <Field label={t('portfolio.end')} hint={t('portfolio.endHint')}><Input value={cur.end_date} disabled={cur.locked} onChange={(e) => set({ end_date: e.target.value })} placeholder="2026-06" /></Field>
-        <Field label={t('portfolio.url')} className="sm:col-span-2"><Input type="url" value={cur.url} onChange={(e) => set({ url: e.target.value })} placeholder="https://" /></Field>
-        <Field label={t('portfolio.description')} className="sm:col-span-2"><Textarea value={cur.description} onChange={(e) => set({ description: e.target.value })} maxLength={2000} /></Field>
-        <Field label={t('portfolio.skills')} hint={t('portfolio.skillsHint')} className="sm:col-span-2"><Input value={cur.skills} onChange={(e) => set({ skills: e.target.value })} placeholder="React, Node.js" /></Field>
+    <Modal open onClose={onClose} size="lg" title={cur.id ? (cur.needs_review ? t('portfolio.review.title') : t('portfolio.editItem')) : t('portfolio.addItem')} description={cur.needs_review ? t('portfolio.review.body') : undefined}
+      footer={<><Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button><Button loading={busy} onClick={() => void save()}>{cur.needs_review ? t('portfolio.review.save') : t('common.save')}</Button></>}>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <form className="grid grid-cols-1 gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); void save(); }} noValidate>
+          <Field label={t('portfolio.kind')}><Select value={cur.kind} disabled={!!cur.id} onChange={(e) => set({ kind: e.target.value as ItemKind })}>{(['experience', 'project', 'volunteer', 'certificate', 'award', 'education', 'language'] as ItemKind[]).map((x) => <option key={x} value={x}>{t(`portfolio.kind.${x}`)}</option>)}</Select></Field>
+          <Field label={lbl('title')} required error={show('title') || undefined} className="sm:col-span-2"><Input value={cur.title} disabled={cur.locked} onChange={(e) => set({ title: e.target.value })} maxLength={160} placeholder={t(`portfolio.ex.title.${k}`)} aria-invalid={!!show('title')} dir="auto" /></Field>
+          <Field label={lbl('org')} className="sm:col-span-2"><Input value={cur.org} disabled={cur.locked} onChange={(e) => set({ org: e.target.value })} maxLength={160} placeholder={t(`portfolio.ex.org.${k}`)} dir="auto" /></Field>
+          <Field label={t('portfolio.f.location')} className="sm:col-span-2"><Input value={cur.location} onChange={(e) => set({ location: e.target.value })} maxLength={120} placeholder={t('portfolio.ex.location')} dir="auto" /></Field>
+          <Field label={t('portfolio.start')} hint={t('portfolio.dateHint')} error={show('start') || undefined}><Input value={cur.start_date} disabled={cur.locked} onChange={(e) => set({ start_date: e.target.value })} placeholder="2026-03" inputMode="numeric" /></Field>
+          <Field label={t('portfolio.end')} hint={t('portfolio.endHint')} error={show('end') || undefined}><Input value={cur.end_date} disabled={cur.locked} onChange={(e) => set({ end_date: e.target.value })} placeholder="2026-06" inputMode="numeric" /></Field>
+          <Field label={t('portfolio.f.description')} hint={t('portfolio.f.descriptionHint')} className="sm:col-span-2"><Textarea value={cur.description} onChange={(e) => set({ description: e.target.value })} maxLength={2000} rows={3} placeholder={t(`portfolio.ex.desc.${k}`)} dir="auto" /></Field>
+          <Field label={t('portfolio.f.outcomes')} hint={t('portfolio.f.outcomesHint')} error={show('outcomes') || undefined} className="sm:col-span-2"><Textarea value={cur.outcomes} onChange={(e) => set({ outcomes: e.target.value })} rows={3} placeholder={t('portfolio.ex.outcomes')} dir="auto" /></Field>
+          <Field label={t('portfolio.url')} error={show('url') || undefined} className="sm:col-span-2"><Input type="url" value={cur.url} onChange={(e) => set({ url: e.target.value })} placeholder="https://" /></Field>
+          <Field label={t('portfolio.skills')} hint={t('portfolio.skillsHint')} className="sm:col-span-2"><Input value={cur.skills} onChange={(e) => set({ skills: e.target.value })} placeholder="React, Node.js" /></Field>
+          <fieldset className="sm:col-span-2">
+            <legend className="mb-1.5 text-sm font-medium">{t('portfolio.visibility')}</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(['private', 'staff', 'employers'] as Visibility[]).map((v) => (
+                <label key={v} className={clsx('flex cursor-pointer flex-col rounded-xl border p-3 text-sm', cur.visibility === v ? 'border-brand-500 bg-brand-500/10' : 'border-line hover:border-brand-400')}>
+                  <span className="flex items-center gap-2 font-medium"><input type="radio" name="vis" value={v} checked={cur.visibility === v} onChange={() => set({ visibility: v })} className="accent-[var(--color-brand-500)]" />{t(`portfolio.visibility.${v}`)}</span>
+                  <span className="mt-1 text-xs text-muted">{t(`portfolio.visibilityHint.${v}`)}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {cur.locked && <p className="text-sm text-muted sm:col-span-2">{t('portfolio.lockedNote')}</p>}
+          <button type="submit" hidden />
+        </form>
+        <aside aria-label={t('portfolio.preview')} className="h-fit rounded-2xl border border-dashed border-line p-4 text-sm">
+          <p className="mb-2 text-xs font-semibold text-muted">{t('portfolio.preview')}</p>
+          <p className="font-semibold leading-snug" dir="auto">{cur.title || t(`portfolio.ex.title.${k}`)}</p>
+          <p className="text-muted" dir="auto">{[cur.org, cur.location, dates].filter(Boolean).join(' · ')}</p>
+          {cur.description && <p className="mt-1" dir="auto">{cur.description}</p>}
+          {outcomes.length > 0 && <ul className="mt-1 list-disc ps-5" dir="auto">{outcomes.map((o, i) => <li key={i}>{o}</li>)}</ul>}
+          <p className="mt-2 text-xs text-muted">{t(`portfolio.visibilityHint.${cur.visibility}`)}</p>
+        </aside>
       </div>
-      {cur.locked && <p className="mt-3 text-sm text-muted">{t('portfolio.lockedNote')}</p>}
     </Modal>
   );
 }
@@ -401,68 +453,154 @@ function StrengthRing({ done, total, label }: { done: number; total: number; lab
 }
 
 /** What the portfolio unlocks: best-matching co-ops/internships and open competitions that fit proven skills. */
-function Suggestions() {
+/** Fit in words, never a number: how much of the role your evidence already covers. */
+function fitOf(score: number): 'strong' | 'good' | 'partial' {
+  return score >= 70 ? 'strong' : score >= 50 ? 'good' : 'partial';
+}
+
+/** Opportunities that follow the portfolio: why they match, what is missing, and one next step each. */
+function Opportunities() {
   const { t, locale } = useI18n();
   const { user } = useSession();
   const opps = useQuery(() => api<OppList>('/career/opportunities', { query: { sort: 'match' } }), [user?.id], { refreshOn: ['career'] });
   const comps = useQuery(() => api<CompetitionList>('/career/competitions', { query: { segment: 'open' } }), [user?.id], { refreshOn: ['career'] });
-  const jobs = (opps.data?.items ?? []).filter((o) => o.type !== 'competition' && !o.expired && !o.applicationId && o.match.eligible !== false)
-    .sort((a, b) => Number(b.match.eligible === true) - Number(a.match.eligible === true) || b.match.score - a.match.score).slice(0, 3);
-  const contests = (comps.data?.items ?? []).filter((c) => !c.entry || c.entry.status === 'interested')
-    .sort((a, b) => b.fit.length - a.fit.length || a.days_left - b.days_left).slice(0, 3);
+  // Remember the previous ranking so an edit to the portfolio shows what it changed.
+  const prev = useRef<Map<string, number> | null>(null);
+  const [changes, setChanges] = useState<Array<{ title: string; from: string; to: string }>>([]);
+  const all = (opps.data?.items ?? []).filter((o) => o.type !== 'competition' && !o.expired && !o.applicationId && o.match.eligible !== false);
+  useEffect(() => {
+    if (!opps.data) return;
+    const now = new Map(all.map((o) => [o.id, o.match.score]));
+    if (prev.current) {
+      const diff = all.filter((o) => prev.current!.has(o.id) && fitOf(prev.current!.get(o.id)!) !== fitOf(o.match.score)).slice(0, 3)
+        .map((o) => ({ title: `${o.company} · ${o.title}`, from: t(`portfolio.fit.${fitOf(prev.current!.get(o.id)!)}`), to: t(`portfolio.fit.${fitOf(o.match.score)}`) }));
+      if (diff.length) setChanges(diff);
+    }
+    prev.current = now;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opps.data]);
+  const ranked = all.sort((a, b) => Number(b.match.eligible === true) - Number(a.match.eligible === true) || b.match.score - a.match.score);
+  const top = ranked.slice(0, 2), more = ranked.slice(2, 5);
+  const contests = (comps.data?.items ?? []).filter((c) => !c.entry || c.entry.status === 'interested').sort((a, b) => b.fit.length - a.fit.length || a.days_left - b.days_left).slice(0, 3);
+  const eligibility = (o: (typeof ranked)[number]) => (o.match.eligible === true ? <span className="inline-flex items-center gap-1 font-medium text-success"><CheckCircle2 className="h-4 w-4" aria-hidden />{t('career.eligible')}</span> : <span className="text-muted">{t('portfolio.opp.eligUnknown')}</span>);
   return (
-    <section aria-labelledby="suggest-h" className="card p-5">
+    <section aria-labelledby="opps-h" className="scroll-mt-32">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 id="suggest-h" className="text-base font-semibold">{t('portfolio.suggest.title')}</h2>
-          <p className="text-sm text-muted">{t('portfolio.suggest.body')}</p>
+          <h2 id="opps-h" className="text-lg font-semibold">{t('portfolio.opp.title')}</h2>
+          <p className="text-sm text-muted">{t('portfolio.opp.body')}</p>
         </div>
+        <Link to="/career" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-600 hover:underline sm:min-h-8">{t('portfolio.opp.prefs')}</Link>
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="min-w-0">
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Briefcase className="h-4 w-4 text-brand-600" aria-hidden />{t('portfolio.suggest.jobs')}</h3>
-          {opps.loading && !opps.data && <Skeleton className="h-40" />}
-          {opps.data && jobs.length === 0 && <p className="text-sm text-muted">{t('portfolio.suggest.noJobs')}</p>}
-          <ul className="space-y-2">
-            {jobs.map((o) => (
-              <li key={o.id}>
-                <Link to={`/career?open=${o.id}`} className="flex min-h-11 items-start gap-3 rounded-2xl border border-line p-3 transition hover:border-brand-400">
-                  <MatchRing score={o.match.score} size={44} />
-                  <span className="min-w-0 flex-1">
-                    <span dir="auto" className="block font-semibold leading-snug rtl:text-right">{o.title}</span>
-                    <span className="block text-sm text-muted">{o.company} · {oppTypeLabel(t, o.type)}{o.deadline ? ` · ${fmtDate(o.deadline, locale, { year: undefined })}` : ''}</span>
-                    {o.match.explain?.[0] && <span className="mt-1 block text-sm">{explainText(t, o.match.explain[0])}</span>}
-                    {o.match.eligible === true && <span className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-success"><CheckCircle2 className="h-4 w-4" aria-hidden />{t('career.eligible')}</span>}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <Link to="/career" className="mt-2 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-600 hover:underline sm:min-h-8">{t('portfolio.suggest.allJobs')}<ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden /></Link>
+      {changes.length > 0 && (
+        <div role="status" className="mt-3 rounded-xl bg-brand-500/10 p-3 text-sm">
+          <p className="font-semibold">{t('portfolio.opp.changed')}</p>
+          <ul className="mt-1 space-y-0.5">{changes.map((c) => <li key={c.title} dir="auto">{c.title}: {c.from} → <span className="font-semibold">{c.to}</span></li>)}</ul>
         </div>
-        <div className="min-w-0">
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Trophy className="h-4 w-4 text-brand-600" aria-hidden />{t('portfolio.suggest.comps')}</h3>
-          {comps.loading && !comps.data && <Skeleton className="h-40" />}
-          {comps.data && contests.length === 0 && <p className="text-sm text-muted">{t('comp.empty.open')}</p>}
-          <ul className="space-y-2">
+      )}
+      {opps.loading && !opps.data && <Skeleton className="mt-3 h-40" />}
+      {opps.data && ranked.length === 0 && <EmptyState className="mt-3" title={t('portfolio.opp.empty')} body={t('portfolio.opp.emptyBody')} />}
+      <ul className="mt-3 space-y-3">
+        {top.map((o) => {
+          const fit = fitOf(o.match.score);
+          const proven = o.match.explain?.find((e) => e.key === 'match.proven');
+          const weak = o.match.weak ?? [];
+          return (
+            <li key={o.id} className="rounded-2xl border border-line p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 dir="auto" className="font-semibold leading-snug">{o.title}</h3>
+                  <p className="text-sm text-muted">{o.company} · {oppTypeLabel(t, o.type)} · {o.location}{o.deadline ? ` · ${t('portfolio.opp.deadline', { date: fmtDate(o.deadline, locale, { year: undefined }) })}` : ''}</p>
+                </div>
+                <span className={clsx('rounded-md px-2 py-0.5 text-xs font-semibold', fit === 'strong' ? 'bg-success/15 text-success' : fit === 'good' ? 'bg-brand-500/15 text-brand-700 dark:text-brand-300' : 'bg-line text-muted')}>{t(`portfolio.fit.${fit}`)}</span>
+              </div>
+              <dl className="mt-2 grid gap-1.5 text-sm sm:grid-cols-[9rem_minmax(0,1fr)]">
+                <dt className="text-muted">{t('portfolio.opp.why')}</dt><dd>{(o.match.explain ?? []).filter((e) => e.key !== 'match.weak' && e.key !== 'match.proven').slice(0, 2).map((e) => explainText(t, e)).join(' · ') || t('portfolio.opp.noWhy')}</dd>
+                {proven && <><dt className="text-muted">{t('portfolio.opp.evidence')}</dt><dd>{String(proven.params.skills)}</dd></>}
+                {weak.length > 0 && <><dt className="text-muted">{t('portfolio.opp.selfOnly')}</dt><dd>{weak.join(', ')}</dd></>}
+                {o.match.missing.length > 0 && <><dt className="text-muted">{t('portfolio.opp.missing')}</dt><dd>{o.match.missing.join(', ')}</dd></>}
+                <dt className="text-muted">{t('portfolio.opp.eligibility')}</dt><dd>{eligibility(o)}</dd>
+                <dt className="text-muted">{t('portfolio.opp.source')}</dt><dd>{o.source}{o.demo_label ? ` · ${t('portfolio.opp.demo')}` : ''}</dd>
+              </dl>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <ButtonLink to={`/career?open=${o.id}`} size="sm">{t('portfolio.opp.details')}</ButtonLink>
+                {o.match.missing.length > 0 && <a href="#skills-h" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-brand-600 hover:underline sm:min-h-8">{t('portfolio.opp.addEvidence')}</a>}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {more.length > 0 && (
+        <ul className="mt-3 divide-y divide-line">
+          {more.map((o) => (
+            <li key={o.id}>
+              <Link to={`/career?open=${o.id}`} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm hover:text-brand-600">
+                <span dir="auto" className="min-w-0 flex-1 font-medium">{o.title} <span className="font-normal text-muted">· {o.company}</span></span>
+                <span className="text-xs font-semibold text-muted">{t(`portfolio.fit.${fitOf(o.match.score)}`)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-2 flex flex-wrap gap-x-4">
+        <Link to="/career" className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-600 hover:underline sm:min-h-8">{t('portfolio.suggest.allJobs')}<ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden /></Link>
+      </div>
+      {contests.length > 0 && (
+        <div className="mt-5">
+          <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold"><Trophy className="h-4 w-4 text-brand-600" aria-hidden />{t('portfolio.suggest.comps')}</h3>
+          <ul className="divide-y divide-line">
             {contests.map((c) => (
               <li key={c.id}>
-                <Link to={`/competitions?id=${c.id}`} className="flex min-h-11 items-start gap-3 rounded-2xl border border-line p-3 transition hover:border-brand-400">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gold-100 text-gold-700 dark:bg-gold-700/25"><Trophy className="h-5 w-5" aria-hidden /></span>
-                  <span className="min-w-0 flex-1">
-                    <span dir="auto" className="block font-semibold leading-snug rtl:text-right">{c.title}</span>
-                    <span className="block text-sm text-muted">{t(`comp.kind.${c.kind}`)} · {t('comp.closesIn', { n: c.days_left, date: fmtDate(c.registration_deadline, locale, { year: undefined }) })}</span>
-                    {c.fit.length > 0 && <span className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-success"><CheckCircle2 className="h-4 w-4" aria-hidden />{t('comp.goodFit', { skills: c.fit.join(', ') })}</span>}
-                    {c.entry?.status === 'interested' && <Badge tone="info" className="ms-2">{t('comp.status.interested')}</Badge>}
-                  </span>
+                <Link to={`/competitions?id=${c.id}`} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm hover:text-brand-600">
+                  <span dir="auto" className="min-w-0 flex-1 font-medium">{c.title}</span>
+                  <span className="text-xs text-muted">{t('comp.closesIn', { n: c.days_left, date: fmtDate(c.registration_deadline, locale, { year: undefined }) })}</span>
+                  {c.fit.length > 0 && <span className="w-full text-xs text-success">{t('comp.goodFit', { skills: c.fit.join(', ') })}</span>}
                 </Link>
               </li>
             ))}
           </ul>
-          <Link to="/competitions" className="mt-2 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-600 hover:underline sm:min-h-8">{t('portfolio.suggest.allComps')}<ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden /></Link>
         </div>
-      </div>
+      )}
     </section>
+  );
+}
+
+const NAV: Array<{ id: string; key: string }> = [
+  { id: 'about-h', key: 'portfolio.nav.about' }, { id: 'opps-h', key: 'portfolio.nav.opps' }, { id: 'exp-h', key: 'portfolio.nav.experience' },
+  { id: 'proj-h', key: 'portfolio.nav.projects' }, { id: 'skills-h', key: 'portfolio.nav.skills' }, { id: 'edu-h', key: 'portfolio.nav.education' },
+  { id: 'awards-h', key: 'portfolio.nav.achievements' }, { id: 'lang-h', key: 'portfolio.nav.languages' }, { id: 'settings-h', key: 'portfolio.nav.settings' }
+];
+
+/** Section navigator: one row of links under the header; the section in view is marked. */
+function SectionNav() {
+  const { t } = useI18n();
+  const [active, setActive] = useState(NAV[0].id);
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Watch whole sections (they carry the scroll margin), so a heading tucked under the sticky bars still counts.
+    const owner = new Map<Element, string>();
+    for (const n of NAV) { const h = document.getElementById(n.id); const sec = h?.closest('section') ?? h; if (sec) owner.set(sec, n.id); }
+    const els = [...owner.keys()];
+    const io = new IntersectionObserver((entries) => {
+      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (vis) setActive(owner.get(vis.target) ?? NAV[0].id);
+    }, { rootMargin: '-130px 0px -60% 0px' });
+    els.forEach((e) => io.observe(e));
+    return () => io.disconnect();
+  }, []);
+  useEffect(() => { rowRef.current?.querySelector(`[data-id="${active}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }, [active]);
+  return (
+    <nav aria-label={t('portfolio.nav.label')} className="sticky top-14 z-10 -mx-4 border-b border-line bg-bg/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:px-2">
+      <div ref={rowRef} className="scroll-row flex gap-1 overflow-x-auto">
+        {NAV.map((n) => (
+          <a key={n.id} data-id={n.id} href={`#${n.id}`} aria-current={active === n.id ? 'location' : undefined}
+            onClick={(e) => { e.preventDefault(); const h = document.getElementById(n.id); (h?.closest('section') ?? h)?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); setActive(n.id); history.replaceState(null, '', `#${n.id}`); }}
+            className={clsx('inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-medium sm:min-h-9', active === n.id ? 'bg-surface text-fg shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg')}>
+            {t(n.key)}
+          </a>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -473,110 +611,135 @@ export function Portfolio() {
   const q = useQuery(() => api<PortfolioData>('/career/portfolio'), [user?.id], { refreshOn: ['career', 'persona'] });
   const [draft, setDraft] = useState<Draft | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [showAllSkills, setShowAllSkills] = useState(false);
   if (q.error) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
-  if (!q.data) return <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]"><Skeleton className="h-96" /><Skeleton className="h-96" /></div>;
+  if (!q.data) return <div className="space-y-6"><Skeleton className="h-48" /><Skeleton className="h-96" /></div>;
   const d = q.data;
   const byKind = (...k: ItemKind[]) => d.items.filter((i) => k.includes(i.kind));
-  const edit = (i: PortfolioItem) => setDraft({ id: i.id, kind: i.kind, title: i.title, org: i.org, start_date: i.start_date ?? '', end_date: i.end_date ?? '', description: i.description, url: i.url ?? '', skills: i.skills.join(', '), visibility: i.visibility, locked: i.verification === 'university' });
-  const del = async (i: PortfolioItem) => { try { await api(`/career/portfolio/items/${i.id}`, { method: 'DELETE' }); toast.info(t('portfolio.deleted')); refreshAll('career'); void q.refetch(); } catch (e) { toast.error(errorMessage(e)); } };
-  const vis = async (i: PortfolioItem, v: Visibility) => { try { await api(`/career/portfolio/items/${i.id}`, { method: 'PATCH', body: { visibility: v } }); void q.refetch(); } catch (e) { toast.error(errorMessage(e)); } };
+  const edit = (i: PortfolioItem) => setDraft({ id: i.id, kind: i.kind, title: i.title, org: i.org, location: i.location ?? '', start_date: i.start_date ?? '', end_date: i.end_date ?? '', description: i.description, outcomes: i.outcomes.join('\n'), url: i.url ?? '', skills: i.skills.join(', '), visibility: i.visibility, locked: i.verification === 'university', needs_review: i.needs_review });
+  const refresh = () => { refreshAll('career'); void q.refetch(); };
+  const del = async (i: PortfolioItem) => { try { await api(`/career/portfolio/items/${i.id}`, { method: 'DELETE' }); toast.info(t('portfolio.deleted')); refresh(); } catch (e) { toast.error(errorMessage(e)); } };
+  const vis = async (i: PortfolioItem, v: Visibility) => { try { await api(`/career/portfolio/items/${i.id}`, { method: 'PATCH', body: { visibility: v } }); refresh(); } catch (e) { toast.error(errorMessage(e)); } };
+  const reviewed = async (i: PortfolioItem) => { try { await api(`/career/portfolio/items/${i.id}`, { method: 'PATCH', body: { reviewed: true } }); toast.success(t('portfolio.review.marked')); refresh(); } catch (e) { toast.error(errorMessage(e)); } };
+  const move = async (items: PortfolioItem[], i: number, dir: -1 | 1) => {
+    const ids = items.map((x) => x.id); const [x] = ids.splice(i, 1); ids.splice(i + dir, 0, x);
+    try { await api('/career/portfolio/items/reorder', { body: { ids } }); void q.refetch(); } catch (e) { toast.error(errorMessage(e)); }
+  };
   const list = (items: PortfolioItem[], emptyKey: string, kind: ItemKind) => items.length === 0
     ? <p className="text-sm text-muted">{t(emptyKey)} <button type="button" className="inline-flex min-h-11 items-center font-medium text-brand-600 hover:underline sm:min-h-8" onClick={() => setDraft(emptyDraft(kind))}>{t('portfolio.addOne')}</button></p>
-    : <ul className="divide-y divide-line">{items.map((i) => <ItemRow key={i.id} item={i} onEdit={() => edit(i)} onDelete={() => void del(i)} onVisibility={(v) => void vis(i, v)} />)}</ul>;
+    : <ul className="divide-y divide-line">{items.map((i, idx) => <ItemRow key={i.id} item={i} first={idx === 0} last={idx === items.length - 1} onEdit={() => edit(i)} onDelete={() => void del(i)} onVisibility={(v) => void vis(i, v)} onMove={(dir) => void move(items, idx, dir)} onReviewed={() => void reviewed(i)} />)}</ul>;
   const addBtn = (kind: ItemKind) => <Button size="sm" variant="outline" icon={<Plus className="h-4 w-4" aria-hidden />} onClick={() => setDraft(emptyDraft(kind))}>{t('portfolio.add')}</Button>;
   const accountChip = (provider: 'linkedin' | 'github') => {
     const a = d.accounts.find((x) => x.provider === provider);
     const label = provider === 'linkedin' ? 'LinkedIn' : 'GitHub';
-    if (!a) return <a href="#accounts-h" className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-dashed border-white/30 px-3 text-sm text-white/80 hover:border-gold-300 hover:text-white"><Plus className="h-3.5 w-3.5" aria-hidden />{t('portfolio.connect', { name: label })}</a>;
+    if (!a) return null;
     return <a href={a.url} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/15">{provider === 'github' ? <Code2 className="h-3.5 w-3.5" aria-hidden /> : <Link2 className="h-3.5 w-3.5" aria-hidden />}{label}{a.verified && <CheckCircle2 className="h-3.5 w-3.5 text-gold-300" aria-label={t('portfolio.li.verifiedSim')} />}</a>;
   };
   const strong = d.skills.filter((s) => s.strength >= 0.55);
   const selfOnly = d.skills.filter((s) => s.strength < 0.55);
+  // Next steps: the few unfinished checks, each with the action that completes it.
+  const NEXT: Record<string, { to?: string; kind?: ItemKind; about?: boolean }> = { headline: { about: true }, summary: { about: true }, projects: { kind: 'project' }, experience: { kind: 'experience' }, awards: { kind: 'certificate' }, evidence: { to: '#skills-h' }, linkedin: { to: '#settings-h' }, github: { to: '#settings-h' } };
+  const pending = d.completeness.checks.filter((c) => !c.done).slice(0, 3);
+  const imported = d.items.filter((i) => i.needs_review).length;
 
   return (
     <div className="space-y-6">
-      <section aria-labelledby="about-h" className="overflow-hidden rounded-3xl border border-line bg-[linear-gradient(135deg,#1e1b18,#2a2622_55%,#3a2a1a)] p-5 text-white sm:p-6">
+      <section aria-labelledby="about-h" className="scroll-mt-32 overflow-hidden rounded-3xl border border-line bg-[linear-gradient(135deg,#1e1b18,#2a2622_55%,#3a2a1a)] p-5 text-white sm:p-6">
         <div className="flex flex-wrap items-start gap-4">
           {user && <Avatar name={user.name_en} color={user.avatar_color} size={64} className="ring-2 ring-gold-300/60" />}
           <div className="min-w-0 flex-1">
             <h2 id="about-h" className="text-xl font-bold leading-tight">{user ? l(user.name_en, user.name_ar) : ''}</h2>
             <p dir="auto" className="mt-0.5 text-sm text-white/90">{d.profile.headline || t('portfolio.noHeadline')}</p>
             <p className="mt-1 text-sm text-white/70">{d.education.program ? `${l(d.education.program.name_en, d.education.program.name_ar)} · ` : ''}{t('portfolio.levelCredits', { level: d.education.level, credits: d.education.credits })}{d.education.gpa !== null ? ` · ${t('portfolio.gpa', { gpa: d.education.gpa.toFixed(2) })}` : ''}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {accountChip('linkedin')}
-              {accountChip('github')}
-            </div>
+            <div className="mt-3 flex flex-wrap gap-2">{accountChip('linkedin')}{accountChip('github')}</div>
           </div>
-          <StrengthRing done={d.completeness.done} total={d.completeness.total} label={t('portfolio.completeness')} />
         </div>
         {d.profile.summary && <p dir="auto" className="mt-4 max-w-[70ch] text-sm text-white/85">{d.profile.summary}</p>}
-        <ul className="mt-4 flex flex-wrap gap-2 text-sm" aria-label={t('portfolio.completeness')}>
-          {d.completeness.checks.map((c) => (
-            <li key={c.key} className={clsx('inline-flex items-center gap-1.5 rounded-full px-3 py-1', c.done ? 'bg-white/10 text-gold-300' : 'border border-white/20 text-white/70')}>
-              {c.done ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : <span aria-hidden className="h-3 w-3 rounded-full border-2 border-current" />}
-              <span>{t(`portfolio.check.${c.key}`)}</span><span className="sr-only">{c.done ? t('status.done') : t('status.todo')}</span>
-            </li>
-          ))}
-        </ul>
+        {pending.length > 0 && (
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-gold-300">{t('portfolio.next.title', { done: d.completeness.done, total: d.completeness.total })}</p>
+            <ul className="mt-1 space-y-1 text-sm">
+              {pending.map((c) => {
+                const n = NEXT[c.key] ?? {};
+                const label = t(`portfolio.next.${c.key}`) === `portfolio.next.${c.key}` ? t(`portfolio.check.${c.key}`) : t(`portfolio.next.${c.key}`);
+                return (
+                  <li key={c.key}>
+                    <button type="button" onClick={() => { if (n.about) setAboutOpen(true); else if (n.kind) setDraft(emptyDraft(n.kind)); else if (n.to) document.getElementById(n.to.slice(1))?.scrollIntoView({ block: 'start' }); }}
+                      className="inline-flex min-h-11 items-center gap-2 text-white/90 underline-offset-4 hover:text-white hover:underline sm:min-h-8">
+                      <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />{label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
         <div className="mt-5 flex flex-wrap gap-2">
           <button type="button" onClick={() => setAboutOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-ink-950 hover:bg-gold-100 sm:min-h-10"><Pencil className="h-4 w-4" aria-hidden />{t('portfolio.editAbout')}</button>
           <button type="button" onClick={openStudentCard} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm font-semibold text-white hover:bg-white/10 sm:min-h-10"><IdCard className="h-4 w-4" aria-hidden />{t('shell.card')}</button>
         </div>
       </section>
 
-      <Suggestions />
+      <SectionNav />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="min-w-0 space-y-6">
-          <Section id="skills-h" title={t('portfolio.skillsEvidence')} icon={<Star className="h-4 w-4 text-muted" aria-hidden />}>
-            <p className="mb-3 text-sm text-muted">{t('portfolio.skillsExplain')}</p>
-            <ul className="space-y-2">
-              {strong.map((s) => (
-                <li key={s.key} className="grid grid-cols-[minmax(0,1fr)_96px] items-center gap-3 text-sm">
-                  <div className="min-w-0">
-                    <div className="font-medium">{locale === 'ar' ? s.label_ar : s.label_en}</div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted">
-                      {s.evidence.filter((e) => e.kind !== 'self').sort((a, b) => b.weight - a.weight).slice(0, 3).map((e) => { const I = EVIDENCE_ICON[e.kind]; return <span key={`${e.kind}${e.ref}`} className="inline-flex items-center gap-1"><I className="h-3.5 w-3.5" aria-hidden /><span className="sr-only">{t(`portfolio.evidence.${e.kind}`)}: </span><span dir="auto">{e.ref}</span></span>; })}
-                    </div>
-                  </div>
-                  <Progress label={t('portfolio.strengthOf', { skill: s.label_en })} value={Math.round(s.strength * 100)} tone={s.strength >= 0.8 ? 'success' : 'brand'} />
-                </li>
-              ))}
-            </ul>
-            {selfOnly.length > 0 && <p className="mt-3 text-sm text-muted">{t('portfolio.selfOnly', { skills: selfOnly.map((s) => (locale === 'ar' ? s.label_ar : s.label_en)).join(', ') })}</p>}
-          </Section>
+      {imported > 0 && <Callout tone="info" title={t('portfolio.review.banner', { n: imported })}>{t('portfolio.review.bannerBody')}</Callout>}
 
-          <Section id="exp-h" title={t('portfolio.experience')} icon={<Briefcase className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('experience')}>
-            {list(byKind('experience', 'volunteer'), 'portfolio.empty.experience', 'experience')}
-          </Section>
-          <Section id="proj-h" title={t('portfolio.projects')} icon={<FolderGit2 className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('project')}>
-            {list(byKind('project'), 'portfolio.empty.projects', 'project')}
-          </Section>
-          <Section id="awards-h" title={t('portfolio.awards')} icon={<Award className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('certificate')}>
-            {list(byKind('award', 'certificate'), 'portfolio.empty.awards', 'certificate')}
-            <p className="mt-3 text-sm text-muted">{t('portfolio.awardsNote')} <Link to="/competitions" className="font-medium text-brand-600 hover:underline">{t('career.tab.competitions')}</Link></p>
-            <CampusActivities />
-          </Section>
-          <Section id="edu-h" title={t('portfolio.education')} icon={<GraduationCap className="h-4 w-4 text-muted" aria-hidden />}>
-            {d.education.program && <p className="text-sm"><span className="font-medium">{l(d.education.program.name_en, d.education.program.name_ar)}</span> · Al Yamamah University <Badge tone="success" dot className="ms-1">{t('portfolio.verified.university')}</Badge></p>}
-            <ul className="mt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
-              {d.education.courses.map((c) => <li key={c.course_code} className="flex items-baseline gap-2"><span className="w-16 shrink-0 font-mono font-semibold">{c.course_code}</span><span className="min-w-0"><span className="block truncate">{l(c.title_en, c.title_ar)}</span><span className="text-muted">{c.status === 'enrolled' ? t('status.enrolled') : c.grade ?? t('status.completed')}</span></span></li>)}
-            </ul>
-            {byKind('education').length > 0 && <div className="mt-3 border-t border-line pt-3">{list(byKind('education'), 'portfolio.empty.projects', 'education')}</div>}
-          </Section>
-          <Section id="lang-h" title={t('portfolio.languages')} icon={<LanguagesIcon className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('language')}>
-            {list(byKind('language'), 'portfolio.empty.languages', 'language')}
-          </Section>
-        </div>
+      <Opportunities />
 
-        <aside className="min-w-0 space-y-6" aria-label={t('portfolio.sidebar')}>
+      <Section id="exp-h" title={t('portfolio.experience')} icon={<Briefcase className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('experience')}>
+        {list(byKind('experience', 'volunteer'), 'portfolio.empty.experience', 'experience')}
+      </Section>
+      <Section id="proj-h" title={t('portfolio.projects')} icon={<FolderGit2 className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('project')}>
+        {list(byKind('project'), 'portfolio.empty.projects', 'project')}
+      </Section>
+      <Section id="skills-h" title={t('portfolio.skillsEvidence')} icon={<Star className="h-4 w-4 text-muted" aria-hidden />}>
+        <p className="mb-3 text-sm text-muted">{t('portfolio.skillsExplain')}</p>
+        <h3 className="mb-1 text-sm font-semibold">{t('portfolio.skills.shown')}</h3>
+        <ul className="space-y-2">
+          {strong.slice(0, showAllSkills ? undefined : 8).map((s) => (
+            <li key={s.key} className="grid grid-cols-[minmax(0,1fr)_96px] items-center gap-3 text-sm">
+              <div className="min-w-0">
+                <div className="font-medium">{locale === 'ar' ? s.label_ar : s.label_en}</div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted">
+                  {s.evidence.filter((e) => e.kind !== 'self').sort((a, b) => b.weight - a.weight).slice(0, 3).map((e) => { const I = EVIDENCE_ICON[e.kind]; return <span key={`${e.kind}${e.ref}`} className="inline-flex items-center gap-1"><I className="h-3.5 w-3.5" aria-hidden /><span className="sr-only">{t(`portfolio.evidence.${e.kind}`)}: </span><span dir="auto">{e.ref}</span></span>; })}
+                </div>
+              </div>
+              <Progress label={t('portfolio.strengthOf', { skill: s.label_en })} value={Math.round(s.strength * 100)} tone={s.strength >= 0.8 ? 'success' : 'brand'} />
+            </li>
+          ))}
+        </ul>
+        {strong.length > 8 && <button type="button" aria-expanded={showAllSkills} onClick={() => setShowAllSkills((v) => !v)} className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-brand-600 hover:underline sm:min-h-8">{showAllSkills ? t('common.less') : t('portfolio.skills.showAll', { n: strong.length })}</button>}
+        {selfOnly.length > 0 && <><h3 className="mb-1 mt-4 text-sm font-semibold">{t('portfolio.skills.selfOnly')}</h3><p className="text-sm text-muted">{selfOnly.map((s) => (locale === 'ar' ? s.label_ar : s.label_en)).join(', ')}. {t('portfolio.skills.selfOnlyHint')}</p></>}
+      </Section>
+      <Section id="edu-h" title={t('portfolio.education')} icon={<GraduationCap className="h-4 w-4 text-muted" aria-hidden />}>
+        {d.education.program && <p className="text-sm"><span className="font-medium">{l(d.education.program.name_en, d.education.program.name_ar)}</span> · Al Yamamah University <Badge tone="success" dot className="ms-1">{t('portfolio.verified.university')}</Badge></p>}
+        <details className="mt-2">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-medium text-brand-600 sm:min-h-8">{t('portfolio.coursesN', { n: d.education.courses.length })}</summary>
+          <ul className="mt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+            {d.education.courses.map((c) => <li key={c.course_code} className="flex items-baseline gap-2"><span className="w-16 shrink-0 font-mono font-semibold">{c.course_code}</span><span className="min-w-0"><span className="block" dir="auto">{l(c.title_en, c.title_ar)}</span><span className="text-muted">{c.status === 'enrolled' ? t('status.enrolled') : c.grade ?? t('status.completed')}</span></span></li>)}
+          </ul>
+        </details>
+        {byKind('education').length > 0 && <div className="mt-3 border-t border-line pt-3">{list(byKind('education'), 'portfolio.empty.projects', 'education')}</div>}
+      </Section>
+      <Section id="awards-h" title={t('portfolio.awards')} icon={<Award className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('certificate')}>
+        {list(byKind('award', 'certificate'), 'portfolio.empty.awards', 'certificate')}
+        <p className="mt-3 text-sm text-muted">{t('portfolio.awardsNote')} <Link to="/competitions" className="font-medium text-brand-600 hover:underline">{t('career.tab.competitions')}</Link></p>
+        <CampusActivities />
+      </Section>
+      <Section id="lang-h" title={t('portfolio.languages')} icon={<LanguagesIcon className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('language')}>
+        {list(byKind('language'), 'portfolio.empty.languages', 'language')}
+      </Section>
+
+      <section aria-labelledby="settings-h" className="scroll-mt-32">
+        <h2 id="settings-h" className="mb-3 text-lg font-semibold">{t('portfolio.nav.settings')}</h2>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <AccountsCard data={d} onChanged={() => void q.refetch()} />
           <LinkedinImportCard onDone={() => void q.refetch()} />
           <PrivacyCard data={d} onChanged={() => void q.refetch()} />
           <CvCard profile={d.profile} onChanged={() => void q.refetch()} />
           <SkillGaps />
-        </aside>
-      </div>
+        </div>
+      </section>
 
       {draft && <ItemDialog draft={draft} onClose={() => setDraft(null)} onSaved={() => { setDraft(null); void q.refetch(); }} />}
       {aboutOpen && <AboutDialog open profile={d.profile} onClose={() => setAboutOpen(false)} onSaved={() => { setAboutOpen(false); void q.refetch(); }} />}

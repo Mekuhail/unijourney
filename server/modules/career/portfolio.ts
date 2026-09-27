@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { User } from '../../../shared/types.ts';
 import { db, j, pj } from '../../core/db.ts';
-import { h, ok, parse, bad, notFound } from '../../core/http.ts';
+import { h, ok, parse, bad, notFound, conflict, unprocessable } from '../../core/http.ts';
 import { requireUser } from '../../core/auth.ts';
 import { newId } from '../../core/ids.ts';
 import { nowIso } from '../../core/clock.ts';
@@ -31,13 +31,23 @@ export interface PortfolioItemRow {
   id: string; student_id: string; kind: ItemKind; title: string; org: string; start_date: string | null; end_date: string | null; description: string;
   url: string | null; credential_id: string | null; skills: string; source: string; source_ref: string | null; verification: string; visibility: string; created_at: string; updated_at: string;
 }
-export interface PortfolioItem extends Omit<PortfolioItemRow, 'skills'> { skills: string[] }
+export interface PortfolioItem extends Omit<PortfolioItemRow, 'skills'> { skills: string[]; location: string | null; outcomes: string[]; sort: number | null; needs_review: boolean }
 export interface Account { provider: 'linkedin' | 'github'; handle: string; url: string; verified: boolean; method: string; last_synced_at: string | null; data: GithubSummary | null; error: string | null }
 
-const rowToItem = (r: PortfolioItemRow): PortfolioItem => ({ ...r, skills: pj<string[]>(r.skills, []) });
+const rowToItem = (r: PortfolioItemRow): PortfolioItem => {
+  const x = db().get<{ location: string | null; outcomes: string; sort: number | null; needs_review: number }>('SELECT location, outcomes, sort, needs_review FROM portfolio_item_extra WHERE item_id = ?', r.id);
+  return { ...r, skills: pj<string[]>(r.skills, []), location: x?.location ?? null, outcomes: pj<string[]>(x?.outcomes, []), sort: x?.sort ?? null, needs_review: !!x?.needs_review };
+};
+function saveExtra(itemId: string, patch: { location?: string | null; outcomes?: string[]; sort?: number | null; needs_review?: boolean }) {
+  const cur = db().get<{ location: string | null; outcomes: string; sort: number | null; needs_review: number }>('SELECT * FROM portfolio_item_extra WHERE item_id = ?', itemId);
+  db().run('INSERT INTO portfolio_item_extra (item_id, location, outcomes, sort, needs_review) VALUES (?, ?, ?, ?, ?) ON CONFLICT(item_id) DO UPDATE SET location = excluded.location, outcomes = excluded.outcomes, sort = excluded.sort, needs_review = excluded.needs_review',
+    itemId, patch.location !== undefined ? patch.location : cur?.location ?? null, patch.outcomes !== undefined ? j(patch.outcomes) : cur?.outcomes ?? '[]', patch.sort !== undefined ? patch.sort : cur?.sort ?? null,
+    patch.needs_review !== undefined ? (patch.needs_review ? 1 : 0) : cur?.needs_review ?? 0);
+}
 
 export function listItems(studentId: string): PortfolioItem[] {
-  return db().all<PortfolioItemRow>(`SELECT * FROM portfolio_items WHERE student_id = ? ORDER BY CASE kind WHEN 'award' THEN 0 WHEN 'experience' THEN 1 WHEN 'project' THEN 2 WHEN 'certificate' THEN 3 ELSE 4 END, COALESCE(end_date, start_date, created_at) DESC`, studentId).map(rowToItem);
+  // The student's own order first (set by moving entries up or down), then newest first.
+  return db().all<PortfolioItemRow>(`SELECT i.* FROM portfolio_items i LEFT JOIN portfolio_item_extra x ON x.item_id = i.id WHERE i.student_id = ? ORDER BY CASE i.kind WHEN 'award' THEN 0 WHEN 'experience' THEN 1 WHEN 'project' THEN 2 WHEN 'certificate' THEN 3 ELSE 4 END, CASE WHEN x.sort IS NULL THEN 1 ELSE 0 END, x.sort, COALESCE(i.end_date, i.start_date, i.created_at) DESC`, studentId).map(rowToItem);
 }
 
 export function listAccounts(studentId: string): Account[] {
@@ -113,13 +123,22 @@ const itemBody = z.object({
   kind: z.enum(ITEM_KINDS), title: z.string().trim().min(1).max(160), org: z.string().trim().max(160).default(''),
   start_date: z.string().regex(/^\d{4}(-\d{2}(-\d{2})?)?$/).nullable().optional(), end_date: z.string().regex(/^\d{4}(-\d{2}(-\d{2})?)?$/).nullable().optional(),
   description: z.string().max(2000).default(''), url: z.string().url().max(400).nullable().optional(), credential_id: z.string().max(120).nullable().optional(),
-  skills: z.array(z.string().trim().min(1).max(40)).max(20).default([]), visibility: z.enum(VISIBILITY).default('private')
+  skills: z.array(z.string().trim().min(1).max(40)).max(20).default([]), visibility: z.enum(VISIBILITY).default('private'),
+  location: z.string().trim().max(120).nullable().optional(), outcomes: z.array(z.string().trim().min(1).max(200)).max(6).optional()
 });
 
+function datesInOrder(start?: string | null, end?: string | null) {
+  if (start && end && end < start) throw unprocessable('The end date is before the start date.');
+}
+
 function insertItem(u: User, body: z.infer<typeof itemBody>, source: string, verification: string, sourceRef: string | null = null): PortfolioItem {
+  datesInOrder(body.start_date, body.end_date);
   const id = newId('pf');
   const now = nowIso();
   db().insert('portfolio_items', { id, student_id: u.id, kind: body.kind, title: body.title, org: body.org, start_date: body.start_date ?? null, end_date: body.end_date ?? null, description: body.description, url: body.url ?? null, credential_id: body.credential_id ?? null, skills: j([...new Set(body.skills)]), source, source_ref: sourceRef, verification, visibility: body.visibility, created_at: now, updated_at: now });
+  // Imports stay private until the student has looked at them.
+  saveExtra(id, { location: body.location ?? null, outcomes: body.outcomes ?? [], needs_review: source === 'linkedin_export' });
+  if (source === 'linkedin_export') db().update('portfolio_items', id, { visibility: 'private' });
   return rowToItem(db().get<PortfolioItemRow>('SELECT * FROM portfolio_items WHERE id = ?', id)!);
 }
 
@@ -162,14 +181,30 @@ portfolioRouter.patch('/portfolio/items/:id', h((req, res) => {
   const u = requireUser(req);
   const cur = db().get<PortfolioItemRow>('SELECT * FROM portfolio_items WHERE id = ? AND student_id = ?', String(req.params.id), u.id);
   if (!cur) throw notFound('Portfolio item not found');
-  const body = parse(itemBody.partial(), req.body);
-  const patch: Record<string, unknown> = { ...body, updated_at: nowIso() };
+  const body = parse(itemBody.partial().extend({ reviewed: z.boolean().optional() }), req.body);
+  const extra = rowToItem(cur);
+  // An imported entry cannot be shared with staff or employers before the student reviews it.
+  if (extra.needs_review && !body.reviewed && body.visibility && body.visibility !== 'private') throw conflict('Review this imported entry before sharing it.');
+  datesInOrder(body.start_date ?? cur.start_date, body.end_date ?? cur.end_date);
+  const { reviewed, location, outcomes, ...rest } = body;
+  const patch: Record<string, unknown> = { ...rest, updated_at: nowIso() };
   if (body.skills) patch.skills = j([...new Set(body.skills)]);
   // University-verified items keep their facts; the student may only change visibility and description.
   if (cur.verification === 'university') for (const k of ['title', 'org', 'start_date', 'end_date', 'kind', 'credential_id']) delete patch[k];
   db().update('portfolio_items', cur.id, patch);
+  saveExtra(cur.id, { ...(location !== undefined ? { location } : {}), ...(outcomes !== undefined ? { outcomes } : {}), ...(reviewed ? { needs_review: false } : {}) });
   audit(u.id, 'career.portfolio.item.update', 'portfolio_item', cur.id, { fields: Object.keys(body) });
   ok(res, { item: rowToItem(db().get<PortfolioItemRow>('SELECT * FROM portfolio_items WHERE id = ?', cur.id)!) });
+}));
+
+/** Sets the student's own order for a group of entries (ids in display order). */
+portfolioRouter.post('/portfolio/items/reorder', h((req, res) => {
+  const u = requireUser(req);
+  const b = parse(z.object({ ids: z.array(z.string().min(1)).min(1).max(100) }), req.body);
+  const mine = new Set(db().all<{ id: string }>('SELECT id FROM portfolio_items WHERE student_id = ?', u.id).map((r) => r.id));
+  if (b.ids.some((x) => !mine.has(x))) throw notFound('Portfolio item not found');
+  db().tx(() => b.ids.forEach((x, i) => saveExtra(x, { sort: i })));
+  ok(res, { ids: b.ids });
 }));
 
 portfolioRouter.delete('/portfolio/items/:id', h((req, res) => {

@@ -1097,3 +1097,6 @@ CREATE TABLE IF NOT EXISTS club_post_media (id TEXT PRIMARY KEY, post_id TEXT NO
 CREATE INDEX IF NOT EXISTS idx_club_post_media_post ON club_post_media(post_id, sort);
 -- Attribution for posts that retell a real, public YU event (past highlights): the original link and its date.
 CREATE TABLE IF NOT EXISTS club_post_sources (post_id TEXT PRIMARY KEY REFERENCES club_posts(id) ON DELETE CASCADE, url TEXT NOT NULL, label_en TEXT NOT NULL, label_ar TEXT, happened_on TEXT, highlight INTEGER NOT NULL DEFAULT 0);
+
+-- Portfolio entry details: where, what came of it, the student's own order, and whether an import still needs review.
+CREATE TABLE IF NOT EXISTS portfolio_item_extra (item_id TEXT PRIMARY KEY REFERENCES portfolio_items(id) ON DELETE CASCADE, location TEXT, outcomes TEXT NOT NULL DEFAULT '[]', sort INTEGER, needs_review INTEGER NOT NULL DEFAULT 0);

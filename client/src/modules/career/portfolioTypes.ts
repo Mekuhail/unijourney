@@ -5,6 +5,7 @@ export type Visibility = 'private' | 'staff' | 'employers';
 export interface PortfolioItem {
   id: string; kind: ItemKind; title: string; org: string; start_date: string | null; end_date: string | null; description: string; url: string | null; credential_id: string | null;
   skills: string[]; source: 'manual' | 'linkedin_export' | 'github' | 'university' | 'competition'; verification: 'self' | 'link' | 'issuer' | 'university'; visibility: Visibility; created_at: string; updated_at: string;
+  location: string | null; outcomes: string[]; sort: number | null; needs_review: boolean;
 }
 export interface GithubSummary { username: string; name: string | null; profile_url: string; avatar_url: string | null; public_repos: number; repos: Array<{ name: string; description: string | null; url: string; language: string | null; stars: number; topics: string[]; pushed_at: string }>; languages: Array<{ name: string; repos: number }>; fetched_at: string }
 export interface Account { provider: 'linkedin' | 'github'; handle: string; url: string; verified: boolean; method: string; last_synced_at: string | null; data: GithubSummary | null; error: string | null }
