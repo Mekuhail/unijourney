@@ -161,3 +161,43 @@ describe('one grade policy across the app', () => {
     expect(runMigrations(db())).toEqual([]);
   });
 });
+
+describe('GPA planner API', () => {
+  let s: TestServer;
+  beforeAll(async () => { freshDb(); s = await startServer(); });
+  afterAll(async () => { await s.close(); });
+  const doc = (name = 'Plan A') => ({
+    current: { term: '2026-1', courses: [{ id: 'c1', code: 'CIS 321', title: 'Operating Systems', credits: 3, mode: 'components', finalGrade: null, finalPercent: null, components: [{ id: 'm', name: 'Midterm', category: 'midterm', weight: 30, earned: 42, max: 50, percent: null }], assumeRemaining: null, passFail: false }] },
+    scenarios: [{ id: 's1', name, terms: [{ id: 't1', label: 'Spring 2027', courses: [{ id: 'f1', code: 'SWE 401', title: 'Senior project I', credits: 3, grade: 'A', passFail: false, repeatOf: null }] }] }],
+    activeScenario: 's1', target: { kind: 'scholarship', categoryId: 'excellence-50', gpa: 3.75 }, settings: { repeat: 'all', rounding: 'round', headroom: 0.1 }, dismissed: []
+  });
+
+  it('returns the official GPA from the shared policy, current courses and the scholarship reference', async () => {
+    const r = await s.as('u_student').get<{ official: { gpa: number; gpaCredits: number }; current: { courses: Array<{ code: string }> }; scholarship: { categories: Array<{ min_gpa: number }> }; plan: unknown }>('/academics/gpa');
+    expect(r.status).toBe(200);
+    expect(r.body.data!.official.gpa).toBe(academicRecord('u_student').gpa);
+    expect(r.body.data!.current.courses.map((c) => c.code)).toContain('CIS 321');
+    expect(r.body.data!.scholarship.categories.map((c) => c.min_gpa)).toEqual([3.75, 3.5, 3.3]);
+    expect(r.body.data!.plan).toBeNull();
+  });
+
+  it('saves privately per student, refuses a stale version, and deletes on request', async () => {
+    const put = await s.as('u_student').put<{ version: number }>('/academics/gpa', { doc: doc(), version: 0 });
+    expect(put.status).toBe(200);
+    expect(put.body.data!.version).toBe(1);
+    const stale = await s.as('u_student').put('/academics/gpa', { doc: doc('Other tab'), version: 0 });
+    expect(stale.status).toBe(409);
+    const mine = await s.as('u_student').get<{ plan: { doc: { scenarios: Array<{ name: string }> }; version: number } }>('/academics/gpa');
+    expect(mine.body.data!.plan.doc.scenarios[0].name).toBe('Plan A');
+    const layan = await s.as('u_lead').get<{ plan: unknown }>('/academics/gpa');
+    expect(layan.body.data!.plan).toBeNull();
+    expect((await s.as('u_student').put('/academics/gpa', { doc: { ...doc(), scenarios: 'x' }, version: 1 })).status).toBe(400);
+    expect((await s.as('u_student').del('/academics/gpa')).status).toBe(200);
+    expect((await s.as('u_student').get<{ plan: unknown }>('/academics/gpa')).body.data!.plan).toBeNull();
+  });
+
+  it('is only for students', async () => {
+    expect((await s.as('u_security').get('/academics/gpa')).status).toBe(403);
+    expect((await s.as('u_applicant').put('/academics/gpa', { doc: doc(), version: 0 })).status).toBe(403);
+  });
+});

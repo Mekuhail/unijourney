@@ -62,11 +62,13 @@ export function AppShell() {
   // Route guard from the role → capability matrix. After a persona switch, leave a page the new role cannot use.
   const needed = capabilityForPath(loc.pathname);
   const allowed = !user || !needed || can(needed);
-  const lastUser = useRef(user?.id);
+  // Only a real switch (one signed-in persona to another) redirects; a first load keeps the page and shows NoAccess.
+  const lastUser = useRef<string | null>(null);
   useEffect(() => {
-    if (!user || lastUser.current === user.id) return;
+    if (!user) return;
+    const prev = lastUser.current;
     lastUser.current = user.id;
-    if (!allowed) navigate(landingFor(user.roles), { replace: true });
+    if (prev && prev !== user.id && !allowed) navigate(landingFor(user.roles), { replace: true });
   }, [user, allowed, navigate]);
   const bottom = bottomNavFor(user?.roles);
 

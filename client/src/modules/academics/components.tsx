@@ -3,21 +3,22 @@ import { NavLink, Link, useLocation } from 'react-router';
 import { useEdgeFade } from '@/components/ui/useEdgeFade';
 import * as M from 'motion/react-m';
 import clsx from 'clsx';
-import { CheckCircle2, AlertTriangle, XCircle, Lock, LayoutDashboard, Map, ListChecks, CalendarDays, UserCheck, FileText, BookOpenCheck, Check, ChevronLeft } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Lock, LayoutDashboard, Map, ListChecks, CalendarDays, UserCheck, BookOpenCheck, Check, ChevronLeft, Calculator } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { weekdayName, fmtTime, fmtDate } from '@/lib/format';
 import type { Check as PlanCheck, ExcuseCheck, Meeting, DayLoad } from './api';
 import { minutesOf, TEACHING_DAYS } from './api';
 
 // ---------------------------------------------------------------- sub navigation
-const SUB = [
+const SUB: Array<{ to: string; key: string; icon: typeof Map; end?: boolean; also?: string[] }> = [
   { to: '/academics', key: 'academics.nav.overview', icon: LayoutDashboard, end: true },
   { to: '/academics/plan', key: 'academics.nav.plan', icon: Map },
   { to: '/academics/register', key: 'academics.nav.register', icon: ListChecks },
   { to: '/academics/timetable', key: 'academics.nav.timetable', icon: CalendarDays },
-  { to: '/academics/attendance', key: 'academics.nav.attendance', icon: UserCheck },
-  { to: '/academics/excuses', key: 'academics.nav.excuses', icon: FileText },
-  { to: '/academics/study', key: 'academics.nav.study', icon: BookOpenCheck }
+  // Excuses live with attendance: one home for "I missed a class".
+  { to: '/academics/attendance', key: 'academics.nav.attendance', icon: UserCheck, also: ['/academics/excuses'] },
+  { to: '/academics/study', key: 'academics.nav.study', icon: BookOpenCheck },
+  { to: '/academics/gpa', key: 'academics.nav.gpa', icon: Calculator }
 ];
 export function AcademicsNav() {
   const { t } = useI18n();
@@ -27,8 +28,8 @@ export function AcademicsNav() {
     <div className="mb-5 rounded-2xl bg-surface-2 p-1">
       <nav ref={row} aria-label={t('nav.academics')} className="scroll-row flex gap-1 overflow-x-auto">
         {SUB.map((s) => (
-          <NavLink key={s.to} to={s.to} end={s.end} className={({ isActive }) => clsx('relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors touch:min-h-11', isActive ? 'text-fg' : 'text-muted hover:text-fg')}>
-            {({ isActive }) => (<>{isActive && <M.span layoutId="acad-tab" className="absolute inset-0 rounded-xl bg-surface shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}<span className="relative flex items-center gap-2 whitespace-nowrap"><s.icon className="h-4 w-4" />{t(s.key)}</span></>)}
+          <NavLink key={s.to} to={s.to} end={s.end} aria-current={s.also?.some((p) => pathname.startsWith(p)) ? 'page' : undefined} className={({ isActive }) => clsx('relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors touch:min-h-11', isActive || s.also?.some((p) => pathname.startsWith(p)) ? 'text-fg' : 'text-muted hover:text-fg')}>
+            {({ isActive: own }) => { const isActive = own || !!s.also?.some((p) => pathname.startsWith(p)); return (<>{isActive && <M.span layoutId="acad-tab" className="absolute inset-0 rounded-xl bg-surface shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}<span className="relative flex items-center gap-2 whitespace-nowrap"><s.icon className="h-4 w-4" />{t(s.key)}</span></>); }}
           </NavLink>
         ))}
       </nav>

@@ -7,6 +7,7 @@ import { registrationRouter } from './routes.registration.ts';
 import { attendanceRouter } from './routes.attendance.ts';
 import { studyRouter } from './routes.study.ts';
 import { plannerRouter } from './assessments.ts';
+import { gpaRouter } from './gpa.ts';
 import { prereqsRouter } from './prereqs.ts';
 import { seedAcademics } from './seed.ts';
 import { reviewerCanOpenDocument } from './excuses.ts';
@@ -26,6 +27,7 @@ academicsRouter.use(registrationRouter);
 academicsRouter.use(attendanceRouter);
 academicsRouter.use(studyRouter);
 academicsRouter.use(plannerRouter);
+academicsRouter.use(gpaRouter);
 academicsRouter.use('/prereqs', prereqsRouter);
 
 // Reviewers may open evidence only while the excuse request is in a review state.

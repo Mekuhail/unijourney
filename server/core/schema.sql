@@ -1079,3 +1079,7 @@ CREATE TABLE IF NOT EXISTS study_task_times (
   urgency TEXT NOT NULL DEFAULT 'medium',   -- high|medium|low
   assessment_id TEXT
 );
+
+-- GPA planner: one private, versioned document per student (current-course estimates and future scenarios).
+-- The transcript stays the read-only baseline; nothing in this table changes official grades.
+CREATE TABLE IF NOT EXISTS gpa_plans (student_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, doc TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
