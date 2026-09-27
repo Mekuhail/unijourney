@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { GitBranch, Lock, Printer, RotateCcw, Search, BookOpen, ExternalLink, ArrowRight, Sparkles, ChevronDown } from 'lucide-react';
+import { GitBranch, Lock, Printer, RotateCcw, Search, BookOpen, ExternalLink, ArrowRight, Sparkles, ChevronDown, ZoomIn, ZoomOut, Maximize, Minimize, Scan } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -8,7 +8,6 @@ import { useTheme } from '@/lib/theme';
 import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { watchEdgeFade } from '@/components/ui/useEdgeFade';
 import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Select, Skeleton, Toggle, SectionTitle, ButtonLink } from '@/components/ui';
 
 interface ProgramInfo { id: string; code: string; name_en: string; name_ar: string; college_id: string; college_en: string; college_ar: string; degree: string; total_credits: number; duration_years: number; source_url: string; source_version: string; source_note: string; campus_ids: string[]; courses: number; mine: boolean }
@@ -48,39 +47,123 @@ export function PrereqChainsPage() {
   useEffect(() => { setSelected(null); setHover(null); setQ(''); }, [pid]);
 
   const d = chain.data;
+  const [zoom, setZoom] = useState(1);
+  const [full, setFull] = useState(false);
   const byCode = useMemo(() => new Map<string, ChainCourse>((d ? [...d.terms.flatMap((x) => x.slots), ...d.pool] : []).map((c) => [c.code, c])), [d]);
-  const active = hover ?? selected;
+  // A pinned course keeps its chain lit; hovering only previews when nothing is pinned, so moving the pointer
+  // across the map (or towards the detail panel) never makes the highlight flicker.
+  const active = selected ?? hover;
   const up = useMemo(() => (active ? ancestors(active, byCode) : new Set<string>()), [active, byCode]);
   const down = useMemo(() => (active ? descendants(active, byCode) : new Set<string>()), [active, byCode]);
   const sel = selected ? byCode.get(selected) ?? null : null;
   const matches = useMemo(() => { const s = q.trim().toLowerCase(); if (!s || !d) return []; return [...byCode.values()].filter((c) => !c.code.startsWith('ELECTIVE:') && (c.code.toLowerCase().includes(s) || c.title_en.toLowerCase().includes(s) || c.title_ar.includes(q.trim()))).slice(0, 8); }, [q, byCode, d]);
 
-  // ---- edge geometry -----------------------------------------------------
-  const wrapRef = useRef<HTMLDivElement>(null);
+  // ---- edge geometry (measured in unscaled content coordinates, so zoom never re-measures) -------------
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef(new Map<string, HTMLButtonElement>());
   const [paths, setPaths] = useState<Array<{ key: string; d: string; from: string; to: string; alt: boolean; kind: string }>>([]);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const rtl = locale === 'ar';
+  const posOf = useCallback((el: HTMLElement) => {
+    const content = contentRef.current;
+    let x = 0, y = 0, n: HTMLElement | null = el;
+    while (n && n !== content) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent as HTMLElement | null; }
+    return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+  }, []);
   const measure = useCallback(() => {
-    const wrap = wrapRef.current; if (!wrap || !d) return;
-    const wr = wrap.getBoundingClientRect();
-    const rtl = locale === 'ar';
-    const pos = (el: HTMLElement) => { const r = el.getBoundingClientRect(); return { x: r.left - wr.left + wrap.scrollLeft, y: r.top - wr.top + wrap.scrollTop, w: r.width, h: r.height }; };
+    const content = contentRef.current; if (!content || !d) return;
     const next: typeof paths = [];
     for (const e of d.edges) {
       const a = nodeRefs.current.get(e.from), b = nodeRefs.current.get(e.to);
       if (!a || !b) continue;
-      const pa = pos(a), pb = pos(b);
+      const pa = posOf(a), pb = posOf(b);
       const x1 = rtl ? pa.x : pa.x + pa.w, y1 = pa.y + pa.h / 2;
       const x2 = rtl ? pb.x + pb.w : pb.x, y2 = pb.y + pb.h / 2;
       const dx = Math.max(40, Math.abs(x2 - x1) / 2) * (rtl ? -1 : 1);
       next.push({ key: `${e.from}>${e.to}`, d: `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`, from: e.from, to: e.to, alt: e.alt, kind: e.kind });
     }
     setPaths(next);
-    setSize({ w: wrap.scrollWidth, h: wrap.scrollHeight });
-  }, [d, locale]);
+    setSize({ w: content.offsetWidth, h: content.offsetHeight });
+  }, [d, rtl, posOf]);
   useLayoutEffect(() => { measure(); }, [measure, showMine]);
-  useEffect(() => (wrapRef.current ? watchEdgeFade(wrapRef.current) : undefined), [d]);
-  useEffect(() => { const ro = new ResizeObserver(() => measure()); if (wrapRef.current) ro.observe(wrapRef.current); window.addEventListener('resize', measure); return () => { ro.disconnect(); window.removeEventListener('resize', measure); }; }, [measure]);
+  useEffect(() => { void document.fonts?.ready.then(() => measure()); const ro = new ResizeObserver(() => measure()); if (contentRef.current) ro.observe(contentRef.current); return () => ro.disconnect(); }, [measure]);
+
+  // ---- viewport: pan, zoom and centring ---------------------------------------------------------------
+  const ZOOMS = [0.5, 0.6, 0.75, 0.9, 1, 1.15, 1.3, 1.5];
+  const pendingCenter = useRef<{ x: number; y: number; smooth: boolean } | null>(null);
+  /** Scrolls only the map (never the page) so content point (x, y) sits in the middle of the viewport. */
+  const scrollToPoint = useCallback((x: number, y: number, smooth: boolean) => {
+    const vp = viewportRef.current; if (!vp) return;
+    const targetLeft = x * zoom - vp.clientWidth / 2;
+    const left = rtl ? targetLeft - (vp.scrollWidth - vp.clientWidth) : targetLeft;
+    const top = y * zoom - vp.clientHeight / 2;
+    // Wait for the highlight re-render to settle; a smooth scroll started mid-commit gets cancelled by the browser.
+    window.setTimeout(() => vp.scrollTo({ left, top, behavior: smooth && !reducedMotion && document.visibilityState === 'visible' ? 'smooth' : 'auto' }), 30);
+  }, [zoom, rtl, reducedMotion]);
+  const centerOn = useCallback((code: string, smooth = true) => {
+    const el = nodeRefs.current.get(code); if (!el) return;
+    const p = posOf(el);
+    scrollToPoint(p.x + p.w / 2, p.y + p.h / 2, smooth);
+  }, [posOf, scrollToPoint]);
+  const viewportCenter = () => {
+    const vp = viewportRef.current; if (!vp) return { x: 0, y: 0 };
+    const visLeft = rtl ? vp.scrollWidth - vp.clientWidth + vp.scrollLeft : vp.scrollLeft;
+    return { x: (visLeft + vp.clientWidth / 2) / zoom, y: (vp.scrollTop + vp.clientHeight / 2) / zoom };
+  };
+  const setZoomKeepCenter = (z: number) => {
+    const next = Math.min(1.5, Math.max(0.5, Math.round(z * 100) / 100));
+    if (next === zoom) return;
+    pendingCenter.current = { ...viewportCenter(), smooth: false };
+    setZoom(next);
+  };
+  const stepZoom = (dir: 1 | -1) => setZoomKeepCenter(dir > 0 ? ZOOMS.find((z) => z > zoom + 0.001) ?? 1.5 : [...ZOOMS].reverse().find((z) => z < zoom - 0.001) ?? 0.5);
+  const fitWidth = () => { const vp = viewportRef.current; if (!vp || !size.w) return; pendingCenter.current = null; setZoom(Math.min(1, Math.max(0.5, Math.floor(((vp.clientWidth - 8) / size.w) * 100) / 100))); };
+  useLayoutEffect(() => {
+    const c = pendingCenter.current; pendingCenter.current = null;
+    if (c) scrollToPoint(c.x, c.y, c.smooth);
+    else if (selected) centerOn(selected, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom, full]);
+  // Selecting a course (map, search, gateways, the detail panel) glides it to the centre of the map.
+  useEffect(() => { if (selected) centerOn(selected); }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ctrl/⌘ + wheel zooms; dragging the background pans.
+  useEffect(() => {
+    const vp = viewportRef.current; if (!vp) return;
+    const onWheel = (e: WheelEvent) => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); stepZoom(e.deltaY < 0 ? 1 : -1); };
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    return () => vp.removeEventListener('wheel', onWheel);
+  });
+  const drag = useRef<{ x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || e.pointerType === 'touch' || (e.target as HTMLElement).closest('button')) return;
+    const vp = viewportRef.current!; drag.current = { x: e.clientX, y: e.clientY, left: vp.scrollLeft, top: vp.scrollTop, moved: false };
+    vp.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const g = drag.current; if (!g) return;
+    const vp = viewportRef.current!;
+    if (Math.abs(e.clientX - g.x) + Math.abs(e.clientY - g.y) > 3) g.moved = true;
+    vp.scrollLeft = g.left - (e.clientX - g.x); vp.scrollTop = g.top - (e.clientY - g.y);
+  };
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => { drag.current = null; viewportRef.current?.releasePointerCapture?.(e.pointerId); };
+
+  // Full screen: an overlay (works on phones too); Escape closes it and the page behind does not scroll.
+  useEffect(() => {
+    if (!full) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFull(false); };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+  }, [full]);
+
+  // Hover intent: a short delay so sweeping across the map does not flash every chain on the way.
+  const hoverTimer = useRef<number | null>(null);
+  const hoverIn = (code: string) => { if (hoverTimer.current) window.clearTimeout(hoverTimer.current); hoverTimer.current = window.setTimeout(() => setHover(code), 90); };
+  const hoverOut = () => { if (hoverTimer.current) window.clearTimeout(hoverTimer.current); hoverTimer.current = window.setTimeout(() => setHover(null), 60); };
+  useEffect(() => () => { if (hoverTimer.current) window.clearTimeout(hoverTimer.current); }, []);
 
   const edgeTone = (e: { from: string; to: string }) => {
     if (!active) return 'stroke-[var(--line)]';
@@ -120,15 +203,16 @@ export function PrereqChainsPage() {
         key={c.code}
         ref={(el) => { if (el) nodeRefs.current.set(c.code, el); else nodeRefs.current.delete(c.code); }}
         type="button"
-        onMouseEnter={() => setHover(c.code)}
-        onMouseLeave={() => setHover(null)}
+        onMouseEnter={() => hoverIn(c.code)}
+        onMouseLeave={hoverOut}
         onFocus={() => setHover(c.code)}
         onBlur={() => setHover(null)}
-        onClick={() => setSelected((s) => (s === c.code ? null : c.code))}
+        onClick={() => { if (drag.current?.moved) return; setSelected((s) => (s === c.code ? null : c.code)); }}
         onKeyDown={(ev) => onKey(ev, c.code, termIdx, slotIdx)}
         aria-pressed={isSel}
         title={`${c.code} · ${l(c.title_en, c.title_ar)}`}
-        className={clsx('relative w-full rounded-xl border bg-surface px-2.5 py-2 text-start transition-[border-color,box-shadow,opacity] duration-200', CAT_TONE[c.category] ?? 'border-line',
+        className={clsx('relative w-full rounded-xl border bg-surface px-2.5 py-2 text-start transition-[border-color,box-shadow,opacity] duration-150', CAT_TONE[c.category] ?? 'border-line',
+          hover === c.code && !isAct && 'border-brand-400',
           isAct && 'ring-2 ring-brand-500 border-brand-500 shadow-md',
           !isAct && inUp && 'ring-2 ring-gold-500 border-gold-500',
           !isAct && inDown && 'ring-2 ring-info border-info',
@@ -171,7 +255,7 @@ export function PrereqChainsPage() {
             <Input value={q} onChange={(e) => setQ(e.target.value)} className="ps-9" placeholder="SWE 302, Operating Systems…" />
             {matches.length > 0 && (
               <ul className="absolute z-[var(--z-dropdown)] mt-1 w-full overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
-                {matches.map((m) => <li key={m.code}><button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-line/60" onClick={() => { setSelected(m.code); setQ(''); nodeRefs.current.get(m.code)?.scrollIntoView({ block: 'center', inline: 'center', behavior: reducedMotion ? 'auto' : 'smooth' }); }}><span className="font-mono text-xs text-brand-600">{m.code}</span><span className="truncate">{l(m.title_en, m.title_ar)}</span></button></li>)}
+                {matches.map((m) => <li key={m.code}><button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-line/60" onClick={() => { setSelected(m.code); setQ(''); }}><span className="font-mono text-xs text-brand-600">{m.code}</span><span className="truncate">{l(m.title_en, m.title_ar)}</span></button></li>)}
               </ul>
             )}
           </div>
@@ -197,12 +281,21 @@ export function PrereqChainsPage() {
             <span className="text-xs text-muted">{t('prereqs.gatewaysHint')}</span>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+          <div className={clsx(full ? 'fixed inset-0 z-[var(--z-modal)] flex flex-col gap-2 bg-bg p-2 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)] lg:gap-4' : 'grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]')} role={full ? 'dialog' : undefined} aria-modal={full || undefined} aria-labelledby={full ? 'prereq-map-h' : undefined}>
             {/* Diagram */}
-            <section aria-labelledby="prereq-map-h" className="card relative min-w-0 p-0">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2">
-                <h2 id="prereq-map-h" className="text-sm font-semibold">{t('prereqs.h.map')}</h2>
-                <p className="text-sm text-muted">{t('prereqs.hint')}</p>
+            <section aria-labelledby="prereq-map-h" className={clsx('card relative flex min-w-0 flex-col p-0', full && 'min-h-0 flex-1 lg:h-full')}>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
+                <div className="min-w-0">
+                  <h2 id="prereq-map-h" className="text-sm font-semibold">{t('prereqs.h.map')}{full && program ? ` · ${l(program.name_en, program.name_ar)}` : ''}</h2>
+                  <p className="text-xs text-muted">{t('prereqs.hint2')}</p>
+                </div>
+                <div className="no-print flex items-center gap-1" role="toolbar" aria-label={t('prereqs.view')}>
+                  <Button size="icon" variant="ghost" aria-label={t('prereqs.zoomOut')} title={t('prereqs.zoomOut')} disabled={zoom <= 0.5} onClick={() => stepZoom(-1)}><ZoomOut className="h-4 w-4" aria-hidden /></Button>
+                  <button type="button" onClick={() => setZoomKeepCenter(1)} className="num min-h-11 min-w-14 rounded-lg px-2 text-sm font-medium text-muted hover:bg-line/50 hover:text-fg sm:min-h-9" title={t('prereqs.zoomReset')} aria-label={`${t('prereqs.zoomReset')} (${Math.round(zoom * 100)}%)`}>{Math.round(zoom * 100)}%</button>
+                  <Button size="icon" variant="ghost" aria-label={t('prereqs.zoomIn')} title={t('prereqs.zoomIn')} disabled={zoom >= 1.5} onClick={() => stepZoom(1)}><ZoomIn className="h-4 w-4" aria-hidden /></Button>
+                  <Button size="icon" variant="ghost" aria-label={t('prereqs.fit')} title={t('prereqs.fit')} onClick={fitWidth}><Scan className="h-4 w-4" aria-hidden /></Button>
+                  <Button size="icon" variant={full ? 'secondary' : 'ghost'} aria-label={t(full ? 'prereqs.exitFull' : 'prereqs.full')} title={t(full ? 'prereqs.exitFull' : 'prereqs.full')} onClick={() => setFull((f) => !f)}>{full ? <Minimize className="h-4 w-4" aria-hidden /> : <Maximize className="h-4 w-4" aria-hidden />}</Button>
+                </div>
               </div>
               <details className="group border-b border-line px-4 py-1 text-sm">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium text-fg [&::-webkit-details-marker]:hidden"><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden />{t('prereqs.legend')}</summary>
@@ -215,37 +308,42 @@ export function PrereqChainsPage() {
                   {mineVisible && <><span className="flex items-center gap-1.5"><span aria-hidden className="h-2 w-2 rounded-full bg-success" />{t('prereqs.status.completed')}</span><span className="flex items-center gap-1.5"><span aria-hidden className="h-2 w-2 rounded-full bg-brand-500" />{t('prereqs.status.enrolled')}</span><span className="flex items-center gap-1.5"><span aria-hidden className="h-2 w-2 rounded-full bg-teal-500" />{t('prereqs.status.available')}</span><span className="flex items-center gap-1.5"><span aria-hidden className="h-2 w-2 rounded-full bg-ink-400" />{t('prereqs.status.blocked')}</span></>}
                 </div>
               </details>
-              <div ref={wrapRef} className="scroll-thin fade-x relative overflow-x-auto p-4" onScroll={measure}>
-                <svg className="pointer-events-none absolute start-0 top-0" width={size.w} height={size.h} aria-hidden>
-                  {paths.map((p) => (
-                    <path key={p.key} d={p.d} fill="none" strokeWidth={isUpEdge(p) || isDownEdge(p) || p.from === active || p.to === active ? 2.2 : 1.2} className={clsx('transition-all duration-300', edgeTone(p))} strokeDasharray={p.kind === 'coreq' ? '6 4' : p.alt ? '2 3' : undefined} />
-                  ))}
-                </svg>
-                <div className="relative flex items-start gap-4">
-                  {d.terms.map((term, ti) => (
-                    <div key={`${term.year}-${term.sem}`} className="w-[176px] shrink-0">
-                      <div className="mb-2 rounded-lg bg-surface-2 px-2 py-1 text-center">
-                        <div className="text-xs font-semibold text-muted">{t('prereqs.year', { n: term.year })}</div>
-                        <div className="text-xs font-semibold">{term.sem === 3 ? t('prereqs.summer') : t('prereqs.semester', { n: term.sem })} · <span className="num text-muted">{term.credits}{t('prereqs.credits')}</span></div>
+              <div ref={viewportRef} tabIndex={0} aria-label={t('prereqs.h.map')}
+                onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === '+' || e.key === '=') { e.preventDefault(); stepZoom(1); } else if (e.key === '-') { e.preventDefault(); stepZoom(-1); } else if (e.key === '0') { e.preventDefault(); setZoomKeepCenter(1); } }}
+                onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+                className={clsx('scroll-thin relative overflow-auto overscroll-contain bg-surface-2/40 focus-visible:outline-none', full ? 'min-h-0 flex-1' : 'h-[min(68dvh,640px)] min-h-[380px]', 'cursor-grab active:cursor-grabbing')}>
+                <div className="relative" style={{ width: size.w * zoom || undefined, height: size.h * zoom || undefined }}>
+                  <div ref={contentRef} className="absolute top-0 start-0 inline-flex items-start gap-4 p-4" style={{ transform: `scale(${zoom})`, transformOrigin: rtl ? 'top right' : 'top left' }}>
+                    <svg className="pointer-events-none absolute start-0 top-0" width={size.w} height={size.h} aria-hidden>
+                      {paths.map((p) => (
+                        <path key={p.key} d={p.d} fill="none" strokeWidth={isUpEdge(p) || isDownEdge(p) || p.from === active || p.to === active ? 2.2 : 1.2} className={clsx('transition-[stroke,opacity] duration-150', edgeTone(p))} strokeDasharray={p.kind === 'coreq' ? '6 4' : p.alt ? '2 3' : undefined} />
+                      ))}
+                    </svg>
+                    {d.terms.map((term, ti) => (
+                      <div key={`${term.year}-${term.sem}`} className="relative w-[176px] shrink-0">
+                        <div className="mb-2 rounded-lg bg-surface-2 px-2 py-1 text-center">
+                          <div className="text-xs font-semibold text-muted">{t('prereqs.year', { n: term.year })}</div>
+                          <div className="text-xs font-semibold">{term.sem === 3 ? t('prereqs.summer') : t('prereqs.semester', { n: term.sem })} · <span className="num text-muted">{term.credits}{t('prereqs.credits')}</span></div>
+                        </div>
+                        <div className="space-y-2">{term.slots.map((c, si) => node(c, ti, si))}</div>
                       </div>
-                      <div className="space-y-2">{term.slots.map((c, si) => node(c, ti, si))}</div>
-                    </div>
-                  ))}
-                  {d.pool.length > 0 && (
-                    <div className="w-[176px] shrink-0">
-                      <div className="mb-2 rounded-lg bg-gold-100/70 px-2 py-1 text-center dark:bg-gold-700/20"><div className="text-xs font-semibold text-gold-700">{t('prereqs.poolTitle')}</div><div className="text-xs text-fg">{d.pool.length}</div></div>
-                      <div className="space-y-2">{d.pool.map((c, si) => node(c, d.terms.length, si))}</div>
-                    </div>
-                  )}
+                    ))}
+                    {d.pool.length > 0 && (
+                      <div className="relative w-[176px] shrink-0">
+                        <div className="mb-2 rounded-lg bg-gold-100/70 px-2 py-1 text-center dark:bg-gold-700/20"><div className="text-xs font-semibold text-gold-700">{t('prereqs.poolTitle')}</div><div className="text-xs text-fg">{d.pool.length}</div></div>
+                        <div className="space-y-2">{d.pool.map((c, si) => node(c, d.terms.length, si))}</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* Detail panel */}
-            <section aria-labelledby="prereq-detail-h" className="space-y-4">
+            {/* Detail panel: a fixed-width column, so choosing another course never shifts the map */}
+            <section aria-labelledby="prereq-detail-h" className={clsx('min-w-0 space-y-4', full && 'max-h-[38dvh] shrink-0 overflow-y-auto lg:h-full lg:max-h-none')}>
               <h2 id="prereq-detail-h" className="sr-only">{t('prereqs.h.detail')}</h2>
               {sel ? (
-                <Card className="lg:sticky lg:top-20">
+                <Card className={clsx(!full && "lg:sticky lg:top-20")}>
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-mono text-xs font-bold text-brand-600">{sel.code.startsWith('ELECTIVE:') ? t('prereqs.elective') : sel.code}</div>
