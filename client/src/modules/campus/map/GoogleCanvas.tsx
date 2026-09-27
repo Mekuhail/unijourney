@@ -17,7 +17,7 @@ const DARK_STYLES: google.maps.MapTypeStyle[] = [
 let configured = false;
 
 /** Google Maps implementation of MapCanvas (used only when the server exposes GOOGLE_MAPS_API_KEY). */
-export default function GoogleCanvas({ campus, locations, route, selected, onSelect, dark, locale, className, googleKey, endpoints, basemap, hidden, recenterKey }: MapCanvasProps) {
+export default function GoogleCanvas({ campus, locations, route, selected, onSelect, dark, locale, className, googleKey, endpoints, basemap, hidden, recenterKey, me, meKey, meLabel }: MapCanvasProps) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
   const overlays = useRef<{ boundary: google.maps.MVCObject[]; places: google.maps.MVCObject[]; route: google.maps.MVCObject[] }>({ boundary: [], places: [], route: [] });
@@ -101,6 +101,21 @@ export default function GoogleCanvas({ campus, locations, route, selected, onSel
     overlays.current.route.push(new google.maps.Polyline({ map: m, path, strokeColor: ROUTE_COLOR, strokeWeight: 5, strokeOpacity: 0.95 }));
     const b = new google.maps.LatLngBounds(); for (const p of path) b.extend(p); m.fitBounds(b, 30);
   }, [ready, route, dark]);
+
+  // The student's position: blue dot + accuracy circle, drawn only when it is on this campus.
+  const meOverlays = useRef<{ dot: google.maps.Marker | null; ring: google.maps.Circle | null }>({ dot: null, ring: null });
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m) return;
+    const o = meOverlays.current;
+    if (!me) { o.dot?.setMap(null); o.ring?.setMap(null); o.dot = null; o.ring = null; return; }
+    const pos = { lat: me.lat, lng: me.lng };
+    if (!o.ring) o.ring = new google.maps.Circle({ map: m, center: pos, radius: Math.max(me.accuracy, 4), strokeColor: '#1a73e8', strokeOpacity: 0.35, strokeWeight: 1, fillColor: '#1a73e8', fillOpacity: 0.12, clickable: false });
+    else { o.ring.setCenter(pos); o.ring.setRadius(Math.max(me.accuracy, 4)); }
+    if (!o.dot) o.dot = new google.maps.Marker({ map: m, position: pos, title: meLabel, clickable: false, zIndex: 3000, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: '#1a73e8', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 3 } });
+    else o.dot.setPosition(pos);
+  }, [ready, me, meLabel]);
+  useEffect(() => { if (meKey && me && map.current) { map.current.panTo({ lat: me.lat, lng: me.lng }); if ((map.current.getZoom() ?? 0) < 18) map.current.setZoom(18); } }, [meKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <div className={`${className ?? 'h-[420px] w-full'} grid place-items-center rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger`}>Google Maps failed to load: {error}. Switch the map source to OpenStreetMap.</div>;
   return <div ref={el} className={className ?? 'h-[420px] w-full'} role="application" aria-label="Campus map (Google)" />;

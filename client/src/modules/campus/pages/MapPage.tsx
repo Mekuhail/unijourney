@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ArrowLeftRight, Footprints, Accessibility, Navigation, ExternalLink, Info, Search, X, CalendarDays, Maximize2, Layers, MapPin, ChevronDown, SquareParking, Route as RouteIcon } from 'lucide-react';
+import { ArrowLeftRight, Footprints, Accessibility, Navigation, ExternalLink, Info, Search, X, CalendarDays, Maximize2, Layers, MapPin, ChevronDown, SquareParking, Route as RouteIcon, LocateFixed, Locate, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { placeName } from '../map/style';
@@ -15,6 +15,7 @@ import { fmtDateTime, minutesLabel } from '@/lib/format';
 import type { Campus, MapLocation, NextClass, ParkingBay, ParkingData, ParkingLot, RouteResult } from '../types';
 import { MapCanvas, type ParkingLayer } from '../map/MapCanvas';
 import { ParkingPanel, DAY_END, toHHMM } from '../map/ParkingPanel';
+import { useCampusLocation } from '../map/useCampusLocation';
 import { useDemoStatus } from '@/shell/DemoClock';
 import { CATEGORIES, CATEGORY_COLOR, categoryOf, pinHtml, type Basemap, type Category } from '../map/style';
 import { AccessBadge, GeometryBadge } from '../lib';
@@ -38,7 +39,7 @@ function PinGlyph({ loc, size = 22 }: { loc: MapLocation; size?: number }) {
 export function MapPage() {
   const { t, l, locale } = useI18n();
   const ln = (en: string, ar?: string | null) => placeName(l(en, ar));
-  const { user } = useSession();
+  const { user, demoMode } = useSession();
   const { resolved, reducedMotion } = useTheme();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
@@ -61,6 +62,7 @@ export function MapPage() {
   const [focusLot, setFocusLot] = useState<{ id: string | null; key: number }>({ id: null, key: 0 });
   const [selectedBay, setSelectedBay] = useState<{ lotId: string; bayId: string } | null>(null);
   const { data: demoStatus } = useDemoStatus();
+  const [meKey, setMeKey] = useState(0);
 
   useEffect(() => { try { localStorage.setItem('uj.basemap', basemap); } catch { /* ignore */ } }, [basemap]);
 
@@ -68,11 +70,26 @@ export function MapPage() {
   useEffect(() => { if (cfg.data?.googleMapsKey) setProvider('google'); }, [cfg.data?.googleMapsKey]);
   const campuses = useQuery(() => api<Campus[]>('/campus/map/campuses'), []);
   const campus = campuses.data?.find((c) => c.id === campusId) ?? null;
+  // The student's position is shown only when it is on this campus; off campus nothing is drawn or offered.
+  const geo = useCampusLocation(campuses.data, demoMode);
+  const meHere = geo.status === 'on_campus' && geo.fix && geo.campusId === campusId ? geo.fix : null;
+  const locateMe = async () => {
+    const outcome = await geo.locate();
+    if (outcome !== 'on_campus') { toast.info(outcome === 'denied' ? t('map.me.denied') : t('map.me.offCampus')); return; }
+    setMeKey((k) => k + 1);
+  };
+  // Jump to the campus the student is standing on when they ask for their location.
+  useEffect(() => { if (meKey && geo.campusId && geo.campusId !== campusId) setCampusId(geo.campusId); }, [meKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const locs = useQuery(() => api<MapLocation[]>('/campus/map/locations', { query: { campus: campusId } }), [campusId]);
   const locations = useMemo(() => locs.data ?? [], [locs.data]);
   const byId = useMemo(() => new Map(locations.map((x) => [x.id, x])), [locations]);
   const detail = useQuery(() => api<MapLocation & { connected_edges: number; reachable: boolean; rooms: MapLocation[]; upcoming_events: Array<{ id: string; title_en: string; title_ar: string; start_at: string }> }>(`/campus/map/locations/${selected}`), [selected], { enabled: !!selected });
-  const route = useQuery(() => api<RouteResult>('/campus/map/route', { query: { from, to, mode } }), [from, to, mode], { enabled: !!from && !!to });
+  const fromMe = from === '@me';
+  // Re-route when the position moves ~10 m; coordinates go in the request body, never the URL.
+  const meCell = meHere ? `${meHere.lat.toFixed(4)},${meHere.lng.toFixed(4)}` : null;
+  const route = useQuery(() => (fromMe
+    ? api<RouteResult>('/campus/map/route/from-point', { method: 'POST', body: { lat: meHere!.lat, lng: meHere!.lng, accuracy: meHere!.accuracy, to, mode } })
+    : api<RouteResult>('/campus/map/route', { query: { from, to, mode } })), [from, to, mode, fromMe ? meCell : null], { enabled: !!from && !!to && (!fromMe || !!meHere) });
   const nextClass = useQuery(() => api<NextClass>('/campus/map/next-class'), [user?.id], { enabled: view === 'parking' });
   const nextClassId = nextClass.data?.location && nextClass.data.location.campus_id === campusId ? nextClass.data.location.id : null;
   useEffect(() => { if (parkTarget === null && nextClass.data) setParkTarget(nextClassId ?? ''); }, [nextClass.data, nextClassId, parkTarget]);
@@ -120,7 +137,7 @@ export function MapPage() {
   const counts = useMemo(() => { const c = new Map<Category, number>(); for (const x of locations) if (!x.building_id) c.set(categoryOf(x), (c.get(categoryOf(x)) ?? 0) + 1); return c; }, [locations]);
   const popular = useMemo(() => (POPULAR[campusId] ?? []).map((id) => byId.get(id)).filter(Boolean) as MapLocation[], [campusId, byId]);
   const label = (x: MapLocation) => x.building_id ? `${ln(x.name_en, x.name_ar)} · ${ln(x.building_name_en ?? '', x.building_name_ar)}` : ln(x.name_en, x.name_ar);
-  const fromLoc = from ? byId.get(from) : null, toLoc = to ? byId.get(to) : null;
+  const fromLoc = fromMe ? (meHere ? ({ lat: meHere.lat, lng: meHere.lng } as MapLocation) : null) : from ? byId.get(from) : null, toLoc = to ? byId.get(to) : null;
   const gmapsUrl = fromLoc && toLoc ? `https://www.google.com/maps/dir/?api=1&origin=${fromLoc.lat},${fromLoc.lng}&destination=${toLoc.lat},${toLoc.lng}&travelmode=walking` : toLoc ? `https://www.google.com/maps/dir/?api=1&destination=${toLoc.lat},${toLoc.lng}&travelmode=walking` : null;
   const onSelect = useCallback((id: string) => { setSelected(id); setSearch(''); }, []);
   const toggleCat = (c: Category) => setHidden((prev) => { const n = new Set(prev); if (n.has(c)) n.delete(c); else n.add(c); return n; });
@@ -164,7 +181,8 @@ export function MapPage() {
           {campus && (
             <MapCanvas campus={campus} locations={locations} route={routeOk && view === 'directions' ? r : null} selected={selected} onSelect={onSelect} provider={view === 'parking' ? 'osm' : provider} googleKey={cfg.data?.googleMapsKey ?? null}
               basemap={basemap} hidden={mapHidden} dark={resolved === 'dark'} reducedMotion={reducedMotion} locale={locale}
-              className="h-[58dvh] min-h-[340px] w-full lg:h-full" endpoints={{ from, to }} recenterKey={recenterKey} parking={parkingLayer} />
+              className="h-[58dvh] min-h-[340px] w-full lg:h-full" endpoints={{ from: fromMe ? null : from, to }} recenterKey={recenterKey} parking={parkingLayer}
+              me={meHere} meKey={meKey} meLabel={t('map.me.here')} />
           )}
 
           {/* Category filters */}
@@ -213,7 +231,14 @@ export function MapPage() {
                 {campus && <GeometryBadge status={campus.geometry_status} />}
                 {campus && <Badge tone="neutral" className="!bg-surface/85">{t('map.results', { n: campus.locations })}</Badge>}
               </div>
-              <button type="button" onClick={() => setRecenterKey((k) => k + 1)} className="pointer-events-auto glass grid h-11 w-11 place-items-center rounded-xl shadow-md hover:text-brand-600" title={t('map.recenter')} aria-label={t('map.recenter')}><Maximize2 className="h-4 w-4" /></button>
+              <div className="flex flex-col gap-2">
+                {geo.status !== 'off_campus' && geo.status !== 'denied' && geo.status !== 'unsupported' && (
+                  <button type="button" onClick={() => void locateMe()} aria-pressed={!!meHere} className={clsx('pointer-events-auto glass grid h-11 w-11 place-items-center rounded-xl shadow-md', meHere ? 'text-[#1a73e8]' : 'hover:text-brand-600')} title={t('map.me.show')} aria-label={t('map.me.show')}>
+                    {geo.status === 'locating' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : meHere ? <LocateFixed className="h-5 w-5" aria-hidden /> : <Locate className="h-5 w-5" aria-hidden />}
+                  </button>
+                )}
+                <button type="button" onClick={() => setRecenterKey((k) => k + 1)} className="pointer-events-auto glass grid h-11 w-11 place-items-center rounded-xl shadow-md hover:text-brand-600" title={t('map.recenter')} aria-label={t('map.recenter')}><Maximize2 className="h-4 w-4" /></button>
+              </div>
             </div>
           </div>
         </section>
@@ -309,12 +334,16 @@ export function MapPage() {
                       <span className="absolute start-1 top-3 h-2.5 w-2.5 rounded-full bg-success" aria-hidden />
                       <span className="absolute start-[8px] top-6 h-[calc(100%-2.5rem)] border-s border-dotted border-line" aria-hidden />
                       <span className="absolute bottom-3 start-1 h-2.5 w-2.5 rounded-sm bg-danger" aria-hidden />
-                      <Select id="map-from" className="min-w-0 truncate" value={from ?? ''} onChange={(e) => setQ({ from: e.target.value || null })} aria-label={t('campus.map.from')}><option value="">{t('map.pickStart')}</option>{options.map((x) => <option key={x.id} value={x.id}>{label(x)}</option>)}</Select>
+                      <Select id="map-from" className="min-w-0 truncate" value={fromMe && !meHere ? '' : from ?? ''} onChange={(e) => setQ({ from: e.target.value || null })} aria-label={t('campus.map.from')}><option value="">{t('map.pickStart')}</option>{meHere && <option value="@me">{t('map.me.option')}</option>}{options.map((x) => <option key={x.id} value={x.id}>{label(x)}</option>)}</Select>
                       <Select className="min-w-0 truncate" value={to ?? ''} onChange={(e) => setQ({ to: e.target.value || null })} aria-label={t('campus.map.to')}><option value="">{t('map.pickEnd')}</option>{options.map((x) => <option key={x.id} value={x.id}>{label(x)}</option>)}</Select>
                     </div>
                     <Button variant="outline" size="icon" aria-label={t('campus.map.swap')} title={t('campus.map.swap')} onClick={() => setQ({ from: to, to: from })}><ArrowLeftRight className="h-4 w-4 rotate-90" /></Button>
                   </div>
                   <Tabs value={mode} onChange={(v) => setQ({ mode: v })} items={[{ value: 'walking', label: t('campus.map.walking'), icon: <Footprints className="h-4 w-4" /> }, { value: 'accessible', label: t('campus.map.accessible'), icon: <Accessibility className="h-4 w-4" /> }]} />
+                  {geo.status !== 'off_campus' && geo.status !== 'denied' && geo.status !== 'unsupported' && !fromMe && (!geo.campusId || geo.campusId === campusId) && (
+                    <Button size="sm" variant="outline" icon={<LocateFixed className="h-4 w-4 text-[#1a73e8]" aria-hidden />} loading={geo.status === 'locating'} onClick={async () => { const outcome = await geo.locate(); if (outcome === 'on_campus') { setQ({ from: '@me' }); setMeKey((k) => k + 1); } else toast.info(outcome === 'denied' ? t('map.me.denied') : t('map.me.offCampus')); }}>{t('map.me.useAsStart')}</Button>
+                  )}
+                  {fromMe && !meHere && <Callout tone="info">{t('map.me.lost')}</Callout>}
                   {(from || to) && <button type="button" onClick={() => setQ({ from: null, to: null })} className="text-xs font-medium text-muted underline-offset-4 hover:text-fg hover:underline">{t('campus.map.clear')}</button>}
                   {from && to && route.loading && <Skeleton className="h-16" />}
                   {route.error ? <ErrorState error={route.error} onRetry={() => void route.refetch()} /> : null}

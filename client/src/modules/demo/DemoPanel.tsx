@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router';
 import { FlaskConical, Clock, RotateCcw, Users, Plug, Scale, ListChecks, BookMarked, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card, Button, Badge, ConfirmDialog, Field, Input, SectionTitle, Tabs, Avatar, ButtonLink } from '@/components/ui';
+import { Card, Button, Badge, ConfirmDialog, Field, Input, Select, SectionTitle, Tabs, Avatar, ButtonLink } from '@/components/ui';
+import { readDemoLocation, writeDemoLocation } from '@/modules/campus/map/useCampusLocation';
 import { useToast } from '@/components/ui/toast';
 import { api, errorMessage } from '@/lib/api';
 import { useQuery } from '@/lib/useQuery';
@@ -134,6 +135,7 @@ export function DemoPanel() {
             </div>
             <p className="mt-2 text-xs text-muted">The clock is frozen so demos are deterministic; every module reads it (deadlines, "yesterday's absence", approvals expiry).</p>
           </Card>
+          <DemoLocationCard />
           <Card>
             <SectionTitle>Status</SectionTitle>
             <ul className="space-y-1.5 text-sm">
@@ -208,5 +210,45 @@ export function DemoPanel() {
 
       <ConfirmDialog open={resetOpen} onClose={() => setResetOpen(false)} onConfirm={reset} title={t('shell.reset')} body={t('shell.resetConfirm')} danger loading={busy} confirmLabel={t('shell.reset')} />
     </div>
+  );
+}
+
+/**
+ * Demo only: pretend the device is standing somewhere, so the map's "You are here" dot and "Start from my location"
+ * can be shown to people who are not on campus. Stored in this browser only; real GPS is used when it is off.
+ */
+const DEMO_SPOTS: Array<{ id: string; label: string; location: string | null; offset?: [number, number] }> = [
+  { id: 'off', label: 'Off – use the real device location', location: null },
+  { id: 'gate1', label: 'Riyadh · just inside Gate 1', location: 'ryd_gate_main', offset: [-25, -30] },
+  { id: 'parking', label: 'Riyadh · Student Parking 2', location: 'ryd_parking_students' },
+  { id: 'library', label: 'Riyadh · outside the Library', location: 'ryd_library', offset: [18, 12] },
+  { id: 'khobar', label: 'Khobar · main building', location: 'khb_main', offset: [20, 0] },
+  { id: 'city', label: 'Off campus · central Riyadh (nothing should show)', location: null, offset: [0, 0] }
+];
+
+function DemoLocationCard() {
+  const toast = useToast();
+  const [spot, setSpot] = useState<string>(() => { const f = readDemoLocation(); return f ? f.spot ?? "gate1" : "off"; });
+  const apply = async (id: string) => {
+    setSpot(id);
+    const s = DEMO_SPOTS.find((x) => x.id === id)!;
+    if (id === 'off') { writeDemoLocation(null); toast.info('Using the real device location.'); return; }
+    if (id === 'city') { writeDemoLocation({ lat: 24.7136, lng: 46.6753, accuracy: 15, heading: null, spot: id }); toast.info('Simulating a position in central Riyadh (off campus).'); return; }
+    try {
+      const loc = await api<{ lat: number; lng: number }>(`/campus/map/locations/${s.location}`);
+      const [n, e] = s.offset ?? [0, 0];
+      const lat = loc.lat + n / 111320, lng = loc.lng + e / (111320 * Math.cos((loc.lat * Math.PI) / 180));
+      writeDemoLocation({ lat, lng, accuracy: 12, heading: 40, spot: id });
+      toast.success(`Simulating the device at ${s.label}.`);
+    } catch (err) { toast.error(errorMessage(err)); }
+  };
+  return (
+    <Card>
+      <SectionTitle>Device location (demo)</SectionTitle>
+      <Field label="Pretend this device is at">
+        <Select value={spot} onChange={(e) => void apply(e.target.value)}>{DEMO_SPOTS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</Select>
+      </Field>
+      <p className="mt-2 text-xs text-muted">The campus map shows “You are here” and “Start from my location” only on campus. This setting is kept in this browser only; turn it off to use the real GPS position.</p>
+    </Card>
   );
 }

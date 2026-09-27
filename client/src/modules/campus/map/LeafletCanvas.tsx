@@ -39,12 +39,14 @@ function bayStyle(status: string, kind: string, selected: boolean, dark: boolean
   return base;
 }
 
-export default function LeafletCanvas({ campus, locations, route, selected, onSelect, basemap, hidden, dark, reducedMotion, locale, className, endpoints, recenterKey, parking }: MapCanvasProps) {
+export default function LeafletCanvas({ campus, locations, route, selected, onSelect, basemap, hidden, dark, reducedMotion, locale, className, endpoints, recenterKey, parking, me, meKey, meLabel }: MapCanvasProps) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const tiles = useRef<L.TileLayer | null>(null);
-  const layers = useRef<{ boundary: L.LayerGroup; shapes: L.LayerGroup; parking: L.LayerGroup; pins: L.LayerGroup; route: L.LayerGroup } | null>(null);
+  const layers = useRef<{ boundary: L.LayerGroup; shapes: L.LayerGroup; parking: L.LayerGroup; pins: L.LayerGroup; route: L.LayerGroup; me: L.LayerGroup } | null>(null);
   const canvasRenderer = useRef<L.Canvas | null>(null);
+  const meMarker = useRef<L.Marker | null>(null);
+  const meCircle = useRef<L.Circle | null>(null);
   const [zoom, setZoom] = useState(17);
   const lastCampus = useRef<string | null>(null);
   const boundaryBounds = useRef<L.LatLngBounds | null>(null);
@@ -57,7 +59,7 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
     const m = L.map(el.current, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, zoomSnap: 0.5, maxZoom: 20 });
     L.control.zoom({ position: locale === 'ar' ? 'topleft' : 'topright' }).addTo(m);
     m.attributionControl.setPrefix(false);
-    layers.current = { boundary: L.layerGroup().addTo(m), shapes: L.layerGroup().addTo(m), parking: L.layerGroup().addTo(m), pins: L.layerGroup().addTo(m), route: L.layerGroup().addTo(m) };
+    layers.current = { boundary: L.layerGroup().addTo(m), shapes: L.layerGroup().addTo(m), parking: L.layerGroup().addTo(m), pins: L.layerGroup().addTo(m), route: L.layerGroup().addTo(m), me: L.layerGroup().addTo(m) };
     canvasRenderer.current = L.canvas({ padding: 0.5 });
     let raf = 0;
     const tidy = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => declutter(el.current)); };
@@ -68,7 +70,7 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
     map.current = m;
     lastCampus.current = null; // a fresh instance must be fitted again (also covers StrictMode remounts)
     sync();
-    return () => { m.remove(); map.current = null; layers.current = null; tiles.current = null; };
+    return () => { m.remove(); map.current = null; layers.current = null; tiles.current = null; meMarker.current = null; meCircle.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -196,6 +198,32 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
     else m.flyTo([lot.lat, lot.lng], 18.5, { duration: reducedMotion ? 0 : 0.6 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parking?.focusKey]);
+
+  // The student's position: accuracy circle + blue dot (+ heading cone when the device reports one)
+  useEffect(() => {
+    const ly = layers.current;
+    if (!ly) return;
+    if (!me) { ly.me.clearLayers(); meMarker.current = null; meCircle.current = null; return; }
+    const heading = me.heading !== null && me.heading !== undefined ? `<span class="uj-me__cone" style="transform: rotate(${Math.round(me.heading)}deg)"></span>` : '';
+    const html = `<span class="uj-me" role="img" aria-label="${meLabel ?? 'You are here'}">${heading}<span class="uj-me__halo"></span><span class="uj-me__dot"></span></span>`;
+    if (meMarker.current && meCircle.current) {
+      meMarker.current.setLatLng([me.lat, me.lng]);
+      meMarker.current.setIcon(L.divIcon({ className: 'uj-pin-wrap', html, iconSize: [22, 22], iconAnchor: [11, 11] }));
+      meCircle.current.setLatLng([me.lat, me.lng]).setRadius(Math.max(me.accuracy, 4));
+      return;
+    }
+    meCircle.current = L.circle([me.lat, me.lng], { radius: Math.max(me.accuracy, 4), color: '#1a73e8', weight: 1, opacity: 0.35, fillColor: '#1a73e8', fillOpacity: 0.12, interactive: false });
+    meMarker.current = L.marker([me.lat, me.lng], { icon: L.divIcon({ className: 'uj-pin-wrap', html, iconSize: [22, 22], iconAnchor: [11, 11] }), interactive: false, keyboard: false, zIndexOffset: 2000 });
+    ly.me.addLayer(meCircle.current);
+    ly.me.addLayer(meMarker.current);
+  }, [me, meLabel]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !meKey || !me) return;
+    m.flyTo([me.lat, me.lng], Math.max(m.getZoom(), 18), { duration: reducedMotion ? 0 : 0.6 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meKey]);
 
   // Route: casing + line that draws itself in, start/end markers
   useEffect(() => {

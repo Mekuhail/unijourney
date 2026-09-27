@@ -28,6 +28,11 @@ export interface MapCanvasProps {
   recenterKey?: number;
   /** Parking layer: lots tinted by availability, count pills, and individual bays when zoomed in. */
   parking?: ParkingLayer | null;
+  /** The student's position, only when it is on this campus (never passed when off campus). */
+  me?: { lat: number; lng: number; accuracy: number; heading: number | null } | null;
+  /** Increment to centre the map on `me`. */
+  meKey?: number;
+  meLabel?: string;
 }
 
 export interface ParkingLayer {

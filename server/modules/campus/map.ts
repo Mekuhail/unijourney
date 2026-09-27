@@ -20,7 +20,7 @@ export interface RouteStep { from: string; from_name_en: string; from_name_ar: s
 export interface RouteResult {
   found: boolean;
   reason?: string;
-  reason_code?: 'same_location' | 'cross_campus' | 'no_edges' | 'no_step_free_route' | 'disconnected' | 'unknown_location';
+  reason_code?: 'same_location' | 'cross_campus' | 'no_edges' | 'no_step_free_route' | 'disconnected' | 'unknown_location' | 'off_campus' | 'low_accuracy' | 'no_path_nearby';
   mode: RouteMode;
   from: ReturnType<typeof publicLocation> | null;
   to: ReturnType<typeof publicLocation> | null;
@@ -203,6 +203,92 @@ export function computeRoute(fromId: string, toId: string, mode: RouteMode): Rou
     nodes: path.nodes.length
   };
 }
+
+// ------------------------------------------------------------------ routes from the student's own position
+/** A position counts as "on campus" inside the boundary or within this distance of it (GPS error, gates, parking). */
+export const NEAR_CAMPUS_M = 150;
+
+function metersToSegment(p: [number, number], a: [number, number], b: [number, number]) {
+  // Local equirectangular projection around the point: accurate to centimetres at campus scale.
+  const k = Math.cos((p[0] * Math.PI) / 180) * 111320;
+  const P = [0, 0], A = [(a[1] - p[1]) * k, (a[0] - p[0]) * 111320], B = [(b[1] - p[1]) * k, (b[0] - p[0]) * 111320];
+  const dx = B[0] - A[0], dy = B[1] - A[1];
+  const t = dx || dy ? Math.max(0, Math.min(1, ((P[0] - A[0]) * dx + (P[1] - A[1]) * dy) / (dx * dx + dy * dy))) : 0;
+  return Math.hypot(A[0] + t * dx, A[1] + t * dy);
+}
+
+function insidePolygon(p: [number, number], poly: Array<[number, number]>) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [yi, xi] = poly[i], [yj, xj] = poly[j];
+    if ((yi > p[0]) !== (yj > p[0]) && p[1] < ((xj - xi) * (p[0] - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** The campus a position belongs to, or null when it is off campus. */
+export function campusAt(lat: number, lng: number): string | null {
+  for (const c of db().all<{ id: string; lat: number; lng: number; boundary: string }>('SELECT id, lat, lng, boundary FROM campuses')) {
+    const poly = pj<Array<[number, number]>>(c.boundary, []);
+    if (poly.length >= 3) {
+      if (insidePolygon([lat, lng], poly)) return c.id;
+      const near = poly.some((a, i) => metersToSegment([lat, lng], a, poly[(i + 1) % poly.length]) <= NEAR_CAMPUS_M);
+      if (near) return c.id;
+    } else if (haversine(lat, lng, c.lat, c.lng) <= 700) return c.id;
+  }
+  return null;
+}
+
+/**
+ * Walking route from a GPS position: snap to the nearest outdoor path node (junction, gate or entrance) on the same
+ * campus, route from there, and prepend the short straight stretch from the student to that node. The position is used
+ * for this answer only; it is never stored or logged.
+ */
+export function routeFromPoint(lat: number, lng: number, toId: string, mode: RouteMode, accuracy?: number): RouteResult {
+  const to = db().get<LocationRow>('SELECT * FROM campus_locations WHERE id = ?', toId);
+  const me = (campus: string) => ({ id: '@me', campus_id: campus, kind: 'me', name_en: 'Your location', name_ar: 'موقعك الحالي', building_id: null, building_name_en: null, building_name_ar: null, floor: 0, lat, lng, accessible: 'unknown' as const, geometry_status: 'gps', tags: [], description_en: '', searchable: false });
+  const base: RouteResult = { found: false, mode, from: null, to: to ? publicLocation(to, { polygon: false }) : null, distance_m: 0, duration_min: 0, steps: [], polyline: [], warnings: [], unknownAccessibilitySegments: 0, stairsSegments: 0, nodes: 0 };
+  if (!to) return { ...base, reason_code: 'unknown_location', reason: 'Destination is not a known campus location.' };
+  const campus = campusAt(lat, lng);
+  if (!campus) return { ...base, reason_code: 'off_campus', reason: 'Your location is not on a YU campus.' };
+  const from = me(campus) as unknown as RouteResult['from'];
+  if (campus !== to.campus_id) return { ...base, from, reason_code: 'cross_campus', reason: `You are on the ${campus} campus and ${to.name_en} is on the ${to.campus_id} campus.` };
+  if (accuracy !== undefined && accuracy > 250) return { ...base, from, reason_code: 'low_accuracy', reason: 'Your location is too imprecise for walking directions. Try again outdoors or pick a starting place.' };
+  const { nodes, edges } = loadGraph(campus);
+  const connected = new Set(edges.flatMap((e) => [e.from_id, e.to_id]));
+  let best: LocationRow | null = null, bestM = Infinity;
+  for (const n of nodes.values()) {
+    if (!connected.has(n.id) || !['junction', 'gate', 'entrance'].includes(n.kind)) continue;
+    const m = haversine(lat, lng, n.lat, n.lng);
+    if (m < bestM) { best = n; bestM = m; }
+  }
+  if (!best || bestM > 400) return { ...base, from, reason_code: 'no_path_nearby', reason: 'No campus path is close to your position.' };
+  const r = computeRoute(best.id, to.id, mode);
+  if (!r.found) return { ...r, from };
+  const leg = Math.round(bestM);
+  if (leg < 5) return { ...r, from, polyline: [[lat, lng], ...r.polyline.slice(1)], steps: r.steps.map((st, i) => (i === 0 ? { ...st, from: '@me', from_name_en: 'Your location', from_name_ar: 'موقعك الحالي' } : st)) };
+  const nameEn = best.kind === 'junction' ? 'the nearest walkway' : best.name_en;
+  const nameAr = best.kind === 'junction' ? 'أقرب ممر مشاة' : best.name_ar;
+  const first: RouteStep = { from: '@me', from_name_en: 'Your location', from_name_ar: 'موقعك الحالي', to: best.id, to_name_en: nameEn, to_name_ar: nameAr, kind: 'walkway', meters: leg, instruction_en: `Walk to ${nameEn} (${leg} m)`, instruction_ar: `امشِ إلى ${nameAr} (${leg} م)`, accessible: 'unknown' };
+  const distance = r.distance_m + leg;
+  return {
+    ...r,
+    from,
+    distance_m: distance,
+    duration_min: Math.max(1, Math.round(distance / WALK_SPEED_MPS[mode] / 60)),
+    steps: [first, ...r.steps],
+    polyline: [[lat, lng], ...r.polyline],
+    unknownAccessibilitySegments: r.unknownAccessibilitySegments + 1,
+    nodes: r.nodes + 1
+  };
+}
+
+mapRouter.post('/map/route/from-point', h((req, res) => {
+  requireUser(req);
+  // Coordinates travel in the body (not the URL) so they never land in access logs or browser history.
+  const b = parse(z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180), accuracy: z.number().min(0).max(100000).optional(), to: z.string().min(1), mode: z.enum(['walking', 'accessible']).optional() }), req.body);
+  ok(res, routeFromPoint(b.lat, b.lng, b.to, b.mode ?? 'walking', b.accuracy));
+}));
 
 // ------------------------------------------------------------------ routes
 mapRouter.get('/map/campuses', h((_req, res) => {
