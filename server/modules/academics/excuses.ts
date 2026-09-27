@@ -58,7 +58,7 @@ export function attendanceOverview(studentId: string, term: string) {
     const level = absencePct >= pol.absenceDenialPercent.value ? 'denial' : absencePct >= pol.absenceWarningPercent.value ? 'warning' : 'ok';
     return { ...c, total, counts, absence_percent: absencePct, level, warning_percent: pol.absenceWarningPercent.value, denial_percent: pol.absenceDenialPercent.value };
   });
-  return { term, policy: { warning: pol.absenceWarningPercent, denial: pol.absenceDenialPercent, excuseDeadlineDays: pol.excuseDeadlineDays, treatment: pol.excuseAcceptedTreatment }, courses };
+  return { term, today: todayIso(), policy: { warning: pol.absenceWarningPercent, denial: pol.absenceDenialPercent, excuseDeadlineDays: pol.excuseDeadlineDays, treatment: pol.excuseAcceptedTreatment }, courses };
 }
 
 export function ownedAttendance(studentId: string, ids: string[]) {
