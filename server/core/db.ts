@@ -66,6 +66,12 @@ export class Db {
     const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`;
     return this.run(sql, ...keys.map((k) => row[k]));
   }
+  /** Inserts unless a row with the same key exists (used by additive, idempotent migrations). */
+  insertOrIgnore(table: string, row: Record<string, unknown>) {
+    const keys = Object.keys(row);
+    const sql = `INSERT OR IGNORE INTO ${table} (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`;
+    return this.run(sql, ...keys.map((k) => row[k]));
+  }
   upsert(table: string, row: Record<string, unknown>) {
     const keys = Object.keys(row);
     const sql = `INSERT OR REPLACE INTO ${table} (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`;

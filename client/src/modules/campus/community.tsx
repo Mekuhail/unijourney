@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import clsx from 'clsx';
 import { QRCodeSVG } from 'qrcode.react';
-import { Megaphone, MessageCircle, HelpCircle, BarChart3, Pin, PinOff, ThumbsUp, MoreHorizontal, Flag, Trash2, Pencil, CheckCircle2, CalendarDays, EyeOff, Plus, X, QrCode, ShieldCheck, Lock } from 'lucide-react';
+import { MapPin, Megaphone, MessageCircle, HelpCircle, BarChart3, Pin, PinOff, ThumbsUp, MoreHorizontal, Flag, Trash2, Pencil, CheckCircle2, CalendarDays, EyeOff, Plus, X, QrCode, ShieldCheck, Lock } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { api, errorMessage } from '@/lib/api';
 import { refreshAll } from '@/lib/bus';
@@ -12,10 +12,15 @@ import { useToast } from '@/components/ui/toast';
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu';
 import { Avatar, Badge, Button, Callout, ConfirmDialog, EmptyState, ErrorState, Field, Input, Modal, Select, Skeleton, Textarea, Toggle } from '@/components/ui';
 import { useDemoStatus } from '@/shell/DemoClock';
-import type { CheckinState, ClubReport, EventItem, Post, PostAuthor, PostKind, PostList } from './types';
+import type { CheckinState, ClubReport, EventItem, FeedPost, Post, PostAuthor, PostKind, PostList } from './types';
 
 const KIND_ICON: Record<PostKind, typeof Megaphone> = { announcement: Megaphone, discussion: MessageCircle, question: HelpCircle, poll: BarChart3 };
 const KIND_TONE: Record<PostKind, 'brand' | 'neutral' | 'info' | 'gold'> = { announcement: 'brand', discussion: 'neutral', question: 'info', poll: 'gold' };
+
+/** Club posts live under their club; student posts under the community. Both expose the same verbs. */
+export function postBase(post: Post | FeedPost) {
+  return 'type' in post && post.type === 'social' ? `/campus/community/posts/${post.id}` : `/campus/clubs/${post.club_id}/posts/${post.id}`;
+}
 
 function useNow() {
   const { data } = useDemoStatus();
@@ -61,7 +66,7 @@ function Poll({ post, onChange }: { post: Post; onChange: (p: Post) => void }) {
   );
 }
 
-function ReportDialog({ open, onClose, post, commentId }: { open: boolean; onClose: () => void; post: Post; commentId?: string }) {
+function ReportDialog({ open, onClose, post, commentId }: { open: boolean; onClose: () => void; post: Post | FeedPost; commentId?: string }) {
   const { t } = useI18n();
   const toast = useToast();
   const [reason, setReason] = useState('spam');
@@ -70,7 +75,7 @@ function ReportDialog({ open, onClose, post, commentId }: { open: boolean; onClo
   const send = async () => {
     setBusy(true);
     try {
-      await api(`/campus/clubs/${post.club_id}/posts/${post.id}/report`, { method: 'POST', body: { reason, note: note.trim() || undefined, comment_id: commentId } });
+      await api(`${postBase(post)}/report`, { method: 'POST', body: { reason, note: note.trim() || undefined, comment_id: commentId } });
       toast.success(t('community.reportSent'));
       onClose();
     } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); }
@@ -91,11 +96,11 @@ function ReportDialog({ open, onClose, post, commentId }: { open: boolean; onClo
   );
 }
 
-export function PostCard({ post: initial, showClub, highlight, onRemoved }: { post: Post; showClub?: boolean; highlight?: boolean; onRemoved?: (id: string) => void }) {
+export function PostCard({ post: initial, showClub, highlight, onRemoved }: { post: Post | FeedPost; showClub?: boolean; highlight?: boolean; onRemoved?: (id: string) => void }) {
   const { t, l, locale } = useI18n();
   const toast = useToast();
   const now = useNow();
-  const [post, setPost] = useState(initial);
+  const [post, setPost] = useState<Post | FeedPost>(initial);
   const [open, setOpen] = useState(highlight || (initial.kind === 'question' && initial.comments.length > 0 && initial.comments.length <= 2));
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
@@ -104,13 +109,15 @@ export function PostCard({ post: initial, showClub, highlight, onRemoved }: { po
   const [confirm, setConfirm] = useState(false);
   const [report, setReport] = useState<{ comment?: string } | null>(null);
   useEffect(() => setPost(initial), [initial]);
-  const base = `/campus/clubs/${post.club_id}/posts/${post.id}`;
-  const Icon = KIND_ICON[post.kind];
+  const base = postBase(post);
+  const social = 'type' in post && post.type === 'social';
+  const feed = 'type' in post ? (post as FeedPost) : null;
+  const Icon = KIND_ICON[post.kind as PostKind] ?? MessageCircle;
   const own = post.can.edit || (!post.can.report && post.can.delete);
 
   const run = async (fn: () => Promise<Post | void>, ok?: string) => {
     setBusy(true);
-    try { const p = await fn(); if (p) setPost(p); if (ok) toast.success(ok); }
+    try { const p = await fn(); if (p) setPost((cur) => ({ ...cur, ...p })); if (ok) toast.success(ok); }
     catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); }
   };
   const react = () => run(async () => {
@@ -139,27 +146,31 @@ export function PostCard({ post: initial, showClub, highlight, onRemoved }: { po
       <header className="flex items-start gap-3">
         <Avatar name={post.author?.name_en ?? '?'} color={post.author?.avatar_color} size={40} />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span id={`post-${post.id}-author`} className="font-semibold">{post.author ? l(post.author.name_en, post.author.name_ar) : '—'}</span>
-            <RoleChip author={post.author} />
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {post.author ? <Link id={`post-${post.id}-author`} to={`/campus/community/people/${post.author.id}`} className="font-semibold hover:underline">{l(post.author.name_en, post.author.name_ar)}</Link> : <span id={`post-${post.id}-author`} className="font-semibold">—</span>}
+              <RoleChip author={post.author} />
+            </div>
+            <div className="-me-2 -mt-1 shrink-0">
+            {(post.can.edit || post.can.pin || post.can.delete || post.can.report) && (
+              <Menu label={t('common.more')} button={<MoreHorizontal className="h-4 w-4" aria-hidden />} buttonClassName="grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-line/60 hover:text-fg sm:h-9 sm:w-9">
+                {post.can.edit && <MenuItem icon={<Pencil className="h-4 w-4" />} onSelect={() => { setDraft(post.body); setEditing(true); }}>{t('community.edit')}</MenuItem>}
+                {post.can.pin && <MenuItem icon={post.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />} onSelect={() => void pin(!post.pinned)}>{t(post.pinned ? 'community.unpin' : 'community.pin')}</MenuItem>}
+                {post.can.report && <MenuItem icon={<Flag className="h-4 w-4" />} onSelect={() => setReport({})}>{t('community.report')}</MenuItem>}
+                {post.can.delete && <><MenuSeparator /><MenuItem icon={<Trash2 className="h-4 w-4" />} onSelect={() => setConfirm(true)}>{t(own ? 'community.delete' : 'community.remove')}</MenuItem></>}
+              </Menu>
+            )}
+            </div>
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
-            {showClub && post.club && <><Link to={`/campus/clubs/${post.club.id}?post=${post.id}`} className="inline-flex items-center gap-1.5 font-medium text-fg hover:underline"><span aria-hidden className="h-2 w-2 rounded-full" style={{ background: post.club.color }} />{l(post.club.name_en, post.club.name_ar)}</Link><span aria-hidden>·</span></>}
+            {(showClub || social) && post.club && <><Link to={social ? `/campus/clubs/${post.club.id}` : `/campus/clubs/${post.club.id}?post=${post.id}`} className="inline-flex items-center gap-1.5 font-medium text-fg hover:underline"><span aria-hidden className="h-2 w-2 rounded-full" style={{ background: post.club.color }} />{l(post.club.name_en, post.club.name_ar)}</Link><span aria-hidden>·</span></>}
             <time dateTime={post.created_at} title={`${fmtDate(post.created_at, locale)} ${fmtTime(post.created_at, locale)}`}>{fmtRelative(post.created_at, now, locale)}</time>
             {post.edited_at && <><span aria-hidden>·</span><span>{t('community.edited')}</span></>}
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {post.pinned && <Badge tone="gold"><Pin className="h-3 w-3" aria-hidden />{t('community.pinned')}</Badge>}
-          <Badge tone={KIND_TONE[post.kind]}><Icon className="h-3 w-3" aria-hidden />{t(`community.kind.${post.kind}`)}</Badge>
-          {(post.can.edit || post.can.pin || post.can.delete || post.can.report) && (
-            <Menu label={t('common.more')} button={<MoreHorizontal className="h-4 w-4" aria-hidden />} buttonClassName="grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-line/60 hover:text-fg sm:h-9 sm:w-9">
-              {post.can.edit && <MenuItem icon={<Pencil className="h-4 w-4" />} onSelect={() => { setDraft(post.body); setEditing(true); }}>{t('community.edit')}</MenuItem>}
-              {post.can.pin && <MenuItem icon={post.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />} onSelect={() => void pin(!post.pinned)}>{t(post.pinned ? 'community.unpin' : 'community.pin')}</MenuItem>}
-              {post.can.report && <MenuItem icon={<Flag className="h-4 w-4" />} onSelect={() => setReport({})}>{t('community.report')}</MenuItem>}
-              {post.can.delete && <><MenuSeparator /><MenuItem icon={<Trash2 className="h-4 w-4" />} onSelect={() => setConfirm(true)}>{t(own ? 'community.delete' : 'community.remove')}</MenuItem></>}
-            </Menu>
-          )}
+          <div className="mt-1.5 flex flex-wrap gap-1.5 empty:hidden">
+            {post.pinned && <Badge tone="gold"><Pin className="h-3 w-3" aria-hidden />{t('community.pinned')}</Badge>}
+            {social ? (feed?.audience === 'campus' && <Badge tone="neutral"><MapPin className="h-3 w-3" aria-hidden />{t('social.campusOnly')}</Badge>) : <Badge tone={KIND_TONE[post.kind as PostKind]}><Icon className="h-3 w-3" aria-hidden />{t(`community.kind.${post.kind}`)}</Badge>}
+          </div>
         </div>
       </header>
 
@@ -171,6 +182,12 @@ export function PostCard({ post: initial, showClub, highlight, onRemoved }: { po
         </div>
       ) : <p dir="auto" className="mt-3 whitespace-pre-line text-[0.95rem] leading-relaxed">{post.body}</p>}
 
+      {feed?.media && (
+        <figure className="mt-3 overflow-hidden rounded-xl border border-line bg-surface-2">
+          <img src={feed.media.url} alt={feed.media.alt} loading="lazy" className="max-h-[28rem] w-full object-cover" />
+          {feed.media.alt && <figcaption className="sr-only">{feed.media.alt}</figcaption>}
+        </figure>
+      )}
       {post.event && (
         <Link to={`/campus/events/${post.event.id}`} className="mt-3 flex min-h-11 items-center gap-3 rounded-xl border border-line px-3 py-2 text-sm transition hover:border-brand-400">
           <CalendarDays className="h-4 w-4 shrink-0 text-brand-600" aria-hidden />

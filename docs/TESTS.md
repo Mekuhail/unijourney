@@ -3,11 +3,16 @@
 Run on 2026-09-26 (Asia/Riyadh) with `npm test` (vitest 3, Node v25.2.1, in-memory SQLite, fixtures reseeded per file).
 
 ```
-Test Files  21 passed (21)
-Tests  185 passed (185)
+Test Files  22 passed (22)
+Tests  194 passed (194)
 ```
 
-New in the community and feedback release: `tests/campus.community.test.ts` (member-only visibility and private rosters,
+New in the campus community release: `tests/campus.social.test.ts` (profile privacy and allowed fields, student post
+CRUD and ownership, likes and replies across personas with notifications, campus-only visibility, report threshold and
+moderator review, the combined feed and search, two-persona messaging with unread/read state and coalesced notifications,
+participant-only access, messaging preferences and blocks, message reports, and the additive migration run twice).
+
+In the community and feedback release: `tests/campus.community.test.ts` (member-only visibility and private rosters,
 posting rules and the text filter, announcement notifications and pins, polls, accepted answers, report thresholds and
 the lead's moderation queue, officer roles, open vs approval joins with join answers, explainable "For you" ranking, the
 community feed, QR self check-in) and `tests/feedback.test.ts` (the five-response privacy threshold, comment themes in
@@ -182,3 +187,14 @@ competition lifecycle and calendar entries, verified awards, LinkedIn ZIP parsin
 - ✅ giving feedback > holds all-caps or link-heavy comments for the quality office
 - ✅ quality office and help desk > staff review held responses (masked) and close the loop with a department action
 - ✅ quality office and help desk > students open help tickets and see staff replies
+
+### tests/campus.social.test.ts
+- ✅ community profiles > public profiles never carry email or student number, and respect what the student chose to show
+- ✅ community profiles > students edit only the allowed fields of their own profile
+- ✅ student posts > a student publishes, edits and deletes their own post; others cannot edit it
+- ✅ student posts > another persona likes, unlikes and comments; the author is notified and can remove the reply
+- ✅ student posts > campus-only posts stay on their campus; three reports hide a post until a moderator reviews it
+- ✅ student posts > the home feed mixes student posts with club posts the viewer may see
+- ✅ messages > two personas exchange messages; unread and read state persist on the server
+- ✅ messages > only participants can read or send, and permissions and blocks are enforced by the server
+- ✅ safe migration for existing volumes > fills the new tables once on a database seeded before the community existed, without touching other rows

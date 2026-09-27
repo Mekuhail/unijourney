@@ -4,6 +4,7 @@ import { getSetting, setSetting, CURRENT_TERM, NEXT_TERM } from '../core/setting
 import { nowIso, setClockOverride, todayIso } from '../core/clock.ts';
 import { config } from '../core/config.ts';
 import { modules } from '../modules/index.ts';
+import { markAllMigrationsApplied } from '../core/migrations.ts';
 import { seedCore } from './core.ts';
 import type { SeedContext } from './context.ts';
 
@@ -30,6 +31,7 @@ export function seedAll(opts: { reset: boolean }): boolean {
     for (const m of modules) m.seed?.(ctx);
     setSetting('seeded_at', nowIso());
     setSetting('seed_version', SEED_VERSION);
+    markAllMigrationsApplied();
     setSetting('demo_clock', config.demoMode ? config.demoClock : null);
   });
   return true;

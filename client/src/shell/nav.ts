@@ -1,4 +1,4 @@
-import { Sun, GraduationCap, Users, Briefcase, Route, ShieldCheck, FlaskConical, GitBranch, Map as MapIcon, BookOpen, PackageSearch, Trophy, BadgeCheck, MessageSquareHeart, type LucideIcon } from 'lucide-react';
+import { Sun, GraduationCap, Users, Briefcase, Route, ShieldCheck, FlaskConical, GitBranch, Map as MapIcon, BookOpen, PackageSearch, Trophy, BadgeCheck, MessageSquareHeart, MessagesSquare, type LucideIcon } from 'lucide-react';
 import type { Role } from '@shared/types';
 
 /**
@@ -15,6 +15,7 @@ export const ACADEMICS: NavItem = { to: '/academics', key: 'nav.academics', icon
 export const PREREQS: NavItem = { to: '/prereqs', key: 'nav.prereqs', icon: GitBranch };
 export const RESOURCES: NavItem = { to: '/campus/resources', key: 'nav.resources', icon: BookOpen, match: under('/campus/resources') };
 export const CAMPUS_LIFE: NavItem = { to: '/campus', key: 'nav.campus', icon: Users, match: (p) => p === '/campus' || under('/campus/clubs', '/campus/events', '/campus/card')(p) };
+export const COMMUNITY: NavItem = { to: '/campus/community', key: 'nav.community', icon: MessagesSquare, match: under('/campus/community') };
 export const MAP: NavItem = { to: '/campus/map', key: 'nav.map', icon: MapIcon, match: under('/campus/map') };
 export const LOST_FOUND: NavItem = { to: '/campus/lost-found', key: 'nav.lostFound', icon: PackageSearch, match: under('/campus/lost-found') };
 export const PORTFOLIO: NavItem = { to: '/portfolio', key: 'nav.portfolio', icon: BadgeCheck };
@@ -27,7 +28,7 @@ export const FEEDBACK: NavItem = { to: '/feedback', key: 'nav.feedback', icon: M
 export const NAV_GROUPS: NavGroup[] = [
   { key: null, items: [TODAY] },
   { key: 'nav.group.study', items: [ACADEMICS, PREREQS, RESOURCES] },
-  { key: 'nav.group.campus', items: [CAMPUS_LIFE, MAP, LOST_FOUND] },
+  { key: 'nav.group.campus', items: [CAMPUS_LIFE, COMMUNITY, MAP, LOST_FOUND] },
   { key: 'nav.group.future', items: [PORTFOLIO, CAREER, COMPETITIONS, JOURNEY] },
   { key: 'nav.group.help', items: [FEEDBACK] }
 ];

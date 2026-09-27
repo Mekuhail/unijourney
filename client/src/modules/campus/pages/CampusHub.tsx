@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, Button, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPill, SectionLink } from '@/components/ui';
 import type { Club, EventItem } from '../types';
 import { EventCard } from '../lib';
-import { CommunityFeed } from '../community';
+import { CommunityEntry } from '../social/MorePages';
 
 /** Campus Life: clubs and events. The map, learning resources and lost & found have their own pages in the menu. */
 export function CampusHub() {
@@ -30,6 +30,8 @@ export function CampusHub() {
         <p className="-mt-2 mb-6 text-sm">{[t('campus.hub.inClubs', { n: myClubs.length }), t('campus.hub.goingTo', { n: going.length }), t('campus.hub.upcomingN', { n: upcoming.length })].join(' · ')}</p>
       ) : <Skeleton className="-mt-2 mb-6 h-5 w-72" />}
 
+      <CommunityEntry />
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="min-w-0" aria-labelledby="hub-events">
           <SectionTitle id="hub-events" action={<SectionLink to="/campus/events">{t('campus.hub.allEvents')}</SectionLink>}>{t('campus.hub.upcoming')}</SectionTitle>
@@ -37,9 +39,6 @@ export function CampusHub() {
           {events.error ? <ErrorState error={events.error} onRetry={() => void events.refetch()} /> : null}
           {events.data && upcoming.length === 0 && <EmptyState icon={<CalendarDays className="h-6 w-6" />} title={t('common.empty')} />}
           {upcoming.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{upcoming.slice(0, 4).map((e) => <EventCard key={e.id} e={e} />)}</div>}
-          <div className="mt-8">
-            <CommunityFeed limit={3} header={<><SectionTitle id="feed-h" action={<SectionLink to="/campus/clubs">{t('campus.hub.browseClubs')}</SectionLink>}>{t('community.feed')}</SectionTitle><p className="-mt-2 mb-3 text-sm text-muted">{t('community.feedBody')}</p></>} />
-          </div>
         </section>
         <div className="min-w-0 space-y-6">
           <section aria-labelledby="hub-clubs">

@@ -82,7 +82,7 @@ coreRouter.get('/documents', h((req, res) => {
 }));
 coreRouter.post('/documents', upload.single('file'), h((req, res) => {
   const u = requireUser(req);
-  const body = parse(z.object({ kind: z.enum(['medical', 'event_evidence', 'admission', 'lost_item', 'resource', 'cv', 'other']), label: z.string().max(200).optional() }), req.body);
+  const body = parse(z.object({ kind: z.enum(['medical', 'event_evidence', 'admission', 'lost_item', 'resource', 'cv', 'post_media', 'other']), label: z.string().max(200).optional() }), req.body);
   const doc = createDocument(u, body.kind, fileFromRequest(req), body.label);
   audit(u.id, 'document.upload', 'document', doc.id, { kind: doc.kind, size: doc.size });
   ok(res, doc, 201);

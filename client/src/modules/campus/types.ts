@@ -90,3 +90,34 @@ export interface LostFoundMinimal { public_id: string; status: string; updated_a
 export interface FoundItem { id: string; campus_id: string; reported_by: string; item: string; category: string; description: string; found_location_id: string | null; found_date: string; held_at_location_id: string | null; matched_request_id: string | null; status: string; created_at: string; found_location: LocationSummary | null; held_at: LocationSummary | null; reporter: UserBrief | null; matched_request: { id: string; public_id: string; item: string; status: string } | null; suggested_count: number }
 export interface MatchSuggestion { request_id: string; public_id: string; item: string; category: string; lost_date: string; last_location: string; status: string; owner: UserBrief | null; score: number; reasons: string[] }
 export interface LfLocations { locations: Array<{ id: string; campus_id: string; kind: string; name_en: string; name_ar: string; building_id: string | null }>; collection_points: Array<{ id: string; campus_id: string; kind: string; name_en: string; name_ar: string }>; categories: readonly string[] }
+
+// ------------------------------------------------------------------ campus community (profiles, student posts, messages)
+export interface PersonBrief { id: string; name_en: string; name_ar: string; avatar_color: string; program_id: string | null; campus_id: string | null }
+export interface FeedPost extends Post {
+  type: 'social' | 'club';
+  audience: 'all' | 'campus' | 'club';
+  media: { id: string; url: string; alt: string; mime: string } | null;
+  club?: { id: string; name_en: string; name_ar: string; color: string };
+}
+export interface HomeFeed { items: FeedPost[]; total: number; can_post: boolean }
+export interface PersonListItem extends PersonBrief { bio: string; interests: ClubTag[]; clubs: number | null; is_me: boolean; shared_clubs: boolean }
+export interface ProfileClub { id: string; name_en: string; name_ar: string; color: string; category: string; role: string; title_en: string | null; title_ar: string | null }
+export interface PublicProfile extends PersonBrief {
+  bio: string; interests: ClubTag[]; program: { id: string; code: string; name_en: string; name_ar: string } | null; level: number | null; clubs: ProfileClub[] | null;
+  posts: FeedPost[]; post_count: number; is_me: boolean; can_message: boolean; message_reason: string | null; blocked_by_me: boolean; conversation_id: string | null; synthetic: boolean;
+}
+export interface MyProfile extends PersonBrief {
+  record_name_en: string; record_name_ar: string; display_name: string | null; bio: string; interests: string[];
+  show_program: boolean; show_campus: boolean; show_clubs: boolean; dm_policy: 'everyone' | 'club_mates' | 'nobody';
+  program: { code: string; name_en: string; name_ar: string } | null; suggested_interests: ClubTag[];
+}
+export interface ConversationSummary { id: string; other: PersonBrief | null; last: { body: string | null; mine: boolean; created_at: string } | null; unread: number; blocked_by_me: boolean; can_send: boolean }
+export interface ChatMessage { id: string; seq: number; mine: boolean; body: string | null; removed: boolean; created_at: string }
+export interface Thread { conversation: ConversationSummary; messages: ChatMessage[]; their_read_seq: number }
+export interface CommunitySummary {
+  posts_today: number; members: number; authors: Array<PersonBrief | null>; unread_messages: number;
+  latest: { id: string; body: string; author: PostAuthor | null; created_at: string; club: { id: string; name_en: string; name_ar: string; color: string } | null } | null;
+  workshops: Array<{ id: string; title_en: string; title_ar: string; start_at: string; end_at: string; club: { id: string; name_en: string; name_ar: string; color: string } | null; tags: string[]; location_name_en: string | null; location_name_ar: string | null; my_rsvp: string | null; going_count: number }>;
+}
+export interface SearchResults { q: string; posts: FeedPost[]; clubs: Array<{ id: string; name_en: string; name_ar: string; color: string; category: string; campus_id: string; member_count: number }>; events: Array<{ id: string; title_en: string; title_ar: string; start_at: string; end_at: string; club_id: string | null; kind: string }>; people: PersonListItem[] }
+export interface CommunityReport { id: string; target_type: 'social_post' | 'social_comment' | 'message'; target_id: string; reason: string; note: string | null; created_at: string; body: string; author: PersonBrief | null; hidden: boolean; reports: number; link: string | null }

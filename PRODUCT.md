@@ -24,7 +24,7 @@ React 19 + Tailwind v4 client, Express + SQLite server. Backend behaviour and AP
 
 ## Brand Commitments
 
-Warm dark theme with a light counterpart; EduGate orange accent with YU gold; Inter for Latin and IBM Plex Sans Arabic for Arabic. Tone: calm and trustworthy.
+Warm dark theme with a light counterpart; EduGate orange accent with YU gold; Inter for Latin and IBM Plex Sans Arabic for Arabic. The campus community uses Reem Kufi (Kufic, with a matching Latin) for headings only. Tone: calm and trustworthy.
 
 ## Evidence on Hand
 

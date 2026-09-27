@@ -1,5 +1,5 @@
 import { Link, Route, Routes } from 'react-router';
-import { ShieldCheck, ClipboardList, Users, Search, GraduationCap, FileCheck, BookOpen, MessageSquareHeart } from 'lucide-react';
+import { ShieldCheck, ClipboardList, Users, Search, GraduationCap, FileCheck, BookOpen, MessageSquareHeart, Flag } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, EmptyState } from '@/components/ui';
 import { useSession } from '@/lib/session';
@@ -16,6 +16,7 @@ const QUEUES: Array<{ to: string; title: string; body: string; roles: Role[]; ic
   { to: '/staff/campus/clubs', title: 'Club membership & events', body: 'Approve join requests and manage events for clubs you lead.', roles: ['club_lead'], icon: Users },
   { to: '/staff/campus/lost-found', title: 'Lost & found security desk', body: 'Recent requests, found items, mark found with a collection point, verify handover.', roles: ['security'], icon: Search },
   { to: '/staff/feedback', title: 'Quality & help desk', body: 'Course feedback KPIs below target, held responses, “you said, we did” actions and help requests.', roles: ['reviewer', 'registrar'], icon: MessageSquareHeart },
+  { to: '/staff/campus/community', title: 'Community reports', body: 'Reported student posts, replies and messages; dismiss or remove. Messages show only the reported message.', roles: ['reviewer'], icon: Flag },
   { to: '/staff/campus/resources', title: 'Resource moderation', body: 'Publish or reject uploaded notes and handle reports.', roles: ['reviewer', 'registrar'], icon: BookOpen },
   { to: '/staff/journey/admissions', title: 'Admission applications', body: 'Review submitted applications and record decisions (demo).', roles: ['admission_officer'], icon: FileCheck },
   { to: '/staff/journey/graduation', title: 'Graduation requests', body: 'Audit snapshots, clearances and decisions.', roles: ['registrar'], icon: GraduationCap }

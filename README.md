@@ -72,3 +72,4 @@ docs               RUN, DEMO, COVERAGE, TESTS, INTEGRATIONS, ATTRIBUTION, CONVEN
 * `docs/INTEGRATIONS.md` — real vs simulated vs future integrations.
 * `docs/ATTRIBUTION.md` — third-party attribution and licence notes.
 * `docs/research/CLUBS-COMMUNITY-FEEDBACK.md` — clubs & community and KPI course feedback: research and decisions.
+* `docs/research/COMMUNITY.md` — the campus community (feed, profiles, workshops, messages): design, permissions, safe migration.

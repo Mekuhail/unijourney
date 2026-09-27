@@ -5,7 +5,8 @@ process.on('warning', (w) => {
 });
 
 import { config, ensureDataDirs, dbFile } from './core/config.ts';
-import { initDb } from './core/db.ts';
+import { initDb, db } from './core/db.ts';
+import { runMigrations } from './core/migrations.ts';
 import { seedAll } from './seed/index.ts';
 import { createApp } from './app.ts';
 import { setClockOverride } from './core/clock.ts';
@@ -23,6 +24,8 @@ initDb(dbFile());
 const seeded = seedAll({ reset: false });
 const storedClock = getSetting<string | null>('demo_clock', null);
 setClockOverride(storedClock ?? (config.demoMode ? config.demoClock : null));
+// Additive data for existing volumes (new tables only); a fresh seed marks these as applied.
+runMigrations(db());
 
 const app = createApp();
 app.listen(config.port, () => {

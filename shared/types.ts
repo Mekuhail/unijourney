@@ -69,7 +69,7 @@ export interface CalendarEntry {
 export interface DocumentMeta {
   id: string;
   owner_id: string;
-  kind: 'medical' | 'event_evidence' | 'admission' | 'lost_item' | 'resource' | 'cv' | 'other';
+  kind: 'medical' | 'event_evidence' | 'admission' | 'lost_item' | 'resource' | 'cv' | 'post_media' | 'other';
   filename: string;
   mime: string;
   size: number;

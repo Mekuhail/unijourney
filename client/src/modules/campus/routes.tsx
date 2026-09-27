@@ -7,6 +7,7 @@ import { ResourcesPage } from './pages/ResourcesPage';
 import { MapPage } from './pages/MapPage';
 import { LostFoundPage, LostFoundDetailPage } from './pages/LostFoundPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { CommunityRoutes } from './social/routes';
 
 /** Campus Life module, mounted at /campus/*. */
 export function CampusRoutes() {
@@ -18,6 +19,7 @@ export function CampusRoutes() {
       <Route path="events" element={<EventsPage />} />
       <Route path="events/:id" element={<EventDetailPage />} />
       <Route path="card" element={<CardPage />} />
+      <Route path="community/*" element={<CommunityRoutes />} />
       <Route path="resources" element={<ResourcesPage />} />
       <Route path="map" element={<MapPage />} />
       <Route path="lost-found" element={<LostFoundPage />} />

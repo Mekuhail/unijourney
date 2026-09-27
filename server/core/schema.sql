@@ -913,3 +913,93 @@ CREATE TABLE IF NOT EXISTS help_tickets (
   replied_at TEXT,
   created_at TEXT NOT NULL
 );
+
+-- ---------------------------------------------------------------- campus community (profiles, student posts, messages)
+-- Added by migration 'community-social-v1' on existing volumes (see server/core/migrations.ts); every table is new.
+CREATE TABLE IF NOT EXISTS community_profiles (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  display_name TEXT,                     -- NULL = the name on the student record
+  bio TEXT NOT NULL DEFAULT '',
+  avatar_color TEXT,                     -- NULL = the account colour
+  show_program INTEGER NOT NULL DEFAULT 1,
+  show_campus INTEGER NOT NULL DEFAULT 1,
+  show_clubs INTEGER NOT NULL DEFAULT 1,
+  dm_policy TEXT NOT NULL DEFAULT 'everyone',   -- everyone|club_mates|nobody
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS social_posts (
+  id TEXT PRIMARY KEY,
+  author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  media_document_id TEXT,
+  media_alt TEXT,
+  event_id TEXT,
+  club_id TEXT,                          -- optional tag: a club the author belongs to
+  audience TEXT NOT NULL DEFAULT 'all',  -- all|campus
+  campus_id TEXT NOT NULL,
+  hidden INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  edited_at TEXT,
+  removed_at TEXT, removed_by TEXT, removed_reason TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_social_posts_created ON social_posts(created_at);
+CREATE INDEX IF NOT EXISTS idx_social_posts_author ON social_posts(author_id);
+
+CREATE TABLE IF NOT EXISTS social_comments (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
+  author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  removed_at TEXT, removed_by TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_social_comments_post ON social_comments(post_id);
+
+CREATE TABLE IF NOT EXISTS social_likes (
+  post_id TEXT NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS community_reports (
+  id TEXT PRIMARY KEY,
+  target_type TEXT NOT NULL,             -- social_post|social_comment|message
+  target_id TEXT NOT NULL,
+  reporter_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL,
+  note TEXT,
+  status TEXT NOT NULL DEFAULT 'open',   -- open|dismissed|removed
+  created_at TEXT NOT NULL,
+  resolved_at TEXT, resolved_by TEXT,
+  UNIQUE(target_type, target_id, reporter_id)
+);
+
+CREATE TABLE IF NOT EXISTS dm_conversations (
+  id TEXT PRIMARY KEY,
+  user_a TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,   -- user_a < user_b
+  user_b TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  last_message_at TEXT,
+  a_read_seq INTEGER NOT NULL DEFAULT 0,   -- rowid of the last message each side has read
+  b_read_seq INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(user_a, user_b)
+);
+
+CREATE TABLE IF NOT EXISTS dm_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,
+  sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  removed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_dm_messages_conv ON dm_messages(conversation_id);
+
+CREATE TABLE IF NOT EXISTS dm_blocks (
+  blocker_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  blocked_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (blocker_id, blocked_id)
+);
