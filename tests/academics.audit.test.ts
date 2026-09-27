@@ -60,7 +60,8 @@ describe('curriculum and degree audit', () => {
     const course = await sara.get<{ status: string; links: { resources: string } }>('/academics/courses/CIS%20443');
     expect(course.body.data!.status).toBe('available');
     expect(course.body.data!.links.resources).toBe('/campus/resources?course=CIS%20443');
-    const applicant = await srv.as('u_applicant').get('/academics/overview');
-    expect(applicant.status).toBe(200);
+    // Role → capability matrix (shared/access.ts): academic pages are for students only.
+    expect((await srv.as('u_applicant').get('/academics/overview')).status).toBe(403);
+    expect((await srv.as('u_security').get('/academics/plan')).status).toBe(403);
   });
 });

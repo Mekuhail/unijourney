@@ -90,7 +90,7 @@ graduationRouter.post('/demo/post-term-results', h((req, res) => {
   const rows = db().all<{ id: string; course_code: string }>("SELECT id, course_code FROM transcript_entries WHERE student_id = ? AND status = 'enrolled'", u.id);
   if (!rows.length) throw conflict('No enrolled courses to post results for');
   db().tx(() => {
-    for (const r of rows) db().update('transcript_entries', r.id, { status: 'completed', grade: 'A-', evidence: 'Demo fixture: term results posted' });
+    for (const r of rows) db().update('transcript_entries', r.id, { status: 'completed', grade: 'A', evidence: 'Demo fixture: term results posted' });
   });
   audit(u.id, 'graduation.demo.post_results', 'transcript_entries', u.id, { simulated: true, courses: rows.map((r) => r.course_code) });
   ok(res, { simulated: true, label: 'Demo fixture: current-term results posted', courses: rows.map((r) => r.course_code), ...buildAudit(u.id) });

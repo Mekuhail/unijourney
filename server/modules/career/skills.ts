@@ -127,6 +127,6 @@ export const EVIDENCE_WEIGHT: Record<EvidenceKind, number> = {
 
 /** Passed courses with a strong grade count a little more. */
 export function courseWeight(grade: string | null | undefined): number {
-  const strong = ['A+', 'A', 'A-', 'B+'];
+  const strong = ['A+', 'A', 'B+']; // YU letters (Examinations Policy V3.0)
   return EVIDENCE_WEIGHT.course + (grade && strong.includes(grade) ? 0.2 : 0);
 }

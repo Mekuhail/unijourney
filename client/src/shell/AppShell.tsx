@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import * as M from 'motion/react-m';
 import { Bell, Languages, Moon, Sun, Monitor, Menu as MenuIcon, X, IdCard, Users, LogOut, BadgeCheck } from 'lucide-react';
 import clsx from 'clsx';
@@ -8,7 +8,9 @@ import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { Avatar } from '@/components/ui';
 import { Brand } from './Brand';
-import { NAV_GROUPS, BOTTOM_NAV, STAFF_NAV, DEMO_NAV, isActive, type NavItem, type NavGroup } from './nav';
+import { sideNavFor, bottomNavFor, isActive } from './nav';
+import { capabilityForPath, landingFor } from '@shared/access';
+import { NoAccess } from './NoAccess';
 import { DemoPill } from './DemoClock';
 import { PersonaSwitcher } from './PersonaSwitcher';
 import { NotificationsPanel } from './NotificationsPanel';
@@ -18,13 +20,9 @@ import { Menu, MenuRadio, MenuItem, MenuGroup, MenuSeparator } from '@/component
 /** Grouped side menu. Each item decides its own active state (several destinations share the /campus prefix). */
 function SideNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();
-  const { hasRole } = useSession();
+  const { user, demoMode } = useSession();
   const { pathname } = useLocation();
-  const groups: NavGroup[] = [...NAV_GROUPS];
-  const extra: NavItem[] = [];
-  if (STAFF_NAV.roles && hasRole(...STAFF_NAV.roles)) extra.push(STAFF_NAV);
-  extra.push(DEMO_NAV);
-  groups.push({ key: 'nav.group.more', items: extra });
+  const groups = sideNavFor(user?.roles, demoMode);
   return (
     <nav aria-label={t('shell.primaryNav')} className="flex flex-col gap-4">
       {groups.map((g) => (
@@ -52,13 +50,25 @@ function SideNav({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppShell() {
   const { t, locale, setLocale, l } = useI18n();
-  const { user, unread, demoMode } = useSession();
+  const { user, unread, demoMode, can } = useSession();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [personaOpen, setPersonaOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const loc = useLocation();
   useEffect(() => setMenuOpen(false), [loc.pathname]);
+
+  // Route guard from the role → capability matrix. After a persona switch, leave a page the new role cannot use.
+  const needed = capabilityForPath(loc.pathname);
+  const allowed = !user || !needed || can(needed);
+  const lastUser = useRef(user?.id);
+  useEffect(() => {
+    if (!user || lastUser.current === user.id) return;
+    lastUser.current = user.id;
+    if (!allowed) navigate(landingFor(user.roles), { replace: true });
+  }, [user, allowed, navigate]);
+  const bottom = bottomNavFor(user?.roles);
 
   const iconBtn = 'grid h-11 w-11 place-items-center rounded-full border border-line hover:border-brand-400';
 
@@ -109,8 +119,8 @@ export function AppShell() {
                   </span>
                 </div>
                 <MenuSeparator />
-                <MenuItem icon={<BadgeCheck className="h-4 w-4" />} to="/portfolio">{t('nav.portfolio')}</MenuItem>
-                <MenuItem icon={<IdCard className="h-4 w-4" />} onSelect={openStudentCard}>{t('shell.card')}</MenuItem>
+                {can('portfolio') && <MenuItem icon={<BadgeCheck className="h-4 w-4" />} to="/portfolio">{t('nav.portfolio')}</MenuItem>}
+                {can('studentCard') && <MenuItem icon={<IdCard className="h-4 w-4" />} onSelect={openStudentCard}>{t('shell.card')}</MenuItem>}
                 {demoMode && <MenuItem icon={<Users className="h-4 w-4" />} onSelect={() => setPersonaOpen(true)}>{t('shell.switchPersonaDemo')}</MenuItem>}
                 <MenuSeparator />
                 <div className="sm:hidden">
@@ -137,14 +147,14 @@ export function AppShell() {
           </div>
         )}
         <main id="main" className="pad-safe-x mx-auto w-full max-w-7xl flex-1 pb-[calc(5.5rem+var(--safe-bottom))] pt-5 sm:px-6 lg:pb-10">
-          <Outlet />
+          {allowed ? <Outlet /> : <NoAccess path={loc.pathname} />}
         </main>
       </div>
 
       {/* Mobile bottom navigation */}
       <nav aria-label={t('shell.primaryNav')} className="fixed inset-x-0 bottom-0 z-[var(--z-sticky)] border-t border-line bg-surface/95 backdrop-blur-md lg:hidden" style={{ paddingBottom: 'var(--safe-bottom)' }}>
         <ul className="mx-auto flex max-w-xl" style={{ paddingLeft: 'var(--safe-left)', paddingRight: 'var(--safe-right)' }}>
-          {BOTTOM_NAV.map((it) => {
+          {bottom.map((it) => {
             const active = isActive(it, loc.pathname);
             return (
               <li key={it.to} className="min-w-0 flex-1">

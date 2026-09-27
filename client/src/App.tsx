@@ -6,6 +6,8 @@ import { SessionProvider } from './lib/session';
 import { ThemeProvider } from './lib/theme';
 import { ToastProvider } from './components/ui/toast';
 import { AppShell } from './shell/AppShell';
+import { useSession } from './lib/session';
+import { landingFor } from '@shared/access';
 import { Skeleton } from './components/ui';
 
 // Motion features (layout animations included) load in their own chunk after first paint.
@@ -38,6 +40,13 @@ function Loading() {
   );
 }
 
+/** "/" goes to the persona's start page (applicants: their journey; everyone else: Today). */
+function Landing() {
+  const { user, loading } = useSession();
+  if (loading && !user) return <Loading />;
+  return <Navigate to={landingFor(user?.roles)} replace />;
+}
+
 export function App() {
   return (
     <LazyMotion features={loadMotionFeatures} strict>
@@ -49,7 +58,7 @@ export function App() {
             <BrowserRouter>
               <Routes>
                 <Route element={<AppShell />}>
-                  <Route index element={<Navigate to="/today" replace />} />
+                  <Route index element={<Landing />} />
                   <Route path="/today" element={<Suspense fallback={<Loading />}><TodayPage /></Suspense>} />
                   <Route path="/academics/*" element={<Suspense fallback={<Loading />}><AcademicsRoutes /></Suspense>} />
                   <Route path="/campus/*" element={<Suspense fallback={<Loading />}><CampusRoutes /></Suspense>} />

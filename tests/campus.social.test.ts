@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { freshDb, startServer, type TestServer } from './helpers.ts';
 import { db } from '../server/core/db.ts';
-import { appliedMigrations, runMigrations } from '../server/core/migrations.ts';
+import { appliedMigrations, registeredMigrations, runMigrations } from '../server/core/migrations.ts';
 import { setSetting } from '../server/core/settings.ts';
 
 interface Post { id: string; type: string; body: string; reactions: number; reacted: boolean; comments: Array<{ id: string }>; can: Record<string, boolean>; audience: string; author: { id: string } }
@@ -154,7 +154,7 @@ describe('safe migration for existing volumes', () => {
     // Simulate the live volume: new tables empty, migration not yet recorded.
     for (const t of ['dm_messages', 'dm_conversations', 'social_likes', 'social_comments', 'social_posts', 'community_profiles', 'community_reports', 'dm_blocks']) db().exec(`DELETE FROM ${t}`);
     db().exec("DELETE FROM notifications WHERE id = 'ntf_seed_dm_sara'");
-    setSetting('migrations_applied', ['parking-v1', 'planner-v1']);
+    setSetting('migrations_applied', registeredMigrations().filter((id) => id !== 'community-social-v1'));
     expect(runMigrations(db())).toEqual(['community-social-v1']);
     expect(db().count('social_posts')).toBeGreaterThan(8);
     expect(db().count('dm_conversations')).toBe(2);

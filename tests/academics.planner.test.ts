@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { freshDb, startServer, type TestServer } from './helpers.ts';
 import { db } from '../server/core/db.ts';
-import { runMigrations } from '../server/core/migrations.ts';
+import { registeredMigrations, runMigrations } from '../server/core/migrations.ts';
 import { setSetting } from '../server/core/settings.ts';
 import { parseAnnouncement, parseQuickLine, parseTimes } from '../server/modules/academics/assessments.ts';
 
@@ -164,7 +164,7 @@ describe('planner migration', () => {
     db().exec("DELETE FROM study_tasks WHERE source = 'announcement'");
     db().exec('DELETE FROM course_assessments'); db().exec('DELETE FROM course_emails');
     db().exec("DELETE FROM calendar_entries WHERE source_type = 'assessment'");
-    setSetting('migrations_applied', ['community-social-v1', 'parking-v1']);
+    setSetting('migrations_applied', registeredMigrations().filter((id) => id !== 'planner-v1'));
     expect(runMigrations(db())).toEqual(['planner-v1']);
     expect(db().count('course_emails')).toBe(8);
     expect(db().count('study_tasks', "source <> 'announcement'")).toBe(tasks);

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { gate } from '../../core/auth.ts';
 import type { AppModule } from '../index.ts';
 import { registerDocumentGrant } from '../../core/documents.ts';
 import { overviewRouter } from './routes.overview.ts';
@@ -11,6 +12,15 @@ import { seedAcademics } from './seed.ts';
 import { reviewerCanOpenDocument } from './excuses.ts';
 
 export const academicsRouter = Router();
+// Student-only areas (role → capability matrix in shared/access.ts). Staff endpoints (/review/*) keep their own role checks.
+academicsRouter.use(['/overview', '/timetable'], gate('academics'));
+academicsRouter.use(['/audit', '/plan'], gate('degreePlan'));
+academicsRouter.use(['/sections', '/proposals', '/peers'], gate('registration'));
+academicsRouter.use(['/attendance', '/excuses'], gate('attendance'));
+academicsRouter.use(['/study', '/planner/items', '/planner/quick'], gate('study'));
+academicsRouter.get('/planner', gate('study')); // /planner/emails and /planner/demo keep their own checks
+academicsRouter.use('/gpa', gate('gpa'));
+academicsRouter.use('/prereqs', gate('prereqs'));
 academicsRouter.use(overviewRouter);
 academicsRouter.use(registrationRouter);
 academicsRouter.use(attendanceRouter);

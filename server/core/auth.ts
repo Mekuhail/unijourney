@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Request, RequestHandler } from 'express';
 import type { Role, User } from '../../shared/types.ts';
+import { can, type Capability } from '../../shared/access.ts';
 import { config } from './config.ts';
 import { db, pj } from './db.ts';
 import { forbidden, unauthorized } from './http.ts';
@@ -95,6 +96,18 @@ export function requireRole(req: Request, ...roles: Role[]): User {
   const u = requireUser(req);
   if (!hasRole(u, ...roles)) throw forbidden(`This action requires role: ${roles.join(' or ')}`);
   return u;
+}
+
+/** The same role → capability matrix the client uses for navigation; hiding a link is never the authorization. */
+export function requireCapability(req: Request, cap: Capability): User {
+  const u = requireUser(req);
+  if (!can(u.roles, cap)) throw forbidden('This page is not available for your role.');
+  return u;
+}
+
+/** Path-scoped middleware: `router.use(['/study', '/planner'], gate('study'))`. */
+export function gate(cap: Capability): RequestHandler {
+  return (req, _res, next) => { requireCapability(req, cap); next(); };
 }
 
 /** Owner or one of the given staff roles. */

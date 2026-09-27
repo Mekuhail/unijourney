@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { freshDb, startServer, type TestServer } from './helpers.ts';
 import { db } from '../server/core/db.ts';
-import { runMigrations } from '../server/core/migrations.ts';
+import { registeredMigrations, runMigrations } from '../server/core/migrations.ts';
 import { setSetting } from '../server/core/settings.ts';
 
 interface Bay { id: string; n: number; kind: string; polygon: Array<[number, number]>; status: string; since: string }
@@ -71,7 +71,7 @@ describe('parking occupancy', () => {
     expect(k.lots.map((l) => l.id)).toEqual(['khb_parking']);
     expect(k.lots[0].polygon).not.toBeNull();
     db().exec('DELETE FROM parking_bays'); db().exec('DELETE FROM parking_lots');
-    setSetting('migrations_applied', ['community-social-v1', 'planner-v1']);
+    setSetting('migrations_applied', registeredMigrations().filter((id) => id !== 'parking-v1'));
     expect(runMigrations(db())).toEqual(['parking-v1']);
     expect(db().count('parking_lots')).toBe(7);
     expect(runMigrations(db())).toEqual([]);

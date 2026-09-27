@@ -1,3 +1,4 @@
+import { computeGpa, YU_POLICY, type GradeRow } from '../../../shared/gpa.ts';
 import { Router } from 'express';
 import { z } from 'zod';
 import type { User } from '../../../shared/types.ts';
@@ -99,16 +100,11 @@ export function skillEvidence(user: User, profile: CareerProfile): Map<string, S
   return map;
 }
 
-/** Completed credit hours and a 4.0-scale GPA from the transcript (letter grades only). */
+/** Completed credit hours and the cumulative GPA, from the shared YU grade policy (shared/gpa.ts). */
 export function academicRecord(userId: string): { credits: number; gpa: number | null } {
-  const POINTS: Record<string, number> = { 'A+': 4, A: 4, 'A-': 3.75, 'B+': 3.5, B: 3, 'B-': 2.75, 'C+': 2.5, C: 2, 'C-': 1.75, 'D+': 1.5, D: 1, F: 0 };
-  const rows = db().all<{ credits: number; grade: string | null; status: string }>(`SELECT COALESCE(c.credits, 3) AS credits, t.grade, t.status FROM transcript_entries t LEFT JOIN (SELECT code, MAX(credits) AS credits FROM courses GROUP BY code) c ON c.code = t.course_code WHERE t.student_id = ? AND t.status IN ('completed','equivalent')`, userId);
-  let credits = 0, pts = 0, graded = 0;
-  for (const r of rows) {
-    credits += Number(r.credits);
-    if (r.grade && POINTS[r.grade] !== undefined) { pts += POINTS[r.grade] * Number(r.credits); graded += Number(r.credits); }
-  }
-  return { credits, gpa: graded ? Math.round((pts / graded) * 100) / 100 : null };
+  const rows = db().all<GradeRow>("SELECT course_code, term, credits, grade, status FROM transcript_entries WHERE student_id = ? AND status IN ('completed','equivalent','failed','withdrawn')", userId);
+  const r = computeGpa(rows, YU_POLICY);
+  return { credits: r.earnedCredits, gpa: r.gpa };
 }
 
 export const portfolioRouter = Router();

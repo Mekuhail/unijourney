@@ -4,7 +4,7 @@ import type { User } from '../../../shared/types.ts';
 import type { AppModule } from '../index.ts';
 import { db, j, pj } from '../../core/db.ts';
 import { h, ok, parse, forbidden, notFound, conflict, unprocessable } from '../../core/http.ts';
-import { hasRole, requireUser } from '../../core/auth.ts';
+import { gate, hasRole, requireUser } from '../../core/auth.ts';
 import { newId } from '../../core/ids.ts';
 import { nowIso } from '../../core/clock.ts';
 import { notify } from '../../core/notify.ts';
@@ -21,6 +21,9 @@ import { seedFeedback } from './seed.ts';
  * and only the quality office sees text, for responses held by the moderation filter.
  */
 const router = Router();
+// Students rate and ask for help; students and quality staff read the KPI pages. /staff/* keeps its own role checks.
+router.use(['/responses', '/mine', '/help'], gate('feedback'));
+router.use(['/courses', '/instructors', '/overview'], gate('feedbackKpis'));
 
 const isStaff = (u: User) => hasRole(u, 'reviewer', 'registrar');
 function requireStaff(u: User) {

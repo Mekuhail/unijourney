@@ -1,3 +1,4 @@
+import { can as canDo, type Capability } from '@shared/access';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { User } from '@shared/types';
 import { api } from './api';
@@ -24,6 +25,8 @@ interface Session {
   refresh: () => Promise<void>;
   switchPersona: (id: string) => Promise<void>;
   hasRole: (...roles: User['roles']) => boolean;
+  /** Role → capability matrix (shared/access.ts); the server enforces the same rules. */
+  can: (cap: Capability) => boolean;
 }
 
 const Ctx = createContext<Session | null>(null);
@@ -62,7 +65,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<Session>(
-    () => ({ user, personas, demoMode, unread, loading, refresh, switchPersona, hasRole: (...roles) => !!user && roles.some((r) => user.roles.includes(r)) }),
+    () => ({ user, personas, demoMode, unread, loading, refresh, switchPersona, hasRole: (...roles) => !!user && roles.some((r) => user.roles.includes(r)), can: (cap) => canDo(user?.roles, cap) }),
     [user, personas, demoMode, unread, loading, refresh, switchPersona]
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

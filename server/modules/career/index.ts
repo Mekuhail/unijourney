@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { gate } from '../../core/auth.ts';
 import type { AppModule } from '../index.ts';
 import { opportunitiesRouter } from './routes-opportunities.ts';
 import { applicationsRouter } from './routes-applications.ts';
@@ -15,6 +16,9 @@ import { competitionsRouter } from './competitions.ts';
  * staff roles have no access to career data.
  */
 export const careerRouter = Router();
+careerRouter.use('/portfolio', gate('portfolio'));
+careerRouter.use(['/competitions', '/competitions-live'], gate('competitions'));
+careerRouter.use(['/opportunities', '/feed', '/applications', '/interviews', '/emails', '/settings', '/profile', '/skill-gaps', '/handoff'], gate('career'));
 careerRouter.use(opportunitiesRouter);
 careerRouter.use(applicationsRouter);
 careerRouter.use(emailsRouter);

@@ -18,6 +18,11 @@ export function registerMigration(m: Migration) {
   if (!registry.some((x) => x.id === m.id)) registry.push(m);
 }
 
+/** Every registered migration id, in order (tests use it to simulate an older database). */
+export function registeredMigrations(): string[] {
+  return registry.map((m) => m.id);
+}
+
 export function appliedMigrations(): string[] {
   return getSetting<string[]>(KEY, []);
 }

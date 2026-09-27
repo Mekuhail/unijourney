@@ -1,4 +1,5 @@
 import type { SeedContext } from '../../seed/context.ts';
+import { registerMigration } from '../../core/migrations.ts';
 import { seedPlanner } from './assessments.ts';
 import { j } from '../../core/db.ts';
 import { localToIso, nowIso } from '../../core/clock.ts';
@@ -13,7 +14,8 @@ import { taskCalendarSync } from './study.ts';
 const SLOTS: Record<string, [string, string]> = { A: ['08:00', '09:15'], B: ['09:30', '10:45'], C: ['11:00', '12:15'], D: ['13:00', '14:15'], E: ['14:30', '15:45'] };
 const DAYS: Record<string, number[]> = { ST: [0, 2], MW: [1, 3], TR: [2, 4], SUN: [0], MON: [1], TUE: [2], WED: [3], THU: [4] };
 const INSTRUCTORS = ['Dr. Mohammed Al-Zahrani', 'Dr. Amal Al-Qahtani', 'Dr. Khalid Al-Shammari', 'Dr. Noha Al-Rashid', 'Dr. Fahad Al-Malki', 'Dr. Reem Al-Juhani', 'Dr. Yousef Al-Ghamdi', 'Dr. Huda Al-Saleh', 'Dr. Tariq Al-Amri', 'Dr. Lama Al-Subaie', 'Dr. Saad Al-Mutlaq', 'Dr. Maha Al-Harthi', 'Dr. Bandar Al-Otaibi', 'Dr. Dalal Al-Anazi'];
-const GRADES = ['A', 'A-', 'B+', 'B', 'A', 'B+', 'A-', 'B', 'A', 'B+'];
+// YU's published letters (Examinations Policy V3.0): A+ 4, A 3.75, B+ 3.5, B 3, … There is no A- at YU.
+const GRADES = ['A+', 'A', 'B+', 'B', 'A+', 'B+', 'A', 'B', 'A+', 'B+'];
 
 export function sectionId(term: string, code: string, no: string) {
   return `sec_${term}_${code.replace(/\s+/g, '').toLowerCase()}_${no}`;
@@ -287,3 +289,14 @@ function seedAttendance(d: SeedContext['db'], studentId: string, term: string, t
     }
   }
 }
+
+/**
+ * The demo transcript first used an A/A- scale that YU does not have. Relabel to YU's letters with the same grade
+ * points (A 4.0 → A+ 4.0, A- 3.75 → A 3.75), so no GPA changes. One UPDATE evaluates each row once, so A never
+ * becomes A+ and then A again.
+ */
+registerMigration({
+  id: 'grades-yu-scale-v1',
+  description: "relabel demo transcript letters to YU's published grading scale (same grade points)",
+  run: (d) => { d.run("UPDATE transcript_entries SET grade = CASE grade WHEN 'A' THEN 'A+' WHEN 'A-' THEN 'A' ELSE grade END WHERE grade IN ('A', 'A-')"); }
+});
