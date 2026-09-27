@@ -142,6 +142,15 @@ describe('manual tasks and reminders', () => {
     expect((await s.as('u_student').del(`/academics/planner/items/${r.body.data!.id}`)).status).toBe(200);
   });
 
+  it('a task planned after its deadline counts as overdue', async () => {
+    const r = await s.as('u_student').post<Item>('/academics/planner/items', { title: 'Late write-up', date: '2026-09-25' });
+    const moved = await s.as('u_student').patch<Item>(`/academics/planner/items/${r.body.data!.id}`, { date: '2026-09-28' });
+    expect(moved.body.data!.overdue).toBe(false); // the deadline followed the move
+    db().run("UPDATE study_tasks SET deadline = '2026-09-26' WHERE id = ?", r.body.data!.id);
+    const list = (await s.as('u_student').get<Planner>('/academics/planner')).body.data!;
+    expect(list.items.find((i) => i.id === r.body.data!.id)!.overdue).toBe(true);
+  });
+
   it('other students cannot touch my tasks', async () => {
     const r = await s.as('u_student').post<Item>('/academics/planner/items', { title: 'Private note' });
     expect((await s.as('u_lead').patch(`/academics/planner/items/${r.body.data!.id}`, { done: true })).status).toBe(404);

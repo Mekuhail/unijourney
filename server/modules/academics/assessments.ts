@@ -269,7 +269,8 @@ function itemView(t: TaskRow, tm: TimeRow | undefined) {
     location_id: a?.location_id ?? null,
     cancelled: a?.status === 'cancelled',
     email: email ? { id: email.id, from_name: email.from_name, subject: email.subject, received_at: email.received_at, source: email.source } : null,
-    overdue: t.status !== 'done' && (due ? new Date(due).getTime() < nowMs : !!date && date < todayIso()),
+    // Past its time, or planned for later than a deadline that has already gone by.
+    overdue: t.status !== 'done' && (due ? new Date(due).getTime() < nowMs : (!!date && date < todayIso()) || (!!t.deadline && t.deadline < todayIso())),
     editable: !a
   };
 }
