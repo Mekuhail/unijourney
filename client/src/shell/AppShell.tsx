@@ -12,6 +12,7 @@ import { NAV_GROUPS, BOTTOM_NAV, STAFF_NAV, DEMO_NAV, isActive, type NavItem, ty
 import { DemoPill } from './DemoClock';
 import { PersonaSwitcher } from './PersonaSwitcher';
 import { NotificationsPanel } from './NotificationsPanel';
+import { StudentCardHost, openStudentCard } from './StudentCard';
 import { Menu, MenuRadio, MenuItem, MenuGroup, MenuSeparator } from '@/components/ui/Menu';
 
 /** Grouped side menu. Each item decides its own active state (several destinations share the /campus prefix). */
@@ -109,7 +110,7 @@ export function AppShell() {
                 </div>
                 <MenuSeparator />
                 <MenuItem icon={<BadgeCheck className="h-4 w-4" />} to="/portfolio">{t('nav.portfolio')}</MenuItem>
-                <MenuItem icon={<IdCard className="h-4 w-4" />} to="/campus/card">{t('shell.card')}</MenuItem>
+                <MenuItem icon={<IdCard className="h-4 w-4" />} onSelect={openStudentCard}>{t('shell.card')}</MenuItem>
                 {demoMode && <MenuItem icon={<Users className="h-4 w-4" />} onSelect={() => setPersonaOpen(true)}>{t('shell.switchPersonaDemo')}</MenuItem>}
                 <MenuSeparator />
                 <div className="sm:hidden">
@@ -158,6 +159,7 @@ export function AppShell() {
 
       <PersonaSwitcher open={personaOpen} onClose={() => setPersonaOpen(false)} />
       <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
+      <StudentCardHost />
     </div>
   );
 

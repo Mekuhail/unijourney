@@ -2,7 +2,7 @@ import { Route, Routes } from 'react-router';
 import { CampusHub } from './pages/CampusHub';
 import { ClubsPage, ClubDetailPage } from './pages/ClubsPage';
 import { EventsPage, EventDetailPage } from './pages/EventsPage';
-import { CardPage } from './pages/CardPage';
+import { StudentCardRoute } from '@/shell/StudentCard';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { MapPage } from './pages/MapPage';
 import { LostFoundPage, LostFoundDetailPage } from './pages/LostFoundPage';
@@ -18,7 +18,7 @@ export function CampusRoutes() {
       <Route path="clubs/:id" element={<ClubDetailPage />} />
       <Route path="events" element={<EventsPage />} />
       <Route path="events/:id" element={<EventDetailPage />} />
-      <Route path="card" element={<CardPage />} />
+      <Route path="card" element={<StudentCardRoute />} />
       <Route path="community/*" element={<CommunityRoutes />} />
       <Route path="resources" element={<ResourcesPage />} />
       <Route path="map" element={<MapPage />} />

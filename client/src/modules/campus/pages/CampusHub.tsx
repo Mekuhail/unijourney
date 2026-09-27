@@ -9,6 +9,7 @@ import { Badge, Button, EmptyState, ErrorState, SectionTitle, Skeleton, StatusPi
 import type { Club, EventItem } from '../types';
 import { EventCard } from '../lib';
 import { CommunityEntry } from '../social/MorePages';
+import { openStudentCard } from '@/shell/StudentCard';
 
 /** Campus Life: clubs and events. The map, learning resources and lost & found have their own pages in the menu. */
 export function CampusHub() {
@@ -24,7 +25,7 @@ export function CampusHub() {
 
   return (
     <div>
-      <PageHeader title={t('campus.hub.title')} subtitle={t('campus.hub.subtitle')} actions={<Button variant="gold" icon={<IdCard className="h-4 w-4" />} onClick={() => nav('/campus/card')}>{t('campus.hub.card')}</Button>} />
+      <PageHeader title={t('campus.hub.title')} subtitle={t('campus.hub.subtitle')} actions={<Button variant="gold" icon={<IdCard className="h-4 w-4" />} onClick={openStudentCard}>{t('campus.hub.card')}</Button>} />
 
       {ready ? (
         <p className="-mt-2 mb-6 text-sm">{[t('campus.hub.inClubs', { n: myClubs.length }), t('campus.hub.goingTo', { n: going.length }), t('campus.hub.upcomingN', { n: upcoming.length })].join(' · ')}</p>

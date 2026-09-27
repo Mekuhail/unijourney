@@ -14,6 +14,8 @@ import { refreshAll } from '@/lib/bus';
 import { useQuery } from '@/lib/useQuery';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { MatchRing, SkillChip } from './ui';
+import { openStudentCard } from '@/shell/StudentCard';
+import type { CardData } from '@/modules/campus/types';
 import { addToLinkedinUrl, readLinkedinExport, type DraftItem, type LinkedinImport } from './linkedinExport';
 import { explainText, oppTypeLabel, type CareerProfile, type OppList, type SkillGap } from './types';
 import type { CompetitionList, EvidenceKind, ItemKind, PortfolioData, PortfolioItem, Visibility } from './portfolioTypes';
@@ -518,7 +520,7 @@ export function Portfolio() {
         </ul>
         <div className="mt-5 flex flex-wrap gap-2">
           <button type="button" onClick={() => setAboutOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-ink-950 hover:bg-gold-100 sm:min-h-10"><Pencil className="h-4 w-4" aria-hidden />{t('portfolio.editAbout')}</button>
-          <Link to="/campus/card" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm font-semibold text-white hover:bg-white/10 sm:min-h-10"><IdCard className="h-4 w-4" aria-hidden />{t('shell.card')}</Link>
+          <button type="button" onClick={openStudentCard} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm font-semibold text-white hover:bg-white/10 sm:min-h-10"><IdCard className="h-4 w-4" aria-hidden />{t('shell.card')}</button>
         </div>
       </section>
 
@@ -553,6 +555,7 @@ export function Portfolio() {
           <Section id="awards-h" title={t('portfolio.awards')} icon={<Award className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('certificate')}>
             {list(byKind('award', 'certificate'), 'portfolio.empty.awards', 'certificate')}
             <p className="mt-3 text-sm text-muted">{t('portfolio.awardsNote')} <Link to="/competitions" className="font-medium text-brand-600 hover:underline">{t('career.tab.competitions')}</Link></p>
+            <CampusActivities />
           </Section>
           <Section id="edu-h" title={t('portfolio.education')} icon={<GraduationCap className="h-4 w-4 text-muted" aria-hidden />}>
             {d.education.program && <p className="text-sm"><span className="font-medium">{l(d.education.program.name_en, d.education.program.name_ar)}</span> · Al Yamamah University <Badge tone="success" dot className="ms-1">{t('portfolio.verified.university')}</Badge></p>}
@@ -577,6 +580,30 @@ export function Portfolio() {
 
       {draft && <ItemDialog draft={draft} onClose={() => setDraft(null)} onSaved={() => { setDraft(null); void q.refetch(); }} />}
       {aboutOpen && <AboutDialog open profile={d.profile} onClose={() => setAboutOpen(false)} onSaved={() => { setAboutOpen(false); void q.refetch(); }} />}
+    </div>
+  );
+}
+
+/** Club participation verified by a lead or a QR check-in (it used to live on the digital card page). */
+function CampusActivities() {
+  const { t, l, locale } = useI18n();
+  const q = useQuery(() => api<CardData>('/campus/me/card'), [], { refreshOn: ['campus'] });
+  const items = q.data?.achievements ?? [];
+  if (!items.length) return null;
+  return (
+    <div className="mt-5 border-t border-line pt-4">
+      <h3 id="activities-h" className="mb-2 text-sm font-semibold">{t('portfolio.campusActivities')}</h3>
+      <ul className="space-y-2">
+        {items.map((a) => (
+          <li key={a.id} className="flex items-start gap-3 text-sm">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
+            <span className="min-w-0">
+              <span className="block font-medium">{l(a.title_en, a.title_ar || a.title_en)}</span>
+              <span className="block text-xs text-muted">{[a.club_name_en, a.event_start_at ? fmtDate(a.event_start_at, locale) : null, a.verified_by_name ? `${t('campus.card.verifiedBy')} ${a.verified_by_name}` : null].filter(Boolean).join(' · ')}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

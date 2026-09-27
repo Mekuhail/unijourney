@@ -161,7 +161,7 @@ clubsRouter.post('/events/:id/attendance/:userId/verify', h((req, res) => {
   };
   db().tx(() => {
     db().insert('achievements', row);
-    notify(targetId, { module: 'campus', kind: 'achievement', title: 'Participation verified', body: `${u.name_en} verified your attendance at ${e.title_en}. It now appears on your digital card.`, link: '/campus/card' });
+    notify(targetId, { module: 'campus', kind: 'achievement', title: 'Participation verified', body: `${u.name_en} verified your attendance at ${e.title_en}. It now appears on your portfolio.`, link: '/portfolio#activities-h' });
     audit(u.id, 'achievement.verify', 'achievement', row.id, { event_id: e.id, user_id: targetId });
   });
   ok(res, { achievement: row, created: true }, 201);
