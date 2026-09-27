@@ -16,6 +16,7 @@ import type { Campus, MapLocation, NextClass, ParkingBay, ParkingData, ParkingLo
 import { MapCanvas, type ParkingLayer } from '../map/MapCanvas';
 import { ParkingPanel, DAY_END, toHHMM } from '../map/ParkingPanel';
 import { useCampusLocation } from '../map/useCampusLocation';
+import { PlacePicker, rememberPlace } from '../map/PlacePicker';
 import { useDemoStatus } from '@/shell/DemoClock';
 import { CATEGORIES, CATEGORY_COLOR, categoryOf, pinHtml, type Basemap, type Category } from '../map/style';
 import { AccessBadge, GeometryBadge } from '../lib';
@@ -172,7 +173,7 @@ export function MapPage() {
   const targets = useMemo(() => locations.filter((x) => !x.building_id && !['junction', 'gate', 'parking', 'entrance', 'room'].includes(x.kind)).sort((a, b) => a.name_en.localeCompare(b.name_en)), [locations]);
   const routeOk = !!r && r.found;
 
-  const goHere = (id: string) => { setQ({ to: id }); if (!from) toast.info(t('map.pickStart')); panelRef.current?.querySelector<HTMLSelectElement>('#map-from')?.focus(); };
+  const goHere = (id: string) => { rememberPlace(campusId, id); setQ({ to: id }); if (!from) toast.info(t('map.pickStart')); panelRef.current?.querySelector<HTMLInputElement>('#map-from')?.focus(); };
 
   return (
     <div>
@@ -248,7 +249,8 @@ export function MapPage() {
                     {geo.status === 'locating' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : meHere ? <LocateFixed className="h-5 w-5" aria-hidden /> : <Locate className="h-5 w-5" aria-hidden />}
                   </button>
                 )}
-                <button type="button" onClick={() => setRecenterKey((k) => k + 1)} className="pointer-events-auto glass grid h-11 w-11 place-items-center rounded-xl shadow-md hover:text-brand-600" title={t('map.recenter')} aria-label={t('map.recenter')}><Maximize2 className="h-4 w-4" /></button>
+                {/* Says exactly what it does: show the whole campus (the default view), not a full-screen mode. */}
+                <button type="button" onClick={() => setRecenterKey((k) => k + 1)} className="pointer-events-auto glass inline-flex min-h-11 items-center justify-center rounded-xl px-3 text-sm font-semibold shadow-md hover:text-brand-600">{t('map.wholeCampus')}</button>
               </div>
             </div>
           </div>
@@ -341,12 +343,11 @@ export function MapPage() {
                     <Button size="sm" variant="ghost" icon={<CalendarDays className="h-4 w-4" />} onClick={() => void useNextClass()}>{t('campus.map.nextClass')}</Button>
                   </div>
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                    <div className="relative min-w-0 space-y-2 ps-5">
-                      <span className="absolute start-1 top-3 h-2.5 w-2.5 rounded-full bg-success" aria-hidden />
-                      <span className="absolute start-[8px] top-6 h-[calc(100%-2.5rem)] border-s border-dotted border-line" aria-hidden />
-                      <span className="absolute bottom-3 start-1 h-2.5 w-2.5 rounded-sm bg-danger" aria-hidden />
-                      <Select id="map-from" className="min-w-0 truncate" value={fromMe && !meHere ? '' : from ?? ''} onChange={(e) => setQ({ from: e.target.value || null })} aria-label={t('campus.map.from')}><option value="">{t('map.pickStart')}</option>{meHere && <option value="@me">{t('map.me.option')}</option>}{options.map((x) => <option key={x.id} value={x.id}>{label(x)}</option>)}</Select>
-                      <Select className="min-w-0 truncate" value={to ?? ''} onChange={(e) => setQ({ to: e.target.value || null })} aria-label={t('campus.map.to')}><option value="">{t('map.pickEnd')}</option>{options.map((x) => <option key={x.id} value={x.id}>{label(x)}</option>)}</Select>
+                    <div className="min-w-0 space-y-2">
+                      <PlacePicker id="map-from" label={t('campus.map.from')} placeholder={t('map.pickStart')} value={fromMe && !meHere ? null : from} campusId={campusId} locations={locations} popular={popular} meAvailable={!!meHere}
+                        onChange={(v) => { setQ({ from: v }); if (v && v !== '@me') setSelected(v); }} />
+                      <PlacePicker id="map-to" label={t('campus.map.to')} placeholder={t('map.pickEnd')} value={to} campusId={campusId} locations={locations} popular={popular} onNextClass={() => void useNextClass()}
+                        onChange={(v) => { setQ({ to: v }); if (v) setSelected(v); }} />
                     </div>
                     <Button variant="outline" size="icon" aria-label={t('campus.map.swap')} title={t('campus.map.swap')} onClick={() => setQ({ from: to, to: from })}><ArrowLeftRight className="h-4 w-4 rotate-90" /></Button>
                   </div>
@@ -409,7 +410,7 @@ export function MapPage() {
                         <li key={x.id}>
                           <button type="button" onClick={() => onSelect(x.id)} className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-start text-sm hover:bg-line/50">
                             <PinGlyph loc={x} />
-                            <span className="min-w-0 flex-1 truncate">{ln(x.name_en, x.name_ar)}</span>
+                            <span className="min-w-0 flex-1 break-words" dir="auto">{ln(x.name_en, x.name_ar)}</span>
                             <MapPin className="h-3.5 w-3.5 shrink-0 text-muted" />
                           </button>
                         </li>

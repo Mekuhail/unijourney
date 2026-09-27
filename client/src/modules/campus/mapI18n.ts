@@ -1,5 +1,13 @@
 export const mapDict = {
   en: {
+    'map.wholeCampus': 'Whole campus',
+    'map.picker.shortcuts': 'Shortcuts',
+    'map.picker.recent': 'Recent',
+    'map.picker.floor': 'Floor {n}',
+    'map.picker.groundFloor': 'Ground floor',
+    'map.picker.wholeBuilding': 'The whole building',
+    'map.picker.none': 'No place on this campus matches “{q}”. Try a room number, a building or a service.',
+    'map.picker.clear': 'Clear {field}',
     'map.title': 'Campus map',
     'map.subtitle': 'Find any building, classroom, gate or car park, then get walking or step-free directions.',
     'map.basemap.map': 'Map',
@@ -43,6 +51,14 @@ export const mapDict = {
     'map.source.annotated': 'Names, gates and room numbers come from the YU campus map, georeferenced to OpenStreetMap.'
   },
   ar: {
+    'map.wholeCampus': 'الحرم كاملًا',
+    'map.picker.shortcuts': 'اختصارات',
+    'map.picker.recent': 'الأخيرة',
+    'map.picker.floor': 'الطابق {n}',
+    'map.picker.groundFloor': 'الطابق الأرضي',
+    'map.picker.wholeBuilding': 'المبنى كاملًا',
+    'map.picker.none': 'لا يوجد مكان في هذا الحرم يطابق «{q}». جرّب رقم قاعة أو مبنى أو خدمة.',
+    'map.picker.clear': 'مسح {field}',
     'map.title': 'خريطة الحرم',
     'map.subtitle': 'ابحث عن أي مبنى أو قاعة أو بوابة أو موقف، ثم احصل على مسار مشي أو مسار دون درج.',
     'map.basemap.map': 'خريطة',
