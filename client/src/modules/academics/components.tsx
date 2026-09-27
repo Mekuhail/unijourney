@@ -90,7 +90,8 @@ export function WeekGrid({ blocks, highlightDay, compact, className }: { blocks:
   const rowH = compact ? 34 : 52; // px per hour
   const tone: Record<string, string> = { brand: 'bg-brand-500/15 border-brand-500/50 text-brand-800 dark:text-brand-200', gold: 'bg-gold-100 border-gold-500/60 text-gold-700 dark:bg-gold-700/30 dark:text-gold-300', info: 'bg-info/15 border-info/50 text-info', success: 'bg-success/15 border-success/50 text-success', danger: 'bg-danger/15 border-danger/50 text-danger', muted: 'bg-line/60 border-line text-muted', warn: 'bg-warn/15 border-warn/50 text-warn' };
   return (
-    <div className={clsx('overflow-x-auto', className)}>
+    // Focusable so keyboard users can scroll the week sideways on narrow screens.
+    <div role="region" tabIndex={0} aria-label={t('academics.weekGrid')} className={clsx('overflow-x-auto rounded-lg focus-visible:outline-2 focus-visible:outline-brand-500', className)}>
       <div className="min-w-[560px]" style={{ display: 'grid', gridTemplateColumns: `44px repeat(${TEACHING_DAYS.length}, minmax(0, 1fr))` }}>
         <div />
         {TEACHING_DAYS.map((d) => <div key={d} className={clsx('px-1 pb-1 text-center text-xs font-semibold', highlightDay === d ? 'text-brand-600' : 'text-muted')}>{weekdayName(d, locale)}{highlightDay === d && <span className="ms-1 rounded-full bg-brand-500 px-1.5 text-xs text-ink-950">{t('common.today')}</span>}</div>)}

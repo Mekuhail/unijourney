@@ -224,8 +224,8 @@ function CurrentCourseEditor({ c, policy, onChange }: { c: CurrentCourse; policy
                 {t(`gpa.mode.${m}`)}
               </button>
             ))}
-            <label className="ms-auto flex items-center gap-2 text-sm text-muted">
-              <input type="checkbox" checked={c.passFail} onChange={(ev) => onChange({ ...c, passFail: ev.target.checked })} className="h-4 w-4 accent-[var(--color-brand-500)]" />
+            <label className="ms-auto flex min-h-11 cursor-pointer items-center gap-2 text-sm text-muted sm:min-h-9">
+              <input type="checkbox" checked={c.passFail} onChange={(ev) => onChange({ ...c, passFail: ev.target.checked })} className="h-5 w-5 accent-[var(--color-brand-500)]" />
               {t('gpa.passFail')}
             </label>
           </div>
@@ -528,7 +528,7 @@ export function GpaPage() {
         )}
         {doc.target.kind === 'scholarship' && (
           <p className="mt-2 max-w-3xl text-sm text-muted">
-            <a href={sch.url} target="_blank" rel="noreferrer noopener" className="font-medium text-brand-600 hover:underline">{l(sch.name_en, sch.name_ar)}<ExternalLink className="ms-1 inline h-3 w-3" aria-hidden /></a>
+            <a href={sch.url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center font-medium text-brand-600 hover:underline touch:min-h-11">{l(sch.name_en, sch.name_ar)}<ExternalLink className="ms-1 inline h-3 w-3" aria-hidden /></a>
             {' · '}{t('gpa.checked', { date: fmtDate(sch.checked, locale) })}{sch.effective ? '' : ` · ${t('gpa.noEffective')}`}. {l(sch.note_en, sch.note_ar)}
           </p>
         )}

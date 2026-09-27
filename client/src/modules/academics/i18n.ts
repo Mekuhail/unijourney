@@ -1,6 +1,7 @@
 // academics module dictionary. Keys are namespaced 'academics.*'. Both languages for every key.
 export const academicsDict = {
   en: {
+    'academics.weekGrid': 'Weekly timetable',
     'academics.att.subtitle': 'Absences you can still excuse come first. Every session is its own record, so an excuse is tied to the exact class you missed.',
     'academics.att.myRequests': 'My excuse requests',
     'academics.att.needsAction#one': '1 absence you can still excuse',
@@ -370,6 +371,7 @@ export const academicsDict = {
     'academics.staff.treatmentNote': 'Accepting applies the configured treatment to the exact sessions; the original status and history are retained.'
   } as Record<string, string>,
   ar: {
+    'academics.weekGrid': 'الجدول الأسبوعي',
     'academics.att.subtitle': 'الغيابات التي يمكنك الاعتذار عنها تظهر أولًا. كل محاضرة سجل مستقل، فيرتبط العذر بالمحاضرة التي فاتتك بالضبط.',
     'academics.att.myRequests': 'طلبات أعذاري',
     'academics.att.needsAction#one': 'غياب واحد يمكنك الاعتذار عنه',

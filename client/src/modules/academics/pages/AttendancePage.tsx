@@ -62,7 +62,7 @@ function CourseHistory({ c, focus, onExcuse }: { c: AttendanceCourse; focus: str
   return (
     <li className="py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="min-w-0"><Link to={`/academics/courses/${encodeURIComponent(c.course_code)}`} className="font-semibold hover:text-brand-600">{c.course_code}</Link> <span className="text-sm text-muted" dir="auto">{l(c.title_en, c.title_ar)}</span></h3>
+        <h3 className="min-w-0"><Link to={`/academics/courses/${encodeURIComponent(c.course_code)}`} className="inline-flex items-center font-semibold hover:text-brand-600 touch:min-h-11">{c.course_code}</Link> <span className="text-sm text-muted" dir="auto">{l(c.title_en, c.title_ar)}</span></h3>
         <span className={clsx('num text-sm font-semibold', tone === 'danger' ? 'text-danger' : tone === 'warn' ? 'text-warn' : 'text-success')}>{t('academics.att.percentAbsent', { n: c.absence_percent })}{tone === 'ok' ? '' : ` · ${t(`academics.att.level.${c.level}`)}`}</span>
       </div>
       <AbsenceBar label={c.course_code} percent={c.absence_percent} warn={c.warning_percent} deny={c.denial_percent} level={tone} showScale className="mt-2" />

@@ -723,7 +723,7 @@ export function Portfolio() {
       </Section>
       <Section id="awards-h" title={t('portfolio.awards')} icon={<Award className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('certificate')}>
         {list(byKind('award', 'certificate'), 'portfolio.empty.awards', 'certificate')}
-        <p className="mt-3 text-sm text-muted">{t('portfolio.awardsNote')} <Link to="/competitions" className="font-medium text-brand-600 hover:underline">{t('career.tab.competitions')}</Link></p>
+        <p className="mt-3 text-sm text-muted">{t('portfolio.awardsNote')} <Link to="/competitions" className="inline-flex items-center font-medium text-brand-600 hover:underline touch:min-h-11">{t('career.tab.competitions')}</Link></p>
         <CampusActivities />
       </Section>
       <Section id="lang-h" title={t('portfolio.languages')} icon={<LanguagesIcon className="h-4 w-4 text-muted" aria-hidden />} action={addBtn('language')}>
