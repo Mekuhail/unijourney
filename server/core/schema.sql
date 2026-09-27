@@ -1083,3 +1083,11 @@ CREATE TABLE IF NOT EXISTS study_task_times (
 -- GPA planner: one private, versioned document per student (current-course estimates and future scenarios).
 -- The transcript stays the read-only baseline; nothing in this table changes official grades.
 CREATE TABLE IF NOT EXISTS gpa_plans (student_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, doc TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+
+-- Classmate coordination for next term's registration: opt-in, revocable, nothing shared by default.
+CREATE TABLE IF NOT EXISTS peer_invites (code TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, term TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, used_by TEXT, used_at TEXT);
+CREATE TABLE IF NOT EXISTS peer_links (id TEXT PRIMARY KEY, a_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, b_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, term TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active', created_at TEXT NOT NULL, revoked_by TEXT, revoked_at TEXT);
+CREATE INDEX IF NOT EXISTS idx_peer_links_a ON peer_links(a_id, term);
+CREATE INDEX IF NOT EXISTS idx_peer_links_b ON peer_links(b_id, term);
+CREATE TABLE IF NOT EXISTS peer_shares (link_id TEXT NOT NULL REFERENCES peer_links(id) ON DELETE CASCADE, user_id TEXT NOT NULL, course_code TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (link_id, user_id, course_code));
+CREATE TABLE IF NOT EXISTS peer_proposals (id TEXT PRIMARY KEY, link_id TEXT NOT NULL REFERENCES peer_links(id) ON DELETE CASCADE, from_id TEXT NOT NULL, to_id TEXT NOT NULL, course_code TEXT NOT NULL, section_id TEXT NOT NULL, note TEXT, status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, result TEXT);

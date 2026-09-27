@@ -120,11 +120,13 @@ export async function createProposal(user: User, term: string, input: Preference
   return { proposal: proposalView(getProposalRow(id)), eligibility: gen.eligible };
 }
 
-export interface ProposalPatch { optionId?: string; add?: string; remove?: string; swap?: { from: string; to: string }; pinned?: string[]; sectionIds?: string[]; preferences?: Preferences }
+export interface ProposalPatch { optionId?: string; add?: string; remove?: string; swap?: { from: string; to: string }; pinned?: string[]; sectionIds?: string[]; preferences?: Preferences; expectedRevision?: number }
 
 export async function updateProposal(user: User, id: string, patch: ProposalPatch): Promise<{ proposal: ProposalView; eligibility: EligibleCourse[] }> {
   const r = requireOwnProposal(user, id);
   if (!['draft', 'needs_review', 'approved'].includes(r.status as string)) throw conflict(`Proposal is ${r.status} and can no longer be edited.`);
+  // Another tab (or an accepted classmate suggestion) changed the basket since the student looked: review again.
+  if (patch.expectedRevision !== undefined && patch.expectedRevision !== r.revision) throw conflict('Your basket changed since you reviewed it. Review the latest version.', { revision: r.revision });
   const ctx = studentContext(user.id);
   const prefs = pj<ProposalView['preferences']>(r.preferences, {});
   const actionLog = pj<ActionLogEntry[]>(r.action_log, []);
@@ -144,7 +146,7 @@ export async function updateProposal(user: User, id: string, patch: ProposalPatc
   }
   if (patch.optionId) { const o = nextOptions.find((x) => x.id === patch.optionId); if (!o) throw bad('Unknown option'); sectionIds = [...o.section_ids]; log(actionLog, 'choose_option', `Student chose option ${o.id} (${o.label_en}).`); }
   if (patch.sectionIds) { sectionIds = [...new Set(patch.sectionIds)]; log(actionLog, 'set_sections', `Student set the basket to ${sectionIds.length} sections.`); }
-  if (patch.swap) { const s = getSection(patch.swap.to); if (!s) throw notFound('Section not found'); sectionIds = sectionIds.filter((x) => x !== patch.swap!.from); if (!sectionIds.includes(s.id)) sectionIds.push(s.id); log(actionLog, 'swap', `Swapped ${patch.swap.from} for ${s.course_code} sec ${s.section_no}.`); }
+  if (patch.swap) { const s = getSection(patch.swap.to); if (!s) throw notFound('Section not found'); const from = getSection(patch.swap.from); if (!from || !sectionIds.includes(from.id)) throw conflict('The section you are switching from is no longer in your basket.'); if (from.course_code !== s.course_code) throw bad('A switch keeps the same course: pick another section of it.'); if (s.term !== r.term) throw bad('Section belongs to a different term'); sectionIds = sectionIds.filter((x) => x !== patch.swap!.from); if (!sectionIds.includes(s.id)) sectionIds.push(s.id); log(actionLog, 'swap', `Swapped ${patch.swap.from} for ${s.course_code} sec ${s.section_no}.`); }
   if (patch.add) { const s = getSection(patch.add); if (!s) throw notFound('Section not found'); if (s.term !== r.term) throw bad('Section belongs to a different term'); if (!sectionIds.includes(s.id)) sectionIds.push(s.id); log(actionLog, 'add', `Added ${s.course_code} sec ${s.section_no}.`); }
   if (patch.remove) { sectionIds = sectionIds.filter((x) => x !== patch.remove); log(actionLog, 'remove', `Removed ${patch.remove}.`); }
   if (patch.pinned) { nextPrefs = { ...nextPrefs, pinned: patch.pinned }; log(actionLog, 'pin', patch.pinned.length ? `Pinned ${patch.pinned.length} section(s).` : 'Cleared pins.'); }

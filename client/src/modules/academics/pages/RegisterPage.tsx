@@ -12,6 +12,7 @@ import { fmtDateTime, weekdayName } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button, Card, SectionTitle, Skeleton, ErrorState, Callout, Field, Input, Textarea, Toggle, Select, StatusPill, Badge, Modal, KeyValue, CopyId, ButtonLink } from '@/components/ui';
 import { AcademicsNav, ChecksList, FlowSteps, WeekGrid, meetingsToBlocks, type FlowStep } from '../components';
+import { CompareSections, ClassmatesPanel, type Suggestion, type Undo } from './RegisterPeers';
 import { termLabel, type Proposal, type EligibleCourse, type PlanOption, type SectionView, type SubmitResult, type Preferences } from '../api';
 
 const EXAMPLES = ['Plan next term around my remaining requirements, avoid early classes, and leave time for a weekly workshop on Tuesday at 4pm', 'No Thursday classes, max 15 credits', 'Compact week, count in-progress courses'];
@@ -122,7 +123,8 @@ export function RegisterPage() {
   const pid = params.get('proposal');
   const [busy, setBusy] = useState(false);
   const [simulate, setSimulate] = useState<'' | 'stale_capacity' | 'timeout' | 'partial'>('');
-  const [swapFor, setSwapFor] = useState<SectionView | null>(null);
+  const [compare, setCompare] = useState<{ course: string; focus?: string | null; suggestion?: Suggestion | null } | null>(null);
+  const [undo, setUndo] = useState<Undo | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [lastResult, setLastResult] = useState<SubmitResult | null>(null);
@@ -218,6 +220,13 @@ export function RegisterPage() {
             </div>
           )}
           {p.options.length === 0 && editable && <Callout tone="warn" title={t('academics.register.noOptions')}>{t('academics.register.noOptionsBody')}</Callout>}
+          {undo && (
+            <div role="status" className="flex flex-wrap items-center gap-3 rounded-2xl border border-brand-500/40 bg-brand-500/10 p-3 text-sm">
+              <span className="min-w-0 flex-1">{undo.label} {t('reg.cmp.draftNote')}</span>
+              {editable && <Button size="sm" variant="outline" onClick={() => void patch(undo.body).then((r) => { if (r) setUndo(null); })}>{t('reg.cmp.undo')}</Button>}
+              <Button size="icon" variant="ghost" aria-label={t('gpa.dismiss')} onClick={() => setUndo(null)}><span aria-hidden>×</span></Button>
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
             <div className="space-y-4 lg:col-span-3">
               <Card>
@@ -231,9 +240,9 @@ export function RegisterPage() {
                         <div className="min-w-0 flex-1"><div className="font-semibold">{s.course_code} <span className="font-normal text-muted">sec {s.section_no} · {l(s.title_en, s.title_ar)}</span></div><div className="text-xs text-muted">{s.instructor} · {s.meetings.map((m) => `${weekdayName(m.day, locale)} ${m.start}–${m.end}${m.location ? ` · ${l(m.location.name_en, m.location.name_ar)}` : ''}`).join(' · ')} · <span className={clsx('num', s.seats_left === 0 ? 'text-danger' : s.seats_left <= 2 ? 'text-warn' : '')}>{t('academics.register.seats', { n: s.seats_left })}</span></div></div>
                         <span className="num text-xs text-muted">{s.credits} cr</span>
                         {editable && <>
-                          <Button size="sm" variant="ghost" title={pinned ? t('academics.register.unpin') : t('academics.register.pin')} onClick={() => void patch({ pinned: pinned ? (p.preferences.pinned ?? []).filter((x) => x !== s.id) : [...(p.preferences.pinned ?? []), s.id] })}>{pinned ? <Pin className="h-4 w-4 text-brand-600" /> : <PinOff className="h-4 w-4" />}</Button>
-                          <Button size="sm" variant="ghost" title={t('academics.register.swap')} onClick={() => setSwapFor(s)}><ArrowLeftRight className="h-4 w-4" /></Button>
-                          <Button size="sm" variant="ghost" title={t('common.remove')} onClick={() => void patch({ remove: s.id })}><Trash2 className="h-4 w-4 text-danger" /></Button>
+                          <Button size="sm" variant="outline" icon={<ArrowLeftRight className="h-4 w-4" />} onClick={() => setCompare({ course: s.course_code })}>{t('reg.cmp.open')}</Button>
+                          <Button size="icon" variant="ghost" aria-label={`${pinned ? t('academics.register.unpin') : t('academics.register.pin')}: ${s.course_code}`} title={pinned ? t('academics.register.unpin') : t('academics.register.pin')} aria-pressed={!!pinned} onClick={() => void patch({ pinned: pinned ? (p.preferences.pinned ?? []).filter((x) => x !== s.id) : [...(p.preferences.pinned ?? []), s.id] })}>{pinned ? <Pin className="h-4 w-4 text-brand-600" /> : <PinOff className="h-4 w-4" />}</Button>
+                          <Button size="icon" variant="ghost" aria-label={`${t('common.remove')}: ${s.course_code}`} title={t('common.remove')} onClick={() => void patch({ remove: s.id }).then((r) => { if (r) setUndo({ label: t('reg.cmp.removed', { code: s.course_code }), body: { add: s.id } }); })}><Trash2 className="h-4 w-4 text-danger" /></Button>
                         </>}
                       </li>
                     );
@@ -281,7 +290,8 @@ export function RegisterPage() {
           </div>
         </div>
       )}
-      <SwapModal open={!!swapFor} section={swapFor} onClose={() => setSwapFor(null)} onPick={async (to) => { if (swapFor) { await patch({ swap: { from: swapFor.id, to } }); setSwapFor(null); } }} />
+      {p && !params.get('new') && p.term === '2026-2' && <div className="mt-10"><ClassmatesPanel proposal={p} focus={!!params.get('peers')} onReview={(sg) => setCompare({ course: sg.course_code, focus: sg.section?.id ?? null, suggestion: sg })} /></div>}
+      {compare && p && <CompareSections proposal={p} course={compare.course} focusSection={compare.focus} suggestion={compare.suggestion} onClose={() => setCompare(null)} onSwitched={(u) => setUndo(u)} />}
       <AddModal open={addOpen} eligibility={eligibility ?? []} onClose={() => setAddOpen(false)} onPick={async (id) => { await patch({ add: id }); setAddOpen(false); }} />
     </div>
   );
@@ -294,15 +304,6 @@ function SectionRow({ s, onPick, disabled }: { s: SectionView; onPick: () => voi
       <div><div className="font-semibold">sec {s.section_no} · {s.instructor}</div><div className="text-xs text-muted">{s.meetings.map((m) => `${weekdayName(m.day, locale)} ${m.start}–${m.end}${m.location ? ` · ${l(m.location.name_en, m.location.name_ar)}` : ''}`).join(' · ')}</div></div>
       <div className="flex items-center gap-2"><span className={clsx('num text-xs', s.seats_left === 0 ? 'text-danger' : s.seats_left <= 2 ? 'text-warn' : 'text-muted')}>{t('academics.register.seats', { n: s.seats_left })}</span><Button size="sm" variant="outline" onClick={onPick} disabled={disabled}>{t('academics.register.pick')}</Button></div>
     </li>
-  );
-}
-function SwapModal({ open, section, onClose, onPick }: { open: boolean; section: SectionView | null; onClose: () => void; onPick: (id: string) => Promise<void> }) {
-  const { t } = useI18n();
-  const q = useQuery(() => section ? api<SectionView[]>('/academics/sections', { query: { term: section.term, course: section.course_code } }) : Promise.resolve([]), [section?.id]);
-  return (
-    <Modal open={open} onClose={onClose} title={section ? `${t('academics.register.swap')} · ${section.course_code}` : ''} description={t('academics.register.swapHint')}>
-      {!q.data ? <Skeleton className="h-24" /> : <ul className="space-y-2">{q.data.map((s) => <SectionRow key={s.id} s={s} disabled={s.id === section?.id} onPick={() => void onPick(s.id)} />)}</ul>}
-    </Modal>
   );
 }
 function AddModal({ open, eligibility, onClose, onPick }: { open: boolean; eligibility: EligibleCourse[]; onClose: () => void; onPick: (id: string) => Promise<void> }) {

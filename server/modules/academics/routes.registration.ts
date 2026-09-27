@@ -50,7 +50,8 @@ registrationRouter.put('/proposals/:id', h(async (req, res) => {
     swap: z.object({ from: z.string(), to: z.string() }).optional(),
     pinned: z.array(z.string()).max(12).optional(),
     sectionIds: z.array(z.string()).max(12).optional(),
-    preferences: preferences.optional()
+    preferences: preferences.optional(),
+    expectedRevision: z.number().int().min(1).optional()
   }).strict(), req.body ?? {});
   ok(res, await updateProposal(u, req.params.id as string, body));
 }));
