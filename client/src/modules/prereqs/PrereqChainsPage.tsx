@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
-import { GitBranch, Lock, Printer, RotateCcw, Search, BookOpen, ExternalLink, ArrowRight, Sparkles, ChevronDown, ZoomIn, ZoomOut, Maximize, Minimize, Scan } from 'lucide-react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { GitBranch, Lock, Printer, RotateCcw, Search, BookOpen, ExternalLink, ArrowRight, Sparkles, ChevronDown, ZoomIn, ZoomOut, Maximize, Minimize } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -8,7 +8,7 @@ import { useTheme } from '@/lib/theme';
 import { useQuery } from '@/lib/useQuery';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Select, Skeleton, Toggle, SectionTitle, ButtonLink } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Select, Skeleton, Toggle, SectionTitle, ButtonLink, Tabs } from '@/components/ui';
 
 interface ProgramInfo { id: string; code: string; name_en: string; name_ar: string; college_id: string; college_en: string; college_ar: string; degree: string; total_credits: number; duration_years: number; source_url: string; source_version: string; source_note: string; campus_ids: string[]; courses: number; mine: boolean }
 interface Catalog { colleges: Array<{ id: string; name_en: string; name_ar: string; url: string; programs: ProgramInfo[] }>; mine: string | null }
@@ -44,6 +44,11 @@ export function PrereqChainsPage() {
   const [hover, setHover] = useState<string | null>(null);
   const [showMine, setShowMine] = useState(true);
   const [q, setQ] = useState('');
+  // Progressive disclosure: direct prerequisites and immediate unlocks first; the whole chain only on request.
+  const [depth, setDepth] = useState<'direct' | 'full'>('direct');
+  // The list is the compact alternative (default on phones, and the natural reading order for screen readers).
+  const [view, setView] = useState<'map' | 'list'>(() => (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'list' : 'map'));
+  const [params, setParams] = useSearchParams();
   useEffect(() => { setSelected(null); setHover(null); setQ(''); }, [pid]);
 
   const d = chain.data;
@@ -53,8 +58,19 @@ export function PrereqChainsPage() {
   // A pinned course keeps its chain lit; hovering only previews when nothing is pinned, so moving the pointer
   // across the map (or towards the detail panel) never makes the highlight flicker.
   const active = selected ?? hover;
-  const up = useMemo(() => (active ? ancestors(active, byCode) : new Set<string>()), [active, byCode]);
-  const down = useMemo(() => (active ? descendants(active, byCode) : new Set<string>()), [active, byCode]);
+  const full_ = depth === 'full' && !!selected && active === selected;
+  const up = useMemo(() => {
+    if (!active) return new Set<string>();
+    if (full_) return ancestors(active, byCode);
+    return new Set((byCode.get(active)?.prereqs.flat() ?? []).filter((p) => byCode.has(p)));
+  }, [active, byCode, full_]);
+  const down = useMemo(() => {
+    if (!active) return new Set<string>();
+    if (full_) return descendants(active, byCode);
+    return new Set((byCode.get(active)?.unlocks ?? []).filter((p) => byCode.has(p)));
+  }, [active, byCode, full_]);
+  // Deep link: /prereqs?course=CIS%20104 selects the course once the programme has loaded.
+  useEffect(() => { const c = params.get('course'); if (c && byCode.has(c)) { setSelected(c); setParams({}, { replace: true }); } }, [params, byCode, setParams]);
   const sel = selected ? byCode.get(selected) ?? null : null;
   const matches = useMemo(() => { const s = q.trim().toLowerCase(); if (!s || !d) return []; return [...byCode.values()].filter((c) => !c.code.startsWith('ELECTIVE:') && (c.code.toLowerCase().includes(s) || c.title_en.toLowerCase().includes(s) || c.title_ar.includes(q.trim()))).slice(0, 8); }, [q, byCode, d]);
 
@@ -165,16 +181,18 @@ export function PrereqChainsPage() {
   const hoverOut = () => { if (hoverTimer.current) window.clearTimeout(hoverTimer.current); hoverTimer.current = window.setTimeout(() => setHover(null), 60); };
   useEffect(() => () => { if (hoverTimer.current) window.clearTimeout(hoverTimer.current); }, []);
 
-  const edgeTone = (e: { from: string; to: string }) => {
-    if (!active) return 'stroke-[var(--line)]';
-    if (e.to === active || (up.has(e.to) && up.has(e.from)) || (e.to === active && up.has(e.from))) return 'stroke-gold-500';
-    if (up.has(e.to) && (up.has(e.from) || e.from === active)) return 'stroke-gold-500';
-    if (e.from === active || (down.has(e.from) && down.has(e.to))) return 'stroke-info';
-    if (down.has(e.to) && (down.has(e.from) || e.from === active)) return 'stroke-info';
-    return 'stroke-[var(--line)] opacity-30';
+  // Nothing is drawn until a course is chosen, so the overview stays readable. Then only its own links appear.
+  const edgeRole = (e: { from: string; to: string }): 'up' | 'down' | null => {
+    if (!active) return null;
+    if (full_) {
+      if (up.has(e.from) && (up.has(e.to) || e.to === active)) return 'up';
+      if (down.has(e.to) && (down.has(e.from) || e.from === active)) return 'down';
+      return null;
+    }
+    if (e.to === active && up.has(e.from)) return 'up';
+    if (e.from === active && down.has(e.to)) return 'down';
+    return null;
   };
-  const isUpEdge = (e: { from: string; to: string }) => !!active && (e.to === active || up.has(e.to)) && (up.has(e.from));
-  const isDownEdge = (e: { from: string; to: string }) => !!active && (e.from === active || down.has(e.from)) && down.has(e.to);
 
   const onKey = (ev: React.KeyboardEvent, code: string, termIdx: number, slotIdx: number) => {
     if (!d) return;
@@ -228,10 +246,58 @@ export function PrereqChainsPage() {
           </span>
         </div>
         <div className="mt-0.5 line-clamp-2 text-xs leading-snug">{l(c.title_en, c.title_ar)}</div>
+        {!isAct && (inUp || inDown) && <div className={clsx('mt-1 text-xs font-semibold', inUp ? 'text-gold-700' : 'text-info')}>{t(inUp ? 'prereqs.tag.before' : 'prereqs.tag.after')}</div>}
         {c.unlocks.length > 0 && <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-line px-1 text-xs font-bold text-muted" title={`${t('prereqs.unlocks')} ${c.unlocks.length}`}>{c.unlocks.length}</span>}
       </button>
     );
   };
+
+  const detail = (sel: ChainCourse) => (
+    <>
+
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-mono text-xs font-bold text-brand-600">{sel.code.startsWith('ELECTIVE:') ? t('prereqs.elective') : sel.code}</div>
+                      <h3 className="text-lg font-semibold leading-tight">{l(sel.title_en, sel.title_ar)}</h3>
+                    </div>
+                    <Badge tone="neutral">{sel.credits} {t('prereqs.credits')}</Badge>
+                  </div>
+                  {sel.description_en && <p className="mt-2 text-sm text-muted">{sel.description_en}</p>}
+                  {mineVisible && d?.my?.[sel.code] && <div className="mt-2"><Badge tone={['completed', 'equivalent'].includes(d!.my![sel.code].status) ? 'success' : d!.my![sel.code].status === 'enrolled' ? 'brand' : d!.my![sel.code].status === 'available' ? 'info' : 'neutral'}>{t(`status.${d!.my![sel.code].status}`)}{d!.my![sel.code].grade ? ` · ${d!.my![sel.code].grade}` : ''}</Badge></div>}
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs">
+                    <div className="card-2 p-2"><div className="text-muted">{t('prereqs.chainDepth')}</div><div className="num text-lg font-bold">{sel.depth}</div></div>
+                    <div className="card-2 p-2"><div className="text-muted">{t('prereqs.unlocks')}</div><div className="num text-lg font-bold">{sel.unlocks.length}</div></div>
+                  </div>
+                  {sel.min_credits > 0 && <div className="mt-2 flex items-center gap-1 text-xs text-gold-700"><Lock className="h-3.5 w-3.5" />{t('prereqs.minCredits', { n: sel.min_credits })}</div>}
+                  <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label={t('prereqs.depth')}>
+                    {(['direct', 'full'] as const).map((k) => (
+                      <button key={k} type="button" aria-pressed={depth === k} onClick={() => setDepth(k)} className={clsx('min-h-9 rounded-lg px-3 text-sm font-medium touch:min-h-11', depth === k ? 'bg-surface-2 text-fg ring-1 ring-line' : 'text-muted hover:text-fg')}>
+                        {k === 'direct' ? t('prereqs.depth.direct') : t('prereqs.depth.full', { up: ancestors(sel.code, byCode).size, down: descendants(sel.code, byCode).size })}
+                      </button>
+                    ))}
+                  </div>
+                  <SectionTitle as="h4" className="mt-4">{sel.prereqs.length > 1 ? t('prereqs.requiresAll') : t('prereqs.requires')}</SectionTitle>
+                  {sel.prereqs.length === 0 ? <div className="text-sm text-muted">{t('prereqs.noPrereqs')}</div> : (
+                    <ul className="space-y-1.5 text-sm">{sel.prereqs.map((g, i) => (
+                      <li key={i} className="flex flex-wrap items-center gap-1">
+                        {g.length > 1 && <span className="text-muted">{t('prereqs.oneOf')}</span>}
+                        {g.map((p, j) => <span key={p} className="flex items-center gap-1">{j > 0 && <span className="text-xs font-semibold uppercase text-muted">{t('prereqs.or')}</span>}<button type="button" onClick={() => setSelected(p)} className="rounded-full border border-gold-500/60 bg-gold-100/60 px-2 py-0.5 font-mono text-xs hover:border-gold-700 dark:bg-gold-700/20">{p}</button></span>)}
+                      </li>
+                    ))}</ul>
+                  )}
+                  {sel.coreqs.length > 0 && <div className="mt-2 text-xs text-muted">{t('prereqs.legendCoreq')}: {sel.coreqs.flat().join(', ')}</div>}
+                  <SectionTitle as="h4" className="mt-4">{t('prereqs.opensUp')}</SectionTitle>
+                  {sel.unlocks.length === 0 ? <div className="text-sm text-muted">{t('prereqs.unlocksNothing')}</div> : <div className="flex flex-wrap gap-1">{sel.unlocks.map((u) => <button key={u} type="button" onClick={() => setSelected(u)} className="rounded-full border border-info/50 bg-info/10 px-2 py-0.5 font-mono text-xs hover:border-info">{u}</button>)}</div>}
+                  {sel.elective?.pool.length ? <><SectionTitle as="h4" className="mt-4">{t('prereqs.electivePool')}</SectionTitle><div className="flex flex-wrap gap-1">{sel.elective.pool.map((p) => <button key={p} type="button" onClick={() => byCode.has(p) && setSelected(p)} className="rounded-full border border-line px-2 py-0.5 font-mono text-xs hover:border-brand-400">{p}</button>)}</div></> : null}
+                  {!sel.code.startsWith('ELECTIVE:') && (
+                    <div className="no-print mt-4 flex flex-wrap gap-2">
+                      {d?.my && <ButtonLink to={`/academics/courses/${encodeURIComponent(sel.code)}`} size="sm" variant="outline" icon={<BookOpen className="h-4 w-4" />}>{t('prereqs.openCourse')}</ButtonLink>}
+                      <ButtonLink to={`/campus/resources?course=${encodeURIComponent(sel.code)}`} size="sm" variant="ghost" icon={<ArrowRight className="h-4 w-4 rtl:rotate-180" />}>{t('prereqs.resources')}</ButtonLink>
+                      {d?.my && d.my[sel.code]?.status === 'available' && <ButtonLink to={`/academics/register?course=${encodeURIComponent(sel.code)}`} size="sm" variant="gold">{t('prereqs.planTerm')}</ButtonLink>}
+                    </div>
+                  )}
+    </>
+  );
 
   return (
     <div>
@@ -270,17 +336,44 @@ export function PrereqChainsPage() {
         <>
           {/* Stats */}
           <h2 className="sr-only">{t('prereqs.h.overview')}</h2>
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[{ k: t('prereqs.credit_total'), v: d.stats.credits }, { k: t('prereqs.courses'), v: d.stats.courses }, { k: t('prereqs.longest'), v: d.stats.longestChain }, { k: t('prereqs.links'), v: d.stats.edges }].map((s) => (
-              <div key={s.k} className="card-2 p-3"><div className="text-sm text-muted">{s.k}</div><div className="num text-2xl font-bold">{s.v}</div></div>
-            ))}
-          </div>
+          <p className="num mb-3 text-sm text-muted">{t('prereqs.statsLine', { credits: d.stats.credits, courses: d.stats.courses, longest: d.stats.longestChain })}</p>
           <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
             <span className="flex items-center gap-1 font-semibold"><Sparkles className="h-4 w-4 text-gold-500" />{t('prereqs.gateways')}</span>
             {d.stats.gateways.map((g) => <button key={g.code} type="button" onClick={() => setSelected(g.code)} className={clsx('rounded-full border px-2.5 py-0.5 font-mono text-xs transition hover:border-brand-400', selected === g.code ? 'border-brand-500 bg-brand-500/10' : 'border-line')}>{g.code} <span className="font-sans text-muted">· {t('prereqs.unlocksN', { n: g.unlocks })}</span></button>)}
             <span className="text-xs text-muted">{t('prereqs.gatewaysHint')}</span>
           </div>
 
+          <Tabs value={view} onChange={(v) => { setView(v); setFull(false); }} label={t('prereqs.view')} className="no-print mb-3 w-fit" items={[{ value: 'map', label: t('prereqs.view.map') }, { value: 'list', label: t('prereqs.view.list') }]} />
+          {view === 'list' && (
+            <section aria-labelledby="prereq-list-h" className="space-y-6">
+              <h2 id="prereq-list-h" className="sr-only">{t('prereqs.view.list')}</h2>
+              {[...d.terms.map((term) => ({ key: `${term.year}-${term.sem}`, title: `${t('prereqs.year', { n: term.year })} · ${term.sem === 3 ? t('prereqs.summer') : t('prereqs.semester', { n: term.sem })}`, courses: term.slots })), ...(d.pool.length ? [{ key: 'pool', title: t('prereqs.poolTitle'), courses: d.pool }] : [])].map((grp) => (
+                <div key={grp.key}>
+                  <h3 className="mb-2 text-sm font-semibold text-muted">{grp.title}</h3>
+                  <ul className="divide-y divide-line rounded-2xl border border-line">
+                    {grp.courses.map((c) => {
+                      const st = mineVisible ? d.my![c.code]?.status : undefined;
+                      const open = selected === c.code;
+                      const isElective = c.code.startsWith('ELECTIVE:');
+                      return (
+                        <li key={c.code}>
+                          <button type="button" aria-expanded={open} onClick={() => setSelected(open ? null : c.code)} className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-start">
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm"><span className="font-mono text-xs font-bold text-brand-600">{isElective ? t('prereqs.elective') : c.code}</span> <span dir="auto">{l(c.title_en, c.title_ar)}</span></span>
+                              <span className="block text-xs text-muted">{c.prereqs.length ? t('prereqs.needsCount', { n: c.prereqs.length }) : t('prereqs.noPrereqsShort')}{c.unlocks.length ? ` · ${t('prereqs.unlocksN', { n: c.unlocks.length })}` : ''}{st ? ` · ${t(`prereqs.status.${st}`)}` : ''}</span>
+                            </span>
+                            <ChevronDown className={clsx('h-4 w-4 shrink-0 text-muted transition-transform', open && 'rotate-180')} aria-hidden />
+                          </button>
+                          {open && <div className="border-t border-line px-3 pb-4 pt-3">{detail(c)}</div>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          )}
+          {view === 'map' && (
           <div className={clsx(full ? 'fixed inset-0 z-[var(--z-modal)] flex flex-col gap-2 bg-bg p-2 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)] lg:gap-4' : 'grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]')} role={full ? 'dialog' : undefined} aria-modal={full || undefined} aria-labelledby={full ? 'prereq-map-h' : undefined}>
             {/* Diagram */}
             <section aria-labelledby="prereq-map-h" className={clsx('card relative flex min-w-0 flex-col p-0', full && 'min-h-0 flex-1 lg:h-full')}>
@@ -293,7 +386,7 @@ export function PrereqChainsPage() {
                   <Button size="icon" variant="ghost" aria-label={t('prereqs.zoomOut')} title={t('prereqs.zoomOut')} disabled={zoom <= 0.5} onClick={() => stepZoom(-1)}><ZoomOut className="h-4 w-4" aria-hidden /></Button>
                   <button type="button" onClick={() => setZoomKeepCenter(1)} className="num min-h-11 min-w-14 rounded-lg px-2 text-sm font-medium text-muted hover:bg-line/50 hover:text-fg sm:min-h-9" title={t('prereqs.zoomReset')} aria-label={`${t('prereqs.zoomReset')} (${Math.round(zoom * 100)}%)`}>{Math.round(zoom * 100)}%</button>
                   <Button size="icon" variant="ghost" aria-label={t('prereqs.zoomIn')} title={t('prereqs.zoomIn')} disabled={zoom >= 1.5} onClick={() => stepZoom(1)}><ZoomIn className="h-4 w-4" aria-hidden /></Button>
-                  <Button size="icon" variant="ghost" aria-label={t('prereqs.fit')} title={t('prereqs.fit')} onClick={fitWidth}><Scan className="h-4 w-4" aria-hidden /></Button>
+                  <Button size="sm" variant="ghost" onClick={fitWidth}>{t('prereqs.fitShort')}</Button>
                   <Button size="icon" variant={full ? 'secondary' : 'ghost'} aria-label={t(full ? 'prereqs.exitFull' : 'prereqs.full')} title={t(full ? 'prereqs.exitFull' : 'prereqs.full')} onClick={() => setFull((f) => !f)}>{full ? <Minimize className="h-4 w-4" aria-hidden /> : <Maximize className="h-4 w-4" aria-hidden />}</Button>
                 </div>
               </div>
@@ -311,13 +404,19 @@ export function PrereqChainsPage() {
               <div ref={viewportRef} tabIndex={0} aria-label={t('prereqs.h.map')}
                 onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === '+' || e.key === '=') { e.preventDefault(); stepZoom(1); } else if (e.key === '-') { e.preventDefault(); stepZoom(-1); } else if (e.key === '0') { e.preventDefault(); setZoomKeepCenter(1); } }}
                 onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
-                className={clsx('scroll-thin relative overflow-auto overscroll-contain bg-surface-2/40 focus-visible:outline-none', full ? 'min-h-0 flex-1' : 'h-[min(68dvh,640px)] min-h-[380px]', 'cursor-grab active:cursor-grabbing')}>
+                className={clsx('scroll-thin relative overflow-auto overscroll-contain bg-surface-2/40 focus-visible:outline-none', full ? 'min-h-0 flex-1' : 'max-h-[min(78dvh,760px)]', 'cursor-grab active:cursor-grabbing')}>
                 <div className="relative" style={{ width: size.w * zoom || undefined, height: size.h * zoom || undefined }}>
                   <div ref={contentRef} className="absolute top-0 start-0 inline-flex items-start gap-4 p-4" style={{ transform: `scale(${zoom})`, transformOrigin: rtl ? 'top right' : 'top left' }}>
                     <svg className="pointer-events-none absolute start-0 top-0" width={size.w} height={size.h} aria-hidden>
-                      {paths.map((p) => (
-                        <path key={p.key} d={p.d} fill="none" strokeWidth={isUpEdge(p) || isDownEdge(p) || p.from === active || p.to === active ? 2.2 : 1.2} className={clsx('transition-[stroke,opacity] duration-150', edgeTone(p))} strokeDasharray={p.kind === 'coreq' ? '6 4' : p.alt ? '2 3' : undefined} />
-                      ))}
+                      <defs>
+                        <marker id="arrow-up" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" className="fill-gold-500" /></marker>
+                        <marker id="arrow-down" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" className="fill-info" /></marker>
+                      </defs>
+                      {paths.map((p) => {
+                        const role = edgeRole(p);
+                        if (!role) return null;
+                        return <path key={p.key} d={p.d} fill="none" strokeWidth={2.2} markerEnd={`url(#arrow-${role})`} className={role === 'up' ? 'stroke-gold-500' : 'stroke-info'} strokeDasharray={p.kind === 'coreq' ? '6 4' : p.alt ? '2 3' : undefined} />;
+                      })}
                     </svg>
                     {d.terms.map((term, ti) => (
                       <div key={`${term.year}-${term.sem}`} className="relative w-[176px] shrink-0">
@@ -343,37 +442,7 @@ export function PrereqChainsPage() {
             <section aria-labelledby="prereq-detail-h" className={clsx('min-w-0 space-y-4', full && 'max-h-[38dvh] shrink-0 overflow-y-auto lg:h-full lg:max-h-none')}>
               <h2 id="prereq-detail-h" className="sr-only">{t('prereqs.h.detail')}</h2>
               {sel ? (
-                <Card className={clsx(!full && "lg:sticky lg:top-20")}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-mono text-xs font-bold text-brand-600">{sel.code.startsWith('ELECTIVE:') ? t('prereqs.elective') : sel.code}</div>
-                      <h3 className="text-lg font-semibold leading-tight">{l(sel.title_en, sel.title_ar)}</h3>
-                    </div>
-                    <Badge tone="neutral">{sel.credits} {t('prereqs.credits')}</Badge>
-                  </div>
-                  {sel.description_en && <p className="mt-2 text-sm text-muted">{sel.description_en}</p>}
-                  {mineVisible && d.my?.[sel.code] && <div className="mt-2"><Badge tone={['completed', 'equivalent'].includes(d.my[sel.code].status) ? 'success' : d.my[sel.code].status === 'enrolled' ? 'brand' : d.my[sel.code].status === 'available' ? 'info' : 'neutral'}>{t(`status.${d.my[sel.code].status}`)}{d.my[sel.code].grade ? ` · ${d.my[sel.code].grade}` : ''}</Badge></div>}
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs">
-                    <div className="card-2 p-2"><div className="text-muted">{t('prereqs.chainDepth')}</div><div className="num text-lg font-bold">{sel.depth}</div></div>
-                    <div className="card-2 p-2"><div className="text-muted">{t('prereqs.unlocks')}</div><div className="num text-lg font-bold">{sel.unlocks.length}</div></div>
-                  </div>
-                  {sel.min_credits > 0 && <div className="mt-2 flex items-center gap-1 text-xs text-gold-700"><Lock className="h-3.5 w-3.5" />{t('prereqs.minCredits', { n: sel.min_credits })}</div>}
-                  <SectionTitle as="h4" className="mt-4">{t('prereqs.requires')}</SectionTitle>
-                  {sel.prereqs.length === 0 ? <div className="text-sm text-muted">{t('prereqs.noPrereqs')}</div> : (
-                    <ul className="space-y-1.5">{sel.prereqs.map((g, i) => <li key={i} className="flex flex-wrap items-center gap-1">{g.map((p, j) => <span key={p} className="flex items-center gap-1">{j > 0 && <span className="text-xs uppercase text-muted">or</span>}<button type="button" onClick={() => setSelected(p)} className="rounded-full border border-gold-500/60 bg-gold-100/60 px-2 py-0.5 font-mono text-xs hover:border-gold-700 dark:bg-gold-700/20">{p}</button></span>)}</li>)}</ul>
-                  )}
-                  {sel.coreqs.length > 0 && <div className="mt-2 text-xs text-muted">{t('prereqs.legendCoreq')}: {sel.coreqs.flat().join(', ')}</div>}
-                  <SectionTitle as="h4" className="mt-4">{t('prereqs.unlocks')}</SectionTitle>
-                  {sel.unlocks.length === 0 ? <div className="text-sm text-muted">{t('prereqs.unlocksNothing')}</div> : <div className="flex flex-wrap gap-1">{sel.unlocks.map((u) => <button key={u} type="button" onClick={() => setSelected(u)} className="rounded-full border border-info/50 bg-info/10 px-2 py-0.5 font-mono text-xs hover:border-info">{u}</button>)}</div>}
-                  {sel.elective?.pool.length ? <><SectionTitle as="h4" className="mt-4">{t('prereqs.electivePool')}</SectionTitle><div className="flex flex-wrap gap-1">{sel.elective.pool.map((p) => <button key={p} type="button" onClick={() => byCode.has(p) && setSelected(p)} className="rounded-full border border-line px-2 py-0.5 font-mono text-xs hover:border-brand-400">{p}</button>)}</div></> : null}
-                  {!sel.code.startsWith('ELECTIVE:') && (
-                    <div className="no-print mt-4 flex flex-wrap gap-2">
-                      {d.my && <ButtonLink to={`/academics/courses/${encodeURIComponent(sel.code)}`} size="sm" variant="outline" icon={<BookOpen className="h-4 w-4" />}>{t('prereqs.openCourse')}</ButtonLink>}
-                      <ButtonLink to={`/campus/resources?course=${encodeURIComponent(sel.code)}`} size="sm" variant="ghost" icon={<ArrowRight className="h-4 w-4 rtl:rotate-180" />}>{t('prereqs.resources')}</ButtonLink>
-                      {d.my && d.my[sel.code]?.status === 'available' && <ButtonLink to={`/academics/register?course=${encodeURIComponent(sel.code)}`} size="sm" variant="gold">{t('prereqs.planTerm')}</ButtonLink>}
-                    </div>
-                  )}
-                </Card>
+                <Card className={clsx(!full && 'lg:sticky lg:top-20')}>{detail(sel)}</Card>
               ) : (
                 <EmptyState icon={<GitBranch className="h-6 w-6" />} title={t('prereqs.hint')} body={program ? `${l(program.name_en, program.name_ar)} · ${program.degree}` : ''} />
               )}
@@ -387,6 +456,7 @@ export function PrereqChainsPage() {
               )}
             </section>
           </div>
+          )}
         </>
       )}
     </div>

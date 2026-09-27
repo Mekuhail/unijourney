@@ -80,22 +80,30 @@ overviewRouter.get('/plan', h((req, res) => {
     return { status: ev.met ? 'available' : 'blocked', grade: null, term: null as string | null, reasons, in_progress: ev.inProgress };
   };
   const used = new Set<string>();
+  const eligibility = analyzeEligibility(ctx, NEXT_TERM, {});
+  const nextEligible = new Set(eligibility.filter((e) => e.eligible && e.sections.length).map((e) => e.code));
   const terms = plan.map((t) => ({
     year: t.year, sem: t.sem, label_en: t.label_en, label_ar: t.label_ar,
     courses: t.slots.map((slot) => {
       if (typeof slot === 'string') { const c = COURSE_BY_CODE.get(slot)!; used.add(slot); return { code: slot, title_en: c.title_en, title_ar: c.title_ar, credits: c.credits, category: c.category, elective: null, ...statusOf(slot) }; }
       const pool = (REQUIREMENTS[programId] ?? REQUIREMENTS.bse).find((r) => r.category === (slot.elective === 'hss' ? 'hss_elective' : 'major_elective'))?.course_codes ?? [];
       const taken = pool.find((c) => !used.has(c) && best.has(c) && ['completed', 'equivalent', 'enrolled', 'planned'].includes(best.get(c)!.status));
-      if (taken) { used.add(taken); const c = COURSE_BY_CODE.get(taken)!; return { code: taken, title_en: c.title_en, title_ar: c.title_ar, credits: c.credits, category: c.category, elective: slot.elective, slot_label_en: slot.label_en, slot_label_ar: slot.label_ar, ...statusOf(taken) }; }
-      const candidates = pool.filter((c) => !used.has(c) && !best.has(c)).map((c) => ({ code: c, ...statusOf(c) })).filter((c) => c.status === 'available').map((c) => c.code);
-      return { code: null, title_en: slot.label_en, title_ar: slot.label_ar, credits: 3, category: slot.elective === 'hss' ? 'hss_elective' : 'major_elective', elective: slot.elective, slot_label_en: slot.label_en, slot_label_ar: slot.label_ar, status: candidates.length ? 'available' : 'blocked', grade: null, term: null, reasons: candidates.length ? [] : ['no eligible elective yet'], in_progress: [], candidates };
+      // Humanities/general-education electives and major/college electives are separate kinds of slot.
+      const elective_kind = slot.elective === 'hss' ? 'general' : 'major';
+      if (taken) { used.add(taken); const c = COURSE_BY_CODE.get(taken)!; return { code: taken, title_en: c.title_en, title_ar: c.title_ar, credits: c.credits, category: c.category, elective: slot.elective, elective_kind, slot_label_en: slot.label_en, slot_label_ar: slot.label_ar, ...statusOf(taken) }; }
+      const open = pool.filter((c) => !used.has(c) && !best.has(c)).map((c) => ({ code: c, ...statusOf(c) }));
+      const candidates = open.filter((c) => c.status === 'available').map((c) => c.code);
+      // Every option for the slot, eligible first, so the student can choose next to the semester it belongs to.
+      const options = open.map((o) => { const c = COURSE_BY_CODE.get(o.code)!; return { code: o.code, title_en: c.title_en, title_ar: c.title_ar, credits: c.credits, status: o.status, reasons: o.reasons, next_term: nextEligible.has(o.code) }; })
+        .sort((a, b) => Number(b.status === 'available') - Number(a.status === 'available') || Number(b.next_term) - Number(a.next_term) || a.code.localeCompare(b.code));
+      return { code: null, title_en: slot.label_en, title_ar: slot.label_ar, credits: 3, category: slot.elective === 'hss' ? 'hss_elective' : 'major_elective', elective: slot.elective, elective_kind, slot_label_en: slot.label_en, slot_label_ar: slot.label_ar, status: candidates.length ? 'available' : 'blocked', grade: null, term: null, reasons: candidates.length ? [] : ['no eligible elective yet'], in_progress: [], candidates, options };
     })
   }));
   const codes = programCourseCodes(programId);
   const nodes = codes.map((code) => { const c = COURSE_BY_CODE.get(code)!; return { code, title_en: c.title_en, credits: c.credits, level: c.level, category: c.category, status: statusOf(code).status }; });
   const edges: Array<{ from: string; to: string; alt: boolean }> = [];
   for (const code of codes) for (const g of prereqRule(code, ctx.programId).prereqs) for (const p of g) if (codes.includes(p)) edges.push({ from: p, to: code, alt: g.length > 1 });
-  ok(res, { program: { id: programId, ...(PROGRAM_NAMES[programId] ?? { en: programId, ar: programId }) }, terms, graph: { nodes, edges }, audit: computeDegreeAudit(u.id), next_term: { id: NEXT_TERM, eligibility: analyzeEligibility(ctx, NEXT_TERM, {}).map((e) => ({ code: e.code, eligible: e.eligible, reasons: e.reasons, required: e.required, sections: e.sections.length })) } });
+  ok(res, { program: { id: programId, ...(PROGRAM_NAMES[programId] ?? { en: programId, ar: programId }) }, terms, graph: { nodes, edges }, audit: computeDegreeAudit(u.id), next_term: { id: NEXT_TERM, eligibility: eligibility.map((e) => ({ code: e.code, eligible: e.eligible, reasons: e.reasons, required: e.required, sections: e.sections.length, category: COURSE_BY_CODE.get(e.code)?.category ?? 'core' })) } });
 }));
 
 overviewRouter.get('/timetable', h((req, res) => {

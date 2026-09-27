@@ -44,19 +44,20 @@ function pendingTitle(p: Pending, t: (k: string, v?: Record<string, string | num
     case 'study': return t('today.pending.study');
     case 'admission': return p.status === 'admitted' ? t('today.pending.admissionOffer') : t('today.pending.admission');
     case 'graduation': return t('today.pending.graduation');
-    case 'email': return v.subject ? t('today.pending.email', { subject: String(v.subject) }) : p.title;
+    case 'email': return v.subject ? String(v.subject) : p.title; // the subject tells two hiring emails apart; the kind goes in the meta line
     default: return p.title;
   }
 }
 
 function Row({ to, icon: Icon, title, meta, tone, trailing }: { to: string; icon: typeof Bell; title: string; meta?: string | null; tone?: 'warn'; trailing?: ReactNode }) {
+  // Titles wrap to two lines (full text on hover) so similar items stay distinguishable in a narrow column.
   return (
     <li>
       <Link to={to} className="group flex min-h-12 items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-line/40">
         <span className={clsx('grid h-9 w-9 shrink-0 place-items-center rounded-lg', tone === 'warn' ? 'bg-warn/15 text-warn' : 'bg-surface-2 text-muted')}><Icon className="h-4 w-4" aria-hidden /></span>
         <span className="min-w-0 flex-1">
-          <span dir="auto" className="block truncate text-sm font-medium rtl:text-right">{title}</span>
-          {meta && <span className="block truncate text-xs text-muted">{meta}</span>}
+          <span dir="auto" title={title} className="line-clamp-2 break-words text-sm font-medium leading-snug rtl:text-right">{title}</span>
+          {meta && <span title={meta} className="block truncate text-xs text-muted">{meta}</span>}
         </span>
         {trailing}
         <ArrowRight className="h-4 w-4 shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 rtl:rotate-180" aria-hidden />
@@ -114,7 +115,7 @@ function TodayTimeline({ d, items }: { d: TodayData; items: Entry[] }) {
 
 export function TodayPage() {
   const { t, locale, l } = useI18n();
-  const { user, hasRole } = useSession();
+  const { user, hasRole, can } = useSession();
   usePageTitle(t('nav.today'));
   const q = useQuery(() => api<TodayData>('/today'), [user?.id], { refreshOn: ['calendar', 'persona', 'clock'] });
   const d = q.data;
@@ -123,6 +124,8 @@ export function TodayPage() {
   const first = user ? l(user.name_en, user.name_ar).split(' ')[0] : '';
   const isStudent = hasRole('student');
   const staffOnly = !!user && !hasRole('student', 'applicant');
+  // Sections follow the role → capability matrix: no timetable for applicants or staff, campus tools for staff.
+  const hasSchedule = can('academics');
 
   const todays = d ? [...d.classes, ...d.upcoming.filter((u) => localDate(u.start_at) === d.today && u.kind !== 'class')].sort((a, b) => a.start_at.localeCompare(b.start_at)) : [];
 
@@ -131,7 +134,7 @@ export function TodayPage() {
   if (d) {
     if (staffOnly) for (const qq of d.queues) { const k = `today.queue.${qq.key}`; const v = t(k); inbox.push({ key: `q-${qq.key}`, to: qq.link, icon: Inbox, title: v === k ? qq.title : v, trailing: <span className="num rounded-full bg-brand-500 px-2 py-0.5 text-xs font-bold text-ink-950">{qq.count}</span> }); }
     if (isStudent && d.stats.unexcusedAbsences > 0) inbox.push({ key: 'abs', to: '/academics/attendance', icon: TriangleAlert, title: t('today.inboxUnexcused', { n: d.stats.unexcusedAbsences }), meta: t('today.inboxUnexcusedMeta'), tone: 'warn' });
-    for (const p of d.pending) inbox.push({ key: p.id, to: p.link, icon: p.kind === 'email' ? Bell : Inbox, title: pendingTitle(p, t), trailing: <StatusPill status={p.status} /> });
+    for (const p of d.pending) inbox.push({ key: p.id, to: p.link, icon: p.kind === 'email' ? Bell : Inbox, title: pendingTitle(p, t), meta: p.kind === 'email' ? t('today.pending.emailMeta') : null, trailing: <StatusPill status={p.status} /> });
     if (d.stats.unread > 0) inbox.push({ key: 'unread', to: '/notifications', icon: Bell, title: t('today.unreadN', { n: d.stats.unread }) });
   }
   const inboxShown = inbox.slice(0, 4);
@@ -153,6 +156,17 @@ export function TodayPage() {
   }
   const forYouShown = forYou.slice(0, 3);
 
+  // Staff and applicants: the few places their work happens, from the same capability matrix as the menu.
+  const tools: typeof inbox = [];
+  if (!isStudent) {
+    if (hasRole('security')) tools.push({ key: 'lf', to: '/staff/campus/lost-found', icon: PackageCheck, title: t('today.tool.lostFound'), meta: t('today.tool.lostFoundMeta') });
+    if (can('staff')) tools.push({ key: 'desk', to: '/staff', icon: Inbox, title: t('today.tool.desk'), meta: t('today.tool.deskMeta') });
+    if (can('journey')) tools.push({ key: 'journey', to: '/journey', icon: Sparkles, title: t('today.tool.journey'), meta: t('today.tool.journeyMeta') });
+    if (can('map')) tools.push({ key: 'map', to: '/campus/map', icon: MapPin, title: t('today.tool.map'), meta: t('today.tool.mapMeta') });
+    if (hasRole('security')) tools.push({ key: 'parking', to: '/campus/map?view=parking', icon: CalendarClock, title: t('today.tool.parking'), meta: t('today.tool.parkingMeta') });
+    if (can('prereqs') && !can('staff')) tools.push({ key: 'programs', to: '/prereqs', icon: BookOpenCheck, title: t('today.tool.programs'), meta: t('today.tool.programsMeta') });
+  }
+
   return (
     <div className="mx-auto max-w-5xl">
       <header className="mb-8">
@@ -161,12 +175,14 @@ export function TodayPage() {
       </header>
 
       {q.error ? <ErrorState error={q.error} onRetry={q.refetch} /> : null}
-      {!d && !q.error && <div className="grid gap-8 lg:grid-cols-2"><Skeleton className="h-64" /><Skeleton className="h-64" /></div>}
+      {!d && !q.error && <div className="grid gap-8 md:grid-cols-2"><Skeleton className="h-64" /><Skeleton className="h-64" /></div>}
 
       {d && (
-        <div className={clsx('grid grid-cols-1 gap-x-10 gap-y-8', !staffOnly && 'lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]')}>
-          {!staffOnly && (
-            <section aria-labelledby="today-h">
+        // Phones: one column, schedule first. Tablets: schedule across the top, inbox and "for you" side by side.
+        // Wide screens: the day on the left, what needs you on the right.
+        <div className={clsx('grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2', hasSchedule && 'xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]')}>
+          {hasSchedule && (
+            <section aria-labelledby="today-h" className="md:col-span-2 xl:col-span-1 xl:row-span-2">
               <div className="mb-3 flex items-baseline justify-between gap-3">
                 <h2 id="today-h" className="text-lg font-semibold">{t('today.schedule')}</h2>
                 <Link to="/academics/timetable" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-600 hover:underline sm:min-h-0">{t('today.timetable')}</Link>
@@ -175,24 +191,29 @@ export function TodayPage() {
             </section>
           )}
 
-          <div className="space-y-8">
-            <section aria-labelledby="inbox-h">
-              <div className="mb-2 flex items-baseline justify-between gap-3">
-                <h2 id="inbox-h" className="text-lg font-semibold">{t('today.inbox')}</h2>
-                {inbox.length > inboxShown.length && <Link to="/approvals" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-600 hover:underline sm:min-h-0">{t('today.seeAll', { n: inbox.length })}</Link>}
-              </div>
-              {inboxShown.length === 0
-                ? <p className="flex items-center gap-2 px-2 py-2 text-sm text-muted"><Sparkles className="h-4 w-4 text-gold-700" aria-hidden />{t('today.caughtUp')}</p>
-                : <ul>{inboxShown.map(({ key, ...r }) => <Row key={key} {...r} />)}</ul>}
-            </section>
+          <section aria-labelledby="inbox-h" className="min-w-0">
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h2 id="inbox-h" className="text-lg font-semibold">{staffOnly ? t('today.queues') : t('today.inbox')}</h2>
+              {inbox.length > inboxShown.length && <Link to="/approvals" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-600 hover:underline sm:min-h-0">{t('today.seeAll', { n: inbox.length })}</Link>}
+            </div>
+            {inboxShown.length === 0
+              ? <p className="flex items-center gap-2 px-2 py-2 text-sm text-muted"><Sparkles className="h-4 w-4 text-gold-700" aria-hidden />{t('today.caughtUp')}</p>
+              : <ul>{inboxShown.map(({ key, ...r }) => <Row key={key} {...r} />)}</ul>}
+          </section>
 
-            {isStudent && forYouShown.length > 0 && (
-              <section aria-labelledby="foryou-h">
-                <h2 id="foryou-h" className="mb-2 text-lg font-semibold">{t('today.forYou')}</h2>
-                <ul>{forYouShown.map(({ key, ...r }) => <Row key={key} {...r} />)}</ul>
-              </section>
-            )}
-          </div>
+          {isStudent && forYouShown.length > 0 && (
+            <section aria-labelledby="foryou-h" className="min-w-0">
+              <h2 id="foryou-h" className="mb-2 text-lg font-semibold">{t('today.forYou')}</h2>
+              <ul>{forYouShown.map(({ key, ...r }) => <Row key={key} {...r} />)}</ul>
+            </section>
+          )}
+
+          {!isStudent && tools.length > 0 && (
+            <section aria-labelledby="tools-h" className="min-w-0">
+              <h2 id="tools-h" className="mb-2 text-lg font-semibold">{t('today.tools')}</h2>
+              <ul>{tools.map(({ key, ...r }) => <Row key={key} {...r} />)}</ul>
+            </section>
+          )}
         </div>
       )}
     </div>
