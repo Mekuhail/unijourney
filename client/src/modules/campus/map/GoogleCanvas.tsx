@@ -24,6 +24,7 @@ export default function GoogleCanvas({ campus, locations, route, selected, onSel
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastCampus = useRef<string | null>(null);
+  const following = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,10 +100,20 @@ export default function GoogleCanvas({ campus, locations, route, selected, onSel
     const path = route.polyline.map(([lat, lng]) => ({ lat, lng }));
     overlays.current.route.push(new google.maps.Polyline({ map: m, path, strokeColor: dark ? '#14120f' : '#ffffff', strokeWeight: 9, strokeOpacity: 0.9 }));
     overlays.current.route.push(new google.maps.Polyline({ map: m, path, strokeColor: ROUTE_COLOR, strokeWeight: 5, strokeOpacity: 0.95 }));
-    const b = new google.maps.LatLngBounds(); for (const p of path) b.extend(p); m.fitBounds(b, 30);
+    const b = new google.maps.LatLngBounds(); for (const p of path) b.extend(p);
+    // Away from campus: a dotted line from the student to the gate the walk starts at.
+    if (route.approach) {
+      const a = [route.approach.from, route.approach.to].map(([lat, lng]) => ({ lat, lng }));
+      overlays.current.route.push(new google.maps.Polyline({ map: m, path: a, strokeOpacity: 0, icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, strokeColor: ROUTE_COLOR, scale: 3 }, offset: '0', repeat: '14px' }] }));
+      for (const p of a) b.extend(p);
+    }
+    following.current = false;
+    m.fitBounds(b, 30);
   }, [ready, route, dark]);
 
-  // The student's position: blue dot + accuracy circle, drawn only when it is on this campus.
+  // The student's live position: blue dot + accuracy circle, wherever they are. After "Show my location" the map
+  // keeps the dot in view as it moves, until the student drags the map.
+  useEffect(() => { const m = map.current; if (!ready || !m) return; const l = m.addListener('dragstart', () => { following.current = false; }); return () => l.remove(); }, [ready]);
   const meOverlays = useRef<{ dot: google.maps.Marker | null; ring: google.maps.Circle | null }>({ dot: null, ring: null });
   useEffect(() => {
     const m = map.current;
@@ -114,8 +125,9 @@ export default function GoogleCanvas({ campus, locations, route, selected, onSel
     else { o.ring.setCenter(pos); o.ring.setRadius(Math.max(me.accuracy, 4)); }
     if (!o.dot) o.dot = new google.maps.Marker({ map: m, position: pos, title: meLabel, clickable: false, zIndex: 3000, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: '#1a73e8', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 3 } });
     else o.dot.setPosition(pos);
+    if (following.current) m.panTo(pos);
   }, [ready, me, meLabel]);
-  useEffect(() => { if (meKey && me && map.current) { map.current.panTo({ lat: me.lat, lng: me.lng }); if ((map.current.getZoom() ?? 0) < 18) map.current.setZoom(18); } }, [meKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (meKey && me && map.current) { following.current = true; map.current.panTo({ lat: me.lat, lng: me.lng }); if ((map.current.getZoom() ?? 0) < 18) map.current.setZoom(18); } }, [meKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <div className={`${className ?? 'h-[420px] w-full'} grid place-items-center rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger`}>Google Maps failed to load: {error}. Switch the map source to OpenStreetMap.</div>;
   return <div ref={el} className={className ?? 'h-[420px] w-full'} role="application" aria-label="Campus map (Google)" />;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ArrowLeftRight, Footprints, Accessibility, Navigation, ExternalLink, Info, Search, X, CalendarDays, Maximize2, Layers, MapPin, ChevronDown, SquareParking, Route as RouteIcon, LocateFixed, Locate, Loader2 } from 'lucide-react';
+import { ArrowLeftRight, Footprints, Accessibility, Navigation, ExternalLink, Info, Search, X, CalendarDays, Maximize2, Layers, MapPin, ChevronDown, SquareParking, Route as RouteIcon, LocateFixed, Locate, Loader2, Car } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { placeName } from '../map/style';
@@ -34,6 +34,13 @@ function readBasemap(): Basemap {
 /** Small category pin rendered from the same markup as the map (keeps list and map visually identical). */
 function PinGlyph({ loc, size = 22 }: { loc: MapLocation; size?: number }) {
   return <span className="uj-pin-inline shrink-0" style={{ width: size, height: size }} aria-hidden dangerouslySetInnerHTML={{ __html: pinHtml(loc, false, size) }} />;
+}
+
+/** "850 m", "3.4 km", "26 km" (Arabic: م / كم). */
+function fmtDistance(m: number, locale: string) {
+  if (m < 1000) return locale === 'ar' ? `${m} م` : `${m} m`;
+  const km = (m / 1000).toFixed(m >= 10000 ? 0 : 1);
+  return locale === 'ar' ? `${km} كم` : `${km} km`;
 }
 
 export function MapPage() {
@@ -70,12 +77,14 @@ export function MapPage() {
   useEffect(() => { if (cfg.data?.googleMapsKey) setProvider('google'); }, [cfg.data?.googleMapsKey]);
   const campuses = useQuery(() => api<Campus[]>('/campus/map/campuses'), []);
   const campus = campuses.data?.find((c) => c.id === campusId) ?? null;
-  // The student's position is shown only when it is on this campus; off campus nothing is drawn or offered.
+  // The student's live position, wherever they are. Off campus the dot still shows, and directions start with the
+  // way to the nearest gate.
   const geo = useCampusLocation(campuses.data, demoMode);
-  const meHere = geo.status === 'on_campus' && geo.fix && geo.campusId === campusId ? geo.fix : null;
+  const meHere = geo.fix;
+  const located = (s: string) => s === 'on_campus' || s === 'off_campus';
   const locateMe = async () => {
     const outcome = await geo.locate();
-    if (outcome !== 'on_campus') { toast.info(outcome === 'denied' ? t('map.me.denied') : t('map.me.offCampus')); return; }
+    if (!located(outcome)) { toast.info(outcome === 'denied' ? t('map.me.denied') : t('map.me.lost')); return; }
     setMeKey((k) => k + 1);
   };
   // Jump to the campus the student is standing on when they ask for their location.
@@ -85,8 +94,9 @@ export function MapPage() {
   const byId = useMemo(() => new Map(locations.map((x) => [x.id, x])), [locations]);
   const detail = useQuery(() => api<MapLocation & { connected_edges: number; reachable: boolean; rooms: MapLocation[]; upcoming_events: Array<{ id: string; title_en: string; title_ar: string; start_at: string }> }>(`/campus/map/locations/${selected}`), [selected], { enabled: !!selected });
   const fromMe = from === '@me';
-  // Re-route when the position moves ~10 m; coordinates go in the request body, never the URL.
-  const meCell = meHere ? `${meHere.lat.toFixed(4)},${meHere.lng.toFixed(4)}` : null;
+  // Re-route as the position moves (~10 m on campus, ~100 m away from it); coordinates go in the request body, never the URL.
+  const cellDigits = geo.status === 'on_campus' ? 4 : 3;
+  const meCell = meHere ? `${meHere.lat.toFixed(cellDigits)},${meHere.lng.toFixed(cellDigits)}` : null;
   const route = useQuery(() => (fromMe
     ? api<RouteResult>('/campus/map/route/from-point', { method: 'POST', body: { lat: meHere!.lat, lng: meHere!.lng, accuracy: meHere!.accuracy, to, mode } })
     : api<RouteResult>('/campus/map/route', { query: { from, to, mode } })), [from, to, mode, fromMe ? meCell : null], { enabled: !!from && !!to && (!fromMe || !!meHere) });
@@ -138,7 +148,8 @@ export function MapPage() {
   const popular = useMemo(() => (POPULAR[campusId] ?? []).map((id) => byId.get(id)).filter(Boolean) as MapLocation[], [campusId, byId]);
   const label = (x: MapLocation) => x.building_id ? `${ln(x.name_en, x.name_ar)} · ${ln(x.building_name_en ?? '', x.building_name_ar)}` : ln(x.name_en, x.name_ar);
   const fromLoc = fromMe ? (meHere ? ({ lat: meHere.lat, lng: meHere.lng } as MapLocation) : null) : from ? byId.get(from) : null, toLoc = to ? byId.get(to) : null;
-  const gmapsUrl = fromLoc && toLoc ? `https://www.google.com/maps/dir/?api=1&origin=${fromLoc.lat},${fromLoc.lng}&destination=${toLoc.lat},${toLoc.lng}&travelmode=walking` : toLoc ? `https://www.google.com/maps/dir/?api=1&destination=${toLoc.lat},${toLoc.lng}&travelmode=walking` : null;
+  // From "my location" the origin is left out, so Google Maps uses the device position itself.
+  const gmapsUrl = fromLoc && toLoc && !fromMe ? `https://www.google.com/maps/dir/?api=1&origin=${fromLoc.lat},${fromLoc.lng}&destination=${toLoc.lat},${toLoc.lng}&travelmode=walking` : toLoc ? `https://www.google.com/maps/dir/?api=1&destination=${toLoc.lat},${toLoc.lng}&travelmode=walking` : null;
   const onSelect = useCallback((id: string) => { setSelected(id); setSearch(''); }, []);
   const toggleCat = (c: Category) => setHidden((prev) => { const n = new Set(prev); if (n.has(c)) n.delete(c); else n.add(c); return n; });
   const d = detail.data;
@@ -232,7 +243,7 @@ export function MapPage() {
                 {campus && <Badge tone="neutral" className="!bg-surface/85">{t('map.results', { n: campus.locations })}</Badge>}
               </div>
               <div className="flex flex-col gap-2">
-                {geo.status !== 'off_campus' && geo.status !== 'denied' && geo.status !== 'unsupported' && (
+                {geo.status !== 'unsupported' && (
                   <button type="button" onClick={() => void locateMe()} aria-pressed={!!meHere} className={clsx('pointer-events-auto glass grid h-11 w-11 place-items-center rounded-xl shadow-md', meHere ? 'text-[#1a73e8]' : 'hover:text-brand-600')} title={t('map.me.show')} aria-label={t('map.me.show')}>
                     {geo.status === 'locating' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : meHere ? <LocateFixed className="h-5 w-5" aria-hidden /> : <Locate className="h-5 w-5" aria-hidden />}
                   </button>
@@ -340,8 +351,8 @@ export function MapPage() {
                     <Button variant="outline" size="icon" aria-label={t('campus.map.swap')} title={t('campus.map.swap')} onClick={() => setQ({ from: to, to: from })}><ArrowLeftRight className="h-4 w-4 rotate-90" /></Button>
                   </div>
                   <Tabs value={mode} onChange={(v) => setQ({ mode: v })} items={[{ value: 'walking', label: t('campus.map.walking'), icon: <Footprints className="h-4 w-4" /> }, { value: 'accessible', label: t('campus.map.accessible'), icon: <Accessibility className="h-4 w-4" /> }]} />
-                  {geo.status !== 'off_campus' && geo.status !== 'denied' && geo.status !== 'unsupported' && !fromMe && (!geo.campusId || geo.campusId === campusId) && (
-                    <Button size="sm" variant="outline" icon={<LocateFixed className="h-4 w-4 text-[#1a73e8]" aria-hidden />} loading={geo.status === 'locating'} onClick={async () => { const outcome = await geo.locate(); if (outcome === 'on_campus') { setQ({ from: '@me' }); setMeKey((k) => k + 1); } else toast.info(outcome === 'denied' ? t('map.me.denied') : t('map.me.offCampus')); }}>{t('map.me.useAsStart')}</Button>
+                  {geo.status !== 'unsupported' && !fromMe && (
+                    <Button size="sm" variant="outline" icon={<LocateFixed className="h-4 w-4 text-[#1a73e8]" aria-hidden />} loading={geo.status === 'locating'} onClick={async () => { const outcome = await geo.locate(); if (located(outcome)) setQ({ from: '@me' }); else toast.info(outcome === 'denied' ? t('map.me.denied') : t('map.me.lost')); }}>{t('map.me.useAsStart')}</Button>
                   )}
                   {fromMe && !meHere && <Callout tone="info">{t('map.me.lost')}</Callout>}
                   {(from || to) && <button type="button" onClick={() => setQ({ from: null, to: null })} className="text-xs font-medium text-muted underline-offset-4 hover:text-fg hover:underline">{t('campus.map.clear')}</button>}
@@ -350,9 +361,19 @@ export function MapPage() {
 
                   {r && routeOk && (
                     <div className="space-y-3">
+                      {r.approach && (
+                        <div className="flex items-start gap-3 rounded-xl bg-surface-2 p-3 text-sm">
+                          <Car className="mt-0.5 h-4 w-4 shrink-0 text-[#1a73e8]" aria-hidden />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold">{t('map.me.away', { d: fmtDistance(r.approach.meters, locale) })}</p>
+                            <p className="text-muted">{t('map.me.getToGate', { gate: ln(r.approach.gate_name_en, r.approach.gate_name_ar) })}</p>
+                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${r.approach.to[0]},${r.approach.to[1]}&travelmode=driving`} target="_blank" rel="noreferrer noopener" className="mt-1 inline-flex min-h-11 items-center gap-1 font-semibold text-brand-600 hover:underline sm:min-h-0">{t('map.me.gateDirections')}<ExternalLink className="h-3 w-3" aria-hidden /></a>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                         <span className="num text-2xl font-bold tracking-tight">{minutesLabel(r.duration_min, locale)}</span>
-                        <span className="num text-sm text-muted">{r.distance_m} m</span>
+                        <span className="num text-sm text-muted">{r.distance_m} m{r.approach ? ` · ${t('map.me.walkFromGate')}` : ''}</span>
                         {r.stairsSegments > 0 ? <Badge tone="warn">{t('campus.map.stairs')}</Badge> : <Badge tone="success">{t('campus.map.stepFree')}</Badge>}
                         {gmapsUrl && <a href={gmapsUrl} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center text-sm ms-auto gap-1 font-semibold text-brand-600 hover:underline">{t('campus.map.directionsGoogle')}<ExternalLink className="h-3 w-3" /></a>}
                       </div>
@@ -362,7 +383,7 @@ export function MapPage() {
                           <li key={i} className="relative py-1.5 text-sm">
                             <span className={clsx('absolute -start-6 top-2 grid h-[18px] w-[18px] place-items-center rounded-full text-xs font-bold', i === r.steps.length - 1 ? 'bg-danger text-on-strong' : 'bg-brand-500 text-ink-950')}>{i + 1}</span>
                             <span className="block leading-snug">{locale === 'ar' ? st.instruction_ar : st.instruction_en}</span>
-                            <span className={clsx('text-xs capitalize', st.accessible === 'no' ? 'text-danger' : st.accessible === 'unknown' ? 'text-muted' : 'text-success')}>{st.kind}</span>
+                            {st.kind !== 'approach' && <span className={clsx('text-xs capitalize', st.accessible === 'no' ? 'text-danger' : st.accessible === 'unknown' ? 'text-muted' : 'text-success')}>{st.kind}</span>}
                           </li>
                         ))}
                       </ol>

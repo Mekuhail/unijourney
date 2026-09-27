@@ -32,6 +32,8 @@ export interface RouteResult {
   unknownAccessibilitySegments: number;
   stairsSegments: number;
   nodes: number;
+  /** Set when the student starts away from campus: the stretch from their position to the campus gate the walk starts at. */
+  approach?: { meters: number; gate_id: string; gate_name_en: string; gate_name_ar: string; from: [number, number]; to: [number, number] };
 }
 
 function polygonOf(l: LocationRow): Array<[number, number]> | null {
@@ -239,48 +241,57 @@ export function campusAt(lat: number, lng: number): string | null {
   return null;
 }
 
+/** Within this distance of a campus path the student simply walks to it; farther away they first travel to a gate. */
+const WALK_TO_PATH_M = 400;
+
 /**
- * Walking route from a GPS position: snap to the nearest outdoor path node (junction, gate or entrance) on the same
- * campus, route from there, and prepend the short straight stretch from the student to that node. The position is used
- * for this answer only; it is never stored or logged.
+ * Route from the student's live GPS position, wherever they are. On or near campus: a short walk to the nearest
+ * outdoor path node, then the campus route. Away from campus (at home, across the city, on the other campus): an
+ * "approach" to the destination campus's nearest gate, then the walk from that gate. The position is used for this
+ * answer only; it is never stored or logged.
  */
 export function routeFromPoint(lat: number, lng: number, toId: string, mode: RouteMode, accuracy?: number): RouteResult {
   const to = db().get<LocationRow>('SELECT * FROM campus_locations WHERE id = ?', toId);
-  const me = (campus: string) => ({ id: '@me', campus_id: campus, kind: 'me', name_en: 'Your location', name_ar: 'موقعك الحالي', building_id: null, building_name_en: null, building_name_ar: null, floor: 0, lat, lng, accessible: 'unknown' as const, geometry_status: 'gps', tags: [], description_en: '', searchable: false });
   const base: RouteResult = { found: false, mode, from: null, to: to ? publicLocation(to, { polygon: false }) : null, distance_m: 0, duration_min: 0, steps: [], polyline: [], warnings: [], unknownAccessibilitySegments: 0, stairsSegments: 0, nodes: 0 };
   if (!to) return { ...base, reason_code: 'unknown_location', reason: 'Destination is not a known campus location.' };
-  const campus = campusAt(lat, lng);
-  if (!campus) return { ...base, reason_code: 'off_campus', reason: 'Your location is not on a YU campus.' };
-  const from = me(campus) as unknown as RouteResult['from'];
-  if (campus !== to.campus_id) return { ...base, from, reason_code: 'cross_campus', reason: `You are on the ${campus} campus and ${to.name_en} is on the ${to.campus_id} campus.` };
-  if (accuracy !== undefined && accuracy > 250) return { ...base, from, reason_code: 'low_accuracy', reason: 'Your location is too imprecise for walking directions. Try again outdoors or pick a starting place.' };
+  const campus = to.campus_id;
+  const from = { id: '@me', campus_id: campusAt(lat, lng) ?? campus, kind: 'me', name_en: 'Your location', name_ar: 'موقعك الحالي', building_id: null, building_name_en: null, building_name_ar: null, floor: 0, lat, lng, accessible: 'unknown' as const, geometry_status: 'gps', tags: [], description_en: '', searchable: false } as unknown as RouteResult['from'];
   const { nodes, edges } = loadGraph(campus);
   const connected = new Set(edges.flatMap((e) => [e.from_id, e.to_id]));
-  let best: LocationRow | null = null, bestM = Infinity;
-  for (const n of nodes.values()) {
-    if (!connected.has(n.id) || !['junction', 'gate', 'entrance'].includes(n.kind)) continue;
-    const m = haversine(lat, lng, n.lat, n.lng);
-    if (m < bestM) { best = n; bestM = m; }
-  }
-  if (!best || bestM > 400) return { ...base, from, reason_code: 'no_path_nearby', reason: 'No campus path is close to your position.' };
-  const r = computeRoute(best.id, to.id, mode);
-  if (!r.found) return { ...r, from };
-  const leg = Math.round(bestM);
-  if (leg < 5) return { ...r, from, polyline: [[lat, lng], ...r.polyline.slice(1)], steps: r.steps.map((st, i) => (i === 0 ? { ...st, from: '@me', from_name_en: 'Your location', from_name_ar: 'موقعك الحالي' } : st)) };
-  const nameEn = best.kind === 'junction' ? 'the nearest walkway' : best.name_en;
-  const nameAr = best.kind === 'junction' ? 'أقرب ممر مشاة' : best.name_ar;
-  const first: RouteStep = { from: '@me', from_name_en: 'Your location', from_name_ar: 'موقعك الحالي', to: best.id, to_name_en: nameEn, to_name_ar: nameAr, kind: 'walkway', meters: leg, instruction_en: `Walk to ${nameEn} (${leg} m)`, instruction_ar: `امشِ إلى ${nameAr} (${leg} م)`, accessible: 'unknown' };
-  const distance = r.distance_m + leg;
-  return {
-    ...r,
-    from,
-    distance_m: distance,
-    duration_min: Math.max(1, Math.round(distance / WALK_SPEED_MPS[mode] / 60)),
-    steps: [first, ...r.steps],
-    polyline: [[lat, lng], ...r.polyline],
-    unknownAccessibilitySegments: r.unknownAccessibilitySegments + 1,
-    nodes: r.nodes + 1
+  const nearest = (kinds: string[]) => {
+    let best: LocationRow | null = null, bestM = Infinity;
+    for (const n of nodes.values()) {
+      if (!connected.has(n.id) || !kinds.includes(n.kind)) continue;
+      const m = haversine(lat, lng, n.lat, n.lng);
+      if (m < bestM) { best = n; bestM = m; }
+    }
+    return { node: best, m: bestM };
   };
+  const path = nearest(['junction', 'gate', 'entrance']);
+  if (!path.node) return { ...base, from, reason_code: 'no_edges', reason: 'This campus has no walkable paths yet.' };
+  const imprecise = accuracy !== undefined && accuracy > 250 ? [`Your location is approximate (about ${Math.round(accuracy)} m), so the first stretch may be off.`] : [];
+
+  if (path.m <= WALK_TO_PATH_M) {
+    const r = computeRoute(path.node.id, to.id, mode);
+    if (!r.found) return { ...r, from };
+    const leg = Math.round(path.m);
+    if (leg < 5) return { ...r, from, warnings: [...imprecise, ...r.warnings], polyline: [[lat, lng], ...r.polyline.slice(1)], steps: r.steps.map((st, i) => (i === 0 ? { ...st, from: '@me', from_name_en: 'Your location', from_name_ar: 'موقعك الحالي' } : st)) };
+    const nameEn = path.node.kind === 'junction' ? 'the nearest walkway' : path.node.name_en;
+    const nameAr = path.node.kind === 'junction' ? 'أقرب ممر مشاة' : path.node.name_ar;
+    const first: RouteStep = { from: '@me', from_name_en: 'Your location', from_name_ar: 'موقعك الحالي', to: path.node.id, to_name_en: nameEn, to_name_ar: nameAr, kind: 'walkway', meters: leg, instruction_en: `Walk to ${nameEn} (${leg} m)`, instruction_ar: `امشِ إلى ${nameAr} (${leg} م)`, accessible: 'unknown' };
+    const distance = r.distance_m + leg;
+    return { ...r, from, distance_m: distance, duration_min: Math.max(1, Math.round(distance / WALK_SPEED_MPS[mode] / 60)), steps: [first, ...r.steps], polyline: [[lat, lng], ...r.polyline], warnings: [...imprecise, ...r.warnings], unknownAccessibilitySegments: r.unknownAccessibilitySegments + 1, nodes: r.nodes + 1 };
+  }
+
+  // Away from campus: head for the nearest gate of the destination campus, then walk in from there.
+  const gate = nearest(['gate']).node ?? nearest(['entrance']).node ?? path.node;
+  const r = computeRoute(gate.id, to.id, mode);
+  if (!r.found) return { ...r, from };
+  const meters = Math.round(haversine(lat, lng, gate.lat, gate.lng));
+  const away = meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 1)} km` : `${meters} m`;
+  const awayAr = meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 10000 ? 0 : 1)} كم` : `${meters} م`;
+  const first: RouteStep = { from: '@me', from_name_en: 'Your location', from_name_ar: 'موقعك الحالي', to: gate.id, to_name_en: gate.name_en, to_name_ar: gate.name_ar, kind: 'approach', meters, instruction_en: `Get to ${gate.name_en} (${away} away)`, instruction_ar: `توجّه إلى ${gate.name_ar} (على بعد ${awayAr})`, accessible: 'unknown' };
+  return { ...r, from, steps: [first, ...r.steps], warnings: [...imprecise, ...r.warnings], approach: { meters, gate_id: gate.id, gate_name_en: gate.name_en, gate_name_ar: gate.name_ar, from: [lat, lng], to: [gate.lat, gate.lng] } };
 }
 
 mapRouter.post('/map/route/from-point', h((req, res) => {

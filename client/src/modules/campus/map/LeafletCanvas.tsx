@@ -47,6 +47,8 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
   const canvasRenderer = useRef<L.Canvas | null>(null);
   const meMarker = useRef<L.Marker | null>(null);
   const meCircle = useRef<L.Circle | null>(null);
+  // After "Show my location" the map keeps the dot in view as it moves, until the student pans or a route is drawn.
+  const following = useRef(false);
   const [zoom, setZoom] = useState(17);
   const lastCampus = useRef<string | null>(null);
   const boundaryBounds = useRef<L.LatLngBounds | null>(null);
@@ -57,6 +59,7 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
   useEffect(() => {
     if (!el.current || map.current) return;
     const m = L.map(el.current, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, zoomSnap: 0.5, maxZoom: 20 });
+    m.on('dragstart', () => { following.current = false; });
     L.control.zoom({ position: locale === 'ar' ? 'topleft' : 'topright' }).addTo(m);
     m.attributionControl.setPrefix(false);
     layers.current = { boundary: L.layerGroup().addTo(m), shapes: L.layerGroup().addTo(m), parking: L.layerGroup().addTo(m), pins: L.layerGroup().addTo(m), route: L.layerGroup().addTo(m), me: L.layerGroup().addTo(m) };
@@ -206,6 +209,7 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
     if (!me) { ly.me.clearLayers(); meMarker.current = null; meCircle.current = null; return; }
     const heading = me.heading !== null && me.heading !== undefined ? `<span class="uj-me__cone" style="transform: rotate(${Math.round(me.heading)}deg)"></span>` : '';
     const html = `<span class="uj-me" role="img" aria-label="${meLabel ?? 'You are here'}">${heading}<span class="uj-me__halo"></span><span class="uj-me__dot"></span></span>`;
+    if (following.current) map.current?.panTo([me.lat, me.lng], { animate: !reducedMotion });
     if (meMarker.current && meCircle.current) {
       meMarker.current.setLatLng([me.lat, me.lng]);
       meMarker.current.setIcon(L.divIcon({ className: 'uj-pin-wrap', html, iconSize: [22, 22], iconAnchor: [11, 11] }));
@@ -221,6 +225,7 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
   useEffect(() => {
     const m = map.current;
     if (!m || !meKey || !me) return;
+    following.current = true;
     m.flyTo([me.lat, me.lng], Math.max(m.getZoom(), 18), { duration: reducedMotion ? 0 : 0.6 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meKey]);
@@ -234,13 +239,21 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
     const pts = route.polyline as L.LatLngExpression[];
     const casing = L.polyline(pts, { color: dark ? '#14120f' : '#ffffff', weight: 10, opacity: 0.95, lineJoin: 'round', lineCap: 'round', interactive: false });
     const line = L.polyline(pts, { color: ROUTE_COLOR, weight: 5.5, opacity: 1, lineJoin: 'round', lineCap: 'round', className: reducedMotion ? 'uj-route' : 'uj-route uj-route--draw', interactive: false });
+    following.current = false;
+    // Away from campus: a dashed line from the student to the gate the walk starts at.
+    const bounds = line.getBounds();
+    if (route.approach) {
+      const a = [route.approach.from, route.approach.to] as L.LatLngExpression[];
+      ly.route.addLayer(L.polyline(a, { color: ROUTE_COLOR, weight: 3, opacity: 0.85, dashArray: '2 9', lineCap: 'round', interactive: false }));
+      bounds.extend(L.latLngBounds(a));
+    }
     ly.route.addLayer(casing); ly.route.addLayer(line);
     line.getElement()?.setAttribute('pathLength', '1');
     const [s, e] = [route.polyline[0], route.polyline[route.polyline.length - 1]];
     const end = (cls: string, label: string) => L.divIcon({ className: 'uj-pin-wrap', html: `<div class="uj-end ${cls}" role="img" aria-label="${label}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
     ly.route.addLayer(L.marker(s as L.LatLngExpression, { icon: end('uj-end--start', locale === 'ar' ? 'البداية' : 'Start'), interactive: false, zIndexOffset: 1200 }));
     ly.route.addLayer(L.marker(e as L.LatLngExpression, { icon: end('uj-end--dest', locale === 'ar' ? 'الوجهة' : 'Destination'), interactive: false, zIndexOffset: 1200 }));
-    m.flyToBounds(line.getBounds(), { padding: [48, 48], maxZoom: 19, duration: reducedMotion ? 0 : 0.7 });
+    m.flyToBounds(bounds, { padding: [48, 48], maxZoom: 19, duration: reducedMotion ? 0 : 0.7 });
   }, [route, dark, locale, reducedMotion]);
 
   // Fly to a newly selected place (only when no route is shown)

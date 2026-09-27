@@ -2,17 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Campus } from '../types';
 
 /**
- * The student's position on the campus map. It is read in the browser and only used when it falls on (or within
- * ~150 m of) a YU campus; anywhere else the map shows nothing and "My location" is not offered. The position never
- * leaves the device except inside a directions request, and it is never stored.
+ * The student's live position for the campus map. It comes from the device (GPS / Wi-Fi) through `watchPosition`, so
+ * the blue dot moves as they walk, and it is shown wherever they are: on campus, at home, or on the other campus.
+ * The position never leaves the device except inside a directions request, and it is never stored.
  *
- * Demo mode can simulate a device position (Demo panel), because judges are rarely standing on campus.
+ * Demo mode can still pin a simulated position (Demo panel), but only when someone picks one explicitly.
  */
 export interface Fix { lat: number; lng: number; accuracy: number; heading: number | null; spot?: string }
-export type LocationStatus = 'unsupported' | 'denied' | 'idle' | 'locating' | 'on_campus' | 'off_campus';
+/** `on_campus` / `off_campus` both mean "we have a position"; they only say where it is. */
+export type LocationStatus = 'unsupported' | 'denied' | 'unavailable' | 'idle' | 'locating' | 'on_campus' | 'off_campus';
 
 export const NEAR_CAMPUS_M = 150;
-const DEMO_KEY = 'uj.demoLocation';
+// v2: simulated positions saved by the old Demo panel are ignored, so the real device location is the default again.
+const DEMO_KEY = 'uj.demoLocation.v2';
 
 export function readDemoLocation(): Fix | null {
   try { const v = localStorage.getItem(DEMO_KEY); return v ? (JSON.parse(v) as Fix) : null; } catch { return null; }
@@ -43,7 +45,7 @@ function haversine(a: [number, number], b: [number, number]) {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-/** Same rule as the server: inside the boundary, or within NEAR_CAMPUS_M of it (centre within 700 m without one). */
+/** The campus a position is on (inside the boundary or within NEAR_CAMPUS_M of it), or null when elsewhere. */
 export function campusFor(fix: Fix, campuses: Campus[]): string | null {
   const p: [number, number] = [fix.lat, fix.lng];
   for (const c of campuses) {
@@ -54,6 +56,13 @@ export function campusFor(fix: Fix, campuses: Campus[]): string | null {
   return null;
 }
 
+/** Straight-line distance in metres from a position to the nearest point of a campus (0 when on it). */
+export function distanceToCampus(fix: Fix, c: Campus): number {
+  const p: [number, number] = [fix.lat, fix.lng];
+  if (c.boundary.length >= 3) return inside(p, c.boundary) ? 0 : Math.min(...c.boundary.map((a, i) => metersToSegment(p, a, c.boundary[(i + 1) % c.boundary.length])));
+  return haversine(p, [c.lat, c.lng]);
+}
+
 export function useCampusLocation(campuses: Campus[] | null, demoMode: boolean) {
   const [status, setStatus] = useState<LocationStatus>(() => (typeof navigator !== 'undefined' && 'geolocation' in navigator ? 'idle' : 'unsupported'));
   const [fix, setFix] = useState<Fix | null>(null);
@@ -62,63 +71,73 @@ export function useCampusLocation(campuses: Campus[] | null, demoMode: boolean) 
   const waiters = useRef<Array<(s: LocationStatus) => void>>([]);
   const campusesRef = useRef(campuses);
   campusesRef.current = campuses;
+  const settle = (s: LocationStatus) => waiters.current.splice(0).forEach((w) => w(s));
 
   const accept = useCallback((f: Fix) => {
-    const list = campusesRef.current ?? [];
-    const c = f.accuracy <= 500 ? campusFor(f, list) : null;
-    // Off campus: forget the position entirely rather than keeping it around.
-    if (c) { setFix(f); setCampusId(c); setStatus('on_campus'); } else { setFix(null); setCampusId(null); setStatus('off_campus'); }
-    waiters.current.splice(0).forEach((w) => w(c ? 'on_campus' : 'off_campus'));
+    const c = campusFor(f, campusesRef.current ?? []);
+    const st: LocationStatus = c ? 'on_campus' : 'off_campus';
+    setFix(f); setCampusId(c); setStatus(st);
+    settle(st);
   }, []);
+
+  const stop = () => { if (watch.current !== null) { navigator.geolocation.clearWatch(watch.current); watch.current = null; } };
 
   const start = useCallback(() => {
     const demo = demoMode ? readDemoLocation() : null;
-    if (demo) { accept(demo); return; }
+    if (demo) { stop(); accept(demo); return; }
     if (!('geolocation' in navigator) || watch.current !== null) return;
     watch.current = navigator.geolocation.watchPosition(
       (p) => accept({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy, heading: Number.isFinite(p.coords.heading) ? p.coords.heading : null }),
-      (e) => { const st: LocationStatus = e.code === e.PERMISSION_DENIED ? 'denied' : 'off_campus'; setStatus(st); setFix(null); waiters.current.splice(0).forEach((w) => w(st)); },
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+      (e) => {
+        if (e.code === e.PERMISSION_DENIED) { stop(); setStatus('denied'); setFix(null); setCampusId(null); settle('denied'); return; }
+        // A timeout or a lost signal keeps the last known position; without one, say it is unavailable.
+        setFix((f) => { if (!f) { setStatus('unavailable'); settle('unavailable'); } return f; });
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
     );
   }, [accept, demoMode]);
 
-  // Start silently only when permission was already granted (or a demo position is set); otherwise wait for a tap.
+  // Start as soon as the map has its campuses. The browser asks for permission the first time; after that the dot
+  // follows the device in real time. A site that was blocked stays blocked until the student changes it.
   useEffect(() => {
     if (!campuses?.length || status === 'unsupported') return;
     if (demoMode && readDemoLocation()) { start(); return; }
     let live = true;
-    void navigator.permissions?.query({ name: 'geolocation' as PermissionName }).then((p) => {
+    const perms = navigator.permissions?.query({ name: 'geolocation' as PermissionName });
+    if (!perms) { setStatus('locating'); start(); return; }
+    void perms.then((p) => {
       if (!live) return;
-      if (p.state === 'granted') start();
-      else if (p.state === 'denied') setStatus('denied');
-      p.onchange = () => { if (p.state === 'denied') { setStatus('denied'); setFix(null); } };
-    }).catch(() => undefined);
+      if (p.state === 'denied') setStatus('denied');
+      else { setStatus((s) => (s === 'idle' ? 'locating' : s)); start(); }
+      p.onchange = () => { if (p.state === 'denied') { stop(); setStatus('denied'); setFix(null); } else if (p.state === 'granted') start(); };
+    }).catch(() => { if (live) start(); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campuses?.length]);
 
-  // Demo panel changes take effect immediately.
+  // Demo panel changes take effect immediately; clearing the simulation goes back to the real device position.
   useEffect(() => {
     const onDemo = () => {
       const demo = demoMode ? readDemoLocation() : null;
-      if (demo) accept(demo);
-      else { setFix(null); setCampusId(null); setStatus('idle'); if (watch.current !== null) { navigator.geolocation.clearWatch(watch.current); watch.current = null; } }
+      if (demo) { stop(); accept(demo); return; }
+      setFix(null); setCampusId(null); setStatus('locating'); stop(); start();
     };
     window.addEventListener('uj-demo-location', onDemo);
     return () => window.removeEventListener('uj-demo-location', onDemo);
-  }, [accept, demoMode]);
+  }, [accept, demoMode, start]);
 
-  useEffect(() => () => { if (watch.current !== null) navigator.geolocation.clearWatch(watch.current); }, []);
+  // Reset the ref too, so a remount (React StrictMode in development) starts a fresh watch.
+  useEffect(() => () => stop(), []);
 
-  /** Asks for the position (prompting if needed). Resolves with the outcome: 'on_campus', 'off_campus' or 'denied'. */
+  /** Asks for the position (prompting if needed). Resolves with the outcome once there is one. */
   const locate = useCallback(() => new Promise<LocationStatus>((resolve) => {
-    if (status === 'on_campus') { resolve('on_campus'); return; }
-    if ((status === 'off_campus' || status === 'denied') && watch.current !== null) { resolve(status); return; }
+    if (fix && (status === 'on_campus' || status === 'off_campus')) { resolve(status); return; }
+    if (status === 'unsupported') { resolve('unsupported'); return; }
     waiters.current.push(resolve);
-    setStatus((s) => (s === 'unsupported' ? s : 'locating'));
+    setStatus('locating');
+    if (status === 'denied' || status === 'unavailable') stop(); // try again: the student may have just allowed it
     start();
-    if (watch.current === null && !(demoMode && readDemoLocation())) { waiters.current.splice(0).forEach((w) => w('unsupported')); }
-  }), [start, status, demoMode]);
+  }), [start, status, fix]);
 
   return { status, fix, campusId, locate };
 }

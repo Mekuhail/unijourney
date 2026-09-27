@@ -218,12 +218,12 @@ export function DemoPanel() {
  * can be shown to people who are not on campus. Stored in this browser only; real GPS is used when it is off.
  */
 const DEMO_SPOTS: Array<{ id: string; label: string; location: string | null; offset?: [number, number] }> = [
-  { id: 'off', label: 'Off – use the real device location', location: null },
+  { id: 'off', label: 'Real location (this device, live)', location: null },
   { id: 'gate1', label: 'Riyadh · just inside Gate 1', location: 'ryd_gate_main', offset: [-25, -30] },
   { id: 'parking', label: 'Riyadh · Student Parking 2', location: 'ryd_parking_students' },
   { id: 'library', label: 'Riyadh · outside the Library', location: 'ryd_library', offset: [18, 12] },
   { id: 'khobar', label: 'Khobar · main building', location: 'khb_main', offset: [20, 0] },
-  { id: 'city', label: 'Off campus · central Riyadh (nothing should show)', location: null, offset: [0, 0] }
+  { id: 'city', label: 'Off campus · central Riyadh', location: null, offset: [0, 0] }
 ];
 
 function DemoLocationCard() {
@@ -245,10 +245,10 @@ function DemoLocationCard() {
   return (
     <Card>
       <SectionTitle>Device location (demo)</SectionTitle>
-      <Field label="Pretend this device is at">
+      <Field label="Location used by the campus map">
         <Select value={spot} onChange={(e) => void apply(e.target.value)}>{DEMO_SPOTS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</Select>
       </Field>
-      <p className="mt-2 text-xs text-muted">The campus map shows “You are here” and “Start from my location” only on campus. This setting is kept in this browser only; turn it off to use the real GPS position.</p>
+      <p className="mt-2 text-xs text-muted">By default the map follows this device’s real, live location, on campus or anywhere else. Pick a place only to simulate one for a demo (kept in this browser), and switch back to “Real location” afterwards.</p>
     </Card>
   );
 }
