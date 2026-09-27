@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import type { MapCanvasProps } from './MapCanvas';
 import { BOUNDARY_COLOR, ROUTE_COLOR } from './MapCanvas';
-import { CATEGORY_COLOR, TILES, categoryOf, labelTier, pinHtml, placeName, shortLabel, tileUrl } from './style';
+import { CATEGORY_COLOR, PARKING_LEVEL_COLOR as LEVEL_COLOR, TILES, categoryOf, labelTier, pinHtml, placeName, shortLabel, tileUrl } from './style';
 import { getPublicConfig } from '@/lib/publicConfig';
 
 /** Greedy label de-cluttering: keep the most important labels, hide any that would overlap an already placed one. */
@@ -27,11 +27,25 @@ function zoomClass(z: number) {
   return z >= 18 ? 'uj-z18' : z >= 17 ? 'uj-z17' : 'uj-z16';
 }
 
-export default function LeafletCanvas({ campus, locations, route, selected, onSelect, basemap, hidden, dark, reducedMotion, locale, className, endpoints, recenterKey }: MapCanvasProps) {
+/** Bay fills: free is the brand-independent "go" green; taken is a neutral dark; no signal is hollow and dashed. */
+function bayStyle(status: string, kind: string, selected: boolean, dark: boolean): L.PolylineOptions {
+  const base: L.PolylineOptions = status === 'free' ? { color: '#1f7a50', fillColor: '#2e9e6b', fillOpacity: 0.9, weight: 0.8 }
+    : status === 'occupied' ? { color: dark ? '#2a2622' : '#ffffff', fillColor: dark ? '#8f857b' : '#4d463f', fillOpacity: 0.9, weight: 0.8 }
+    : status === 'closed' ? { color: '#c8975b', fillColor: '#c8975b', fillOpacity: 0.25, weight: 1, dashArray: '2 2' }
+    : { color: '#8f857b', fillOpacity: 0, weight: 1, dashArray: '2 2' };
+  if (kind === 'disabled') return { ...base, color: '#2f6fdb', weight: 2 };
+  if (kind === 'ev') return { ...base, color: '#0ea5e9', weight: 1.5 };
+  if (selected) return { ...base, color: '#f0762b', weight: 2.5 };
+  return base;
+}
+
+export default function LeafletCanvas({ campus, locations, route, selected, onSelect, basemap, hidden, dark, reducedMotion, locale, className, endpoints, recenterKey, parking }: MapCanvasProps) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const tiles = useRef<L.TileLayer | null>(null);
-  const layers = useRef<{ boundary: L.LayerGroup; shapes: L.LayerGroup; pins: L.LayerGroup; route: L.LayerGroup } | null>(null);
+  const layers = useRef<{ boundary: L.LayerGroup; shapes: L.LayerGroup; parking: L.LayerGroup; pins: L.LayerGroup; route: L.LayerGroup } | null>(null);
+  const canvasRenderer = useRef<L.Canvas | null>(null);
+  const [zoom, setZoom] = useState(17);
   const lastCampus = useRef<string | null>(null);
   const boundaryBounds = useRef<L.LatLngBounds | null>(null);
   const [cartoKey, setCartoKey] = useState<string | null | undefined>(undefined);
@@ -43,10 +57,11 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
     const m = L.map(el.current, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, zoomSnap: 0.5, maxZoom: 20 });
     L.control.zoom({ position: locale === 'ar' ? 'topleft' : 'topright' }).addTo(m);
     m.attributionControl.setPrefix(false);
-    layers.current = { boundary: L.layerGroup().addTo(m), shapes: L.layerGroup().addTo(m), pins: L.layerGroup().addTo(m), route: L.layerGroup().addTo(m) };
+    layers.current = { boundary: L.layerGroup().addTo(m), shapes: L.layerGroup().addTo(m), parking: L.layerGroup().addTo(m), pins: L.layerGroup().addTo(m), route: L.layerGroup().addTo(m) };
+    canvasRenderer.current = L.canvas({ padding: 0.5 });
     let raf = 0;
     const tidy = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => declutter(el.current)); };
-    const sync = () => { const c = el.current; if (!c) return; c.classList.remove('uj-z16', 'uj-z17', 'uj-z18'); c.classList.add(zoomClass(m.getZoom())); tidy(); };
+    const sync = () => { const c = el.current; if (!c) return; c.classList.remove('uj-z16', 'uj-z17', 'uj-z18'); c.classList.add(zoomClass(m.getZoom())); setZoom(m.getZoom()); tidy(); };
     m.on('zoomend', sync);
     m.on('moveend', tidy);
     (m as L.Map & { _ujTidy?: () => void })._ujTidy = tidy;
@@ -132,6 +147,55 @@ export default function LeafletCanvas({ campus, locations, route, selected, onSe
     }
     (map.current as (L.Map & { _ujTidy?: () => void }) | null)?._ujTidy?.();
   }, [locations, selected, endpoints?.from, endpoints?.to, locale, onSelect, hidden]);
+
+  // Parking: lot tint + count pill; individual bays (canvas) once the lot is big enough on screen to read them
+  useEffect(() => {
+    const ly = layers.current;
+    if (!ly) return;
+    ly.parking.clearLayers();
+    if (!parking) return;
+    const showBays = zoom >= 18.5;
+    for (const lot of parking.lots) {
+      const color = LEVEL_COLOR[lot.level];
+      const focused = lot.id === parking.focus;
+      const hasBays = showBays && !!lot.bays?.length;
+      if (lot.polygon && lot.polygon.length >= 3) {
+        const poly = L.polygon(lot.polygon as L.LatLngExpression[], { color, weight: focused ? 3 : 2, opacity: 0.95, fillColor: color, fillOpacity: hasBays ? 0.05 : 0.3, className: 'uj-shape' });
+        poly.on('click', () => parking.onSelectLot(lot.id));
+        ly.parking.addLayer(poly);
+      }
+      if (hasBays) {
+        for (const b of lot.bays!) {
+          const p = L.polygon(b.polygon as L.LatLngExpression[], { renderer: canvasRenderer.current ?? undefined, ...bayStyle(b.status, b.kind, b.id === parking.selectedBay, dark) });
+          p.bindTooltip(parking.text.bay(b), { direction: 'top', className: 'uj-tip' });
+          p.on('click', () => parking.onSelectBay(lot.id, b.id));
+          ly.parking.addLayer(p);
+        }
+      }
+      const full = parking.text.pill(lot);
+      // Zoomed out, a pill is just the count (or the Full / No data word) so lots stay readable on a phone.
+      const pill = zoom < 17.5 && full.n ? { n: full.n, label: '' } : full;
+      const at: L.LatLngExpression = hasBays ? lot.entry : [lot.lat, lot.lng];
+      const mk = L.marker(at, {
+        icon: L.divIcon({ className: 'uj-pin-wrap', html: `<div class="uj-park${focused ? ' uj-park--sel' : ''}" style="--lvl:${color}"><span class="uj-park__p" aria-hidden="true">P</span><span class="uj-park__n">${pill.n}</span>${pill.label ? `<span class="uj-park__t">${pill.label}</span>` : ''}</div>`, iconSize: [0, 0], iconAnchor: [0, 0] }),
+        keyboard: true, title: parking.text.lot(lot), alt: parking.text.lot(lot), zIndexOffset: 800
+      });
+      mk.on('click', () => parking.onSelectLot(lot.id));
+      mk.on('keypress', (e: L.LeafletKeyboardEvent) => { if (e.originalEvent.key === 'Enter') parking.onSelectLot(lot.id); });
+      ly.parking.addLayer(mk);
+    }
+  }, [parking, zoom, dark]);
+
+  // Fly to a lot chosen from the list (close enough to read its bays)
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !parking?.focus || !parking.focusKey) return;
+    const lot = parking.lots.find((x) => x.id === parking.focus);
+    if (!lot) return;
+    if (lot.polygon && lot.polygon.length >= 3) m.flyToBounds(L.latLngBounds(lot.polygon as L.LatLngExpression[]), { padding: [40, 40], maxZoom: 19.5, duration: reducedMotion ? 0 : 0.6 });
+    else m.flyTo([lot.lat, lot.lng], 18.5, { duration: reducedMotion ? 0 : 0.6 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parking?.focusKey]);
 
   // Route: casing + line that draws itself in, start/end markers
   useEffect(() => {

@@ -1003,3 +1003,28 @@ CREATE TABLE IF NOT EXISTS dm_blocks (
   created_at TEXT NOT NULL,
   PRIMARY KEY (blocker_id, blocked_id)
 );
+
+-- ---------------------------------------------------------------- parking occupancy (campus map)
+-- Added by migration 'parking-v1'. Bay geometry is fixed; occupancy is computed from simulated sensor readings.
+CREATE TABLE IF NOT EXISTS parking_lots (
+  location_id TEXT PRIMARY KEY REFERENCES campus_locations(id) ON DELETE CASCADE,
+  campus_id TEXT NOT NULL,
+  audience TEXT NOT NULL,              -- student|staff|visitor|mixed
+  detection TEXT NOT NULL,             -- bay_sensor|entry_exit (FIWARE occupancyDetectionType: singleSpaceDetection|balancing)
+  total_bays INTEGER NOT NULL,
+  entry_lat REAL, entry_lng REAL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS parking_bays (
+  id TEXT PRIMARY KEY,
+  lot_id TEXT NOT NULL REFERENCES parking_lots(location_id) ON DELETE CASCADE,
+  ordinal INTEGER NOT NULL,
+  kind TEXT NOT NULL,                  -- standard|disabled|visitor|staff|ev
+  polygon TEXT NOT NULL,               -- [[lat,lng] x4]
+  center_lat REAL NOT NULL, center_lng REAL NOT NULL,
+  fill_rank REAL NOT NULL,             -- 0 = next to the entrance (fills first) .. 1 = farthest
+  closed INTEGER NOT NULL DEFAULT 0,   -- coned off for maintenance (set by campus security)
+  closed_reason TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_parking_bays_lot ON parking_bays(lot_id, ordinal);

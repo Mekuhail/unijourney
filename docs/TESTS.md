@@ -3,11 +3,14 @@
 Run on 2026-09-26 (Asia/Riyadh) with `npm test` (vitest 3, Node v25.2.1, in-memory SQLite, fixtures reseeded per file).
 
 ```
-Test Files  22 passed (22)
-Tests  194 passed (194)
+Test Files  23 passed (23)
+Tests  199 passed (199)
 ```
 
-New in the campus community release: `tests/campus.social.test.ts` (profile privacy and allowed fields, student post
+New in the parking release: `tests/campus.parking.test.ts` (bay layout and counts, the university-day curve,
+entrance-first filling, walking time and security-only bay closing, Khobar, and the parking migration run twice).
+
+In the campus community release: `tests/campus.social.test.ts` (profile privacy and allowed fields, student post
 CRUD and ownership, likes and replies across personas with notifications, campus-only visibility, report threshold and
 moderator review, the combined feed and search, two-persona messaging with unread/read state and coalesced notifications,
 participant-only access, messaging preferences and blocks, message reports, and the additive migration run twice).
@@ -198,3 +201,10 @@ competition lifecycle and calendar entries, verified awards, LinkedIn ZIP parsin
 - ✅ messages > two personas exchange messages; unread and read state persist on the server
 - ✅ messages > only participants can read or send, and permissions and blocks are enforced by the server
 - ✅ safe migration for existing volumes > fills the new tables once on a database seeded before the community existed, without touching other rows
+
+### tests/campus.parking.test.ts
+- ✅ parking occupancy > lays out 100–200 bays in the big lots and counts every bay exactly once
+- ✅ parking occupancy > follows the university day: nearly empty at dawn, busy mid-morning, emptying at night
+- ✅ parking occupancy > bays next to the entrance fill before the far end of the lot
+- ✅ parking occupancy > estimates walking time to a destination and lets only security close bays
+- ✅ parking occupancy > Khobar gets a sensor lot too, and the migration adds parking to an existing database once

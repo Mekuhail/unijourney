@@ -129,3 +129,6 @@ export const TILES = {
 export function tileUrl(t: (typeof TILES)[keyof typeof TILES], cartoKey: string | null): string {
   return cartoKey && t.url.includes('basemaps.cartocdn.com') ? `${t.url}?key=${encodeURIComponent(cartoKey)}` : t.url;
 }
+
+/** Parking availability colours (always paired with a word and a count; never colour alone). */
+export const PARKING_LEVEL_COLOR = { available: '#2e9e6b', limited: '#c8860b', full: '#c2410c', no_data: '#8f857b' } as const;

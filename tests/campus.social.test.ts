@@ -154,7 +154,7 @@ describe('safe migration for existing volumes', () => {
     // Simulate the live volume: new tables empty, migration not yet recorded.
     for (const t of ['dm_messages', 'dm_conversations', 'social_likes', 'social_comments', 'social_posts', 'community_profiles', 'community_reports', 'dm_blocks']) db().exec(`DELETE FROM ${t}`);
     db().exec("DELETE FROM notifications WHERE id = 'ntf_seed_dm_sara'");
-    setSetting('migrations_applied', []);
+    setSetting('migrations_applied', ['parking-v1']);
     expect(runMigrations(db())).toEqual(['community-social-v1']);
     expect(db().count('social_posts')).toBeGreaterThan(8);
     expect(db().count('dm_conversations')).toBe(2);

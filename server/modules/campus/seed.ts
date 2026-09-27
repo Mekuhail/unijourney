@@ -8,6 +8,7 @@ import type { SeedContext } from '../../seed/context.ts';
 import { foundEmailHtml } from './lostfound.ts';
 import { seedCommunity } from './seedCommunity.ts';
 import { seedSocial } from './seedSocial.ts';
+import { seedParking } from './parking.ts';
 
 /**
  * Campus Life seed: clubs, memberships, events (+ RSVPs → calendar), achievements, original study resources (+ PDFs),
@@ -96,6 +97,9 @@ export function seedCampus(ctx: SeedContext) {
 
   // ------------------------------------------------------------------ campus community (profiles, student posts, messages)
   seedSocial(ctx.db, ctx.today);
+
+  // ------------------------------------------------------------------ parking lots and sensor bays
+  seedParking(ctx.db);
 }
 
 // ====================================================================== resources

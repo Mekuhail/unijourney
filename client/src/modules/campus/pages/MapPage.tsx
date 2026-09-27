@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ArrowLeftRight, Footprints, Accessibility, Navigation, ExternalLink, Info, Search, X, CalendarDays, Maximize2, Layers, MapPin, ChevronDown } from 'lucide-react';
+import { ArrowLeftRight, Footprints, Accessibility, Navigation, ExternalLink, Info, Search, X, CalendarDays, Maximize2, Layers, MapPin, ChevronDown, SquareParking, Route as RouteIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { useI18n } from '@/i18n';
 import { placeName } from '../map/style';
@@ -12,8 +12,10 @@ import { useToast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, Button, Callout, ErrorState, Select, Skeleton, Tabs } from '@/components/ui';
 import { fmtDateTime, minutesLabel } from '@/lib/format';
-import type { Campus, MapLocation, NextClass, RouteResult } from '../types';
-import { MapCanvas } from '../map/MapCanvas';
+import type { Campus, MapLocation, NextClass, ParkingBay, ParkingData, ParkingLot, RouteResult } from '../types';
+import { MapCanvas, type ParkingLayer } from '../map/MapCanvas';
+import { ParkingPanel, DAY_END, toHHMM } from '../map/ParkingPanel';
+import { useDemoStatus } from '@/shell/DemoClock';
 import { CATEGORIES, CATEGORY_COLOR, categoryOf, pinHtml, type Basemap, type Category } from '../map/style';
 import { AccessBadge, GeometryBadge } from '../lib';
 
@@ -51,6 +53,14 @@ export function MapPage() {
   const [hidden, setHidden] = useState<ReadonlySet<Category>>(() => new Set());
   const [recenterKey, setRecenterKey] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
+  const view = params.get('view') === 'parking' ? 'parking' : 'directions';
+  const setView = (v: 'parking' | 'directions') => { const p = new URLSearchParams(params); if (v === 'parking') p.set('view', 'parking'); else p.delete('view'); setParams(p, { replace: true }); };
+  const [minute, setMinute] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [parkTarget, setParkTarget] = useState<string | null>(null);
+  const [focusLot, setFocusLot] = useState<{ id: string | null; key: number }>({ id: null, key: 0 });
+  const [selectedBay, setSelectedBay] = useState<{ lotId: string; bayId: string } | null>(null);
+  const { data: demoStatus } = useDemoStatus();
 
   useEffect(() => { try { localStorage.setItem('uj.basemap', basemap); } catch { /* ignore */ } }, [basemap]);
 
@@ -63,6 +73,17 @@ export function MapPage() {
   const byId = useMemo(() => new Map(locations.map((x) => [x.id, x])), [locations]);
   const detail = useQuery(() => api<MapLocation & { connected_edges: number; reachable: boolean; rooms: MapLocation[]; upcoming_events: Array<{ id: string; title_en: string; title_ar: string; start_at: string }> }>(`/campus/map/locations/${selected}`), [selected], { enabled: !!selected });
   const route = useQuery(() => api<RouteResult>('/campus/map/route', { query: { from, to, mode } }), [from, to, mode], { enabled: !!from && !!to });
+  const nextClass = useQuery(() => api<NextClass>('/campus/map/next-class'), [user?.id], { enabled: view === 'parking' });
+  const nextClassId = nextClass.data?.location && nextClass.data.location.campus_id === campusId ? nextClass.data.location.id : null;
+  useEffect(() => { if (parkTarget === null && nextClass.data) setParkTarget(nextClassId ?? ''); }, [nextClass.data, nextClassId, parkTarget]);
+  const parking = useQuery(() => api<ParkingData>('/campus/map/parking', { query: { campus: campusId, at: minute !== null ? toHHMM(minute) : undefined, to: parkTarget || undefined, bays: 1 } }), [campusId, minute, parkTarget, view], { enabled: view === 'parking', refreshOn: ['parking'] });
+  // Live readings refresh every 30 s; "Play the day" steps the replay in 15-minute ticks.
+  useEffect(() => { if (view !== 'parking' || minute !== null) return; const id = window.setInterval(() => void parking.refetch(), 30000); return () => window.clearInterval(id); }, [view, minute]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!playing) return;
+    const id = window.setInterval(() => setMinute((m) => { const base = m ?? 6 * 60; if (base + 15 > DAY_END) { setPlaying(false); return DAY_END; } return base + 15; }), 800);
+    return () => window.clearInterval(id);
+  }, [playing]);
 
   // A deep link to a place on the other campus switches campus.
   useEffect(() => {
@@ -105,6 +126,22 @@ export function MapPage() {
   const toggleCat = (c: Category) => setHidden((prev) => { const n = new Set(prev); if (n.has(c)) n.delete(c); else n.add(c); return n; });
   const d = detail.data;
   const r = route.data;
+  const parkingLayer = useMemo<ParkingLayer | null>(() => {
+    if (view !== 'parking' || !parking.data) return null;
+    return {
+      lots: parking.data.lots, focus: focusLot.id, focusKey: focusLot.key, selectedBay: selectedBay?.bayId ?? null,
+      onSelectLot: (id) => setFocusLot((f) => ({ id, key: f.key + 1 })),
+      onSelectBay: (lotId, bayId) => setSelectedBay({ lotId, bayId }),
+      text: {
+        pill: (lot: ParkingLot) => (lot.level === 'full' ? { n: '', label: t('parking.level.full') } : lot.level === 'no_data' ? { n: '', label: t('parking.level.no_data') } : { n: String(lot.free), label: t('parking.pillFree') }),
+        bay: (b: ParkingBay) => `${t('parking.bay', { n: b.n })} · ${t(`parking.kind.${b.kind}`)} · ${b.status === 'closed' ? t('parking.bay.closed') : t(`parking.bay.${b.status}`, { time: b.since })}`,
+        lot: (lot: ParkingLot) => `${placeName(l(lot.name_en, lot.name_ar))}: ${t('parking.free', { n: lot.free })} · ${t(`parking.level.${lot.level}`)}`
+      }
+    };
+  }, [view, parking.data, focusLot, selectedBay, t, l]);
+  // Parking view keeps buildings and gates for orientation and lets the lot pills carry the map.
+  const mapHidden = useMemo<ReadonlySet<Category>>(() => (view === 'parking' ? new Set<Category>(['services', 'food', 'sports', 'prayer', 'housing', 'parking']) : hidden), [view, hidden]);
+  const targets = useMemo(() => locations.filter((x) => !x.building_id && !['junction', 'gate', 'parking', 'entrance', 'room'].includes(x.kind)).sort((a, b) => a.name_en.localeCompare(b.name_en)), [locations]);
   const routeOk = !!r && r.found;
 
   const goHere = (id: string) => { setQ({ to: id }); if (!from) toast.info(t('map.pickStart')); panelRef.current?.querySelector<HTMLSelectElement>('#map-from')?.focus(); };
@@ -125,15 +162,19 @@ export function MapPage() {
           {(campuses.loading || locs.loading) && !campus && <Skeleton className="h-[58dvh] min-h-[340px] w-full lg:h-full" />}
           {campuses.error ? <div className="p-4"><ErrorState error={campuses.error} onRetry={() => void campuses.refetch()} /></div> : null}
           {campus && (
-            <MapCanvas campus={campus} locations={locations} route={routeOk ? r : null} selected={selected} onSelect={onSelect} provider={provider} googleKey={cfg.data?.googleMapsKey ?? null}
-              basemap={basemap} hidden={hidden} dark={resolved === 'dark'} reducedMotion={reducedMotion} locale={locale}
-              className="h-[58dvh] min-h-[340px] w-full lg:h-full" endpoints={{ from, to }} recenterKey={recenterKey} />
+            <MapCanvas campus={campus} locations={locations} route={routeOk && view === 'directions' ? r : null} selected={selected} onSelect={onSelect} provider={view === 'parking' ? 'osm' : provider} googleKey={cfg.data?.googleMapsKey ?? null}
+              basemap={basemap} hidden={mapHidden} dark={resolved === 'dark'} reducedMotion={reducedMotion} locale={locale}
+              className="h-[58dvh] min-h-[340px] w-full lg:h-full" endpoints={{ from, to }} recenterKey={recenterKey} parking={parkingLayer} />
           )}
 
           {/* Category filters */}
           <div className="pointer-events-none absolute inset-x-0 top-0 z-[var(--z-map-ui)] p-3">
             <div className="scroll-thin pointer-events-auto flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label={t('map.filters')}>
-              {CATEGORIES.filter((c) => counts.get(c)).map((c) => {
+              <button type="button" aria-pressed={view === 'parking'} onClick={() => setView(view === 'parking' ? 'directions' : 'parking')}
+                className={clsx('uj-chip inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition', view === 'parking' ? 'border-transparent bg-brand-500 text-ink-950 shadow-sm' : 'border-transparent bg-surface text-fg shadow-sm')}>
+                <SquareParking className="h-3.5 w-3.5" aria-hidden />{t('parking.chip')}
+              </button>
+              {view === 'directions' && CATEGORIES.filter((c) => counts.get(c)).map((c) => {
                 const on = !hidden.has(c);
                 return (
                   <button key={c} type="button" aria-pressed={on} onClick={() => toggleCat(c)}
@@ -144,7 +185,7 @@ export function MapPage() {
                   </button>
                 );
               })}
-              {hidden.size > 0 && <button type="button" onClick={() => setHidden(new Set())} className="uj-chip shrink-0 rounded-full bg-brand-500 px-3 py-1.5 text-xs font-semibold text-ink-950 shadow-sm">{t('map.showAll')}</button>}
+              {view === 'directions' && hidden.size > 0 && <button type="button" onClick={() => setHidden(new Set())} className="uj-chip shrink-0 rounded-full bg-brand-500 px-3 py-1.5 text-xs font-semibold text-ink-950 shadow-sm">{t('map.showAll')}</button>}
             </div>
           </div>
 
@@ -179,7 +220,7 @@ export function MapPage() {
 
         {/* ---------------- Panel ---------------- */}
         <aside ref={panelRef} className="card order-2 flex min-h-0 min-w-0 flex-col overflow-hidden !p-0 lg:order-1">
-          <div className="border-b border-line p-3">
+          <div className={clsx('border-b border-line p-3', view === 'parking' && 'hidden')}>
             <div className="relative">
               <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('campus.map.searchPlaceholder')} aria-label={t('common.search')}
@@ -188,8 +229,18 @@ export function MapPage() {
             </div>
           </div>
 
+          <div className={clsx('border-b border-line px-3 pb-3', view === 'parking' ? 'pt-3' : 'pt-0')}>
+            <Tabs label={t('parking.views')} value={view} onChange={setView} items={[{ value: 'directions', label: t('parking.directions'), icon: <RouteIcon className="h-4 w-4" /> }, { value: 'parking', label: t('parking.view'), icon: <SquareParking className="h-4 w-4" /> }]} />
+          </div>
+
           <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
-            {search.trim() ? (
+            {view === 'parking' ? (
+              <ParkingPanel data={parking.data} loading={parking.loading} error={parking.error} onRetry={() => void parking.refetch()}
+                minute={minute} onMinute={setMinute} playing={playing} onPlaying={setPlaying}
+                target={parkTarget ?? ''} onTarget={(id) => setParkTarget(id)} targets={targets} nextClassId={nextClassId}
+                focus={focusLot.id} onFocus={(id) => setFocusLot((f) => ({ id, key: f.key + 1 }))}
+                selectedBay={selectedBay} onCloseBay={() => setSelectedBay(null)} onChanged={() => void parking.refetch()} nowIso={demoStatus?.clock ?? new Date().toISOString()} />
+            ) : search.trim() ? (
               <ul className="p-2" role="listbox" aria-label={t('common.search')}>
                 {results.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">{t('map.noResults', { q: search.trim() })}</li>}
                 {results.map((x) => (

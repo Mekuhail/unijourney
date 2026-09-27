@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { Campus, MapLocation, RouteResult } from '../types';
+import type { Campus, MapLocation, ParkingBay, ParkingLot, RouteResult } from '../types';
 import { Skeleton } from '@/components/ui';
 import type { Basemap, Category } from './style';
 
@@ -26,6 +26,18 @@ export interface MapCanvasProps {
   endpoints?: { from?: string | null; to?: string | null };
   /** Increment to re-fit the view to the campus boundary. */
   recenterKey?: number;
+  /** Parking layer: lots tinted by availability, count pills, and individual bays when zoomed in. */
+  parking?: ParkingLayer | null;
+}
+
+export interface ParkingLayer {
+  lots: ParkingLot[];
+  focus: string | null;
+  focusKey: number;
+  selectedBay: string | null;
+  onSelectLot: (id: string) => void;
+  onSelectBay: (lotId: string, bayId: string) => void;
+  text: { pill: (lot: ParkingLot) => { n: string; label: string }; bay: (b: ParkingBay) => string; lot: (lot: ParkingLot) => string };
 }
 
 export const ROUTE_COLOR = '#f0762b';

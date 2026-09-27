@@ -121,3 +121,15 @@ export interface CommunitySummary {
 }
 export interface SearchResults { q: string; posts: FeedPost[]; clubs: Array<{ id: string; name_en: string; name_ar: string; color: string; category: string; campus_id: string; member_count: number }>; events: Array<{ id: string; title_en: string; title_ar: string; start_at: string; end_at: string; club_id: string | null; kind: string }>; people: PersonListItem[] }
 export interface CommunityReport { id: string; target_type: 'social_post' | 'social_comment' | 'message'; target_id: string; reason: string; note: string | null; created_at: string; body: string; author: PersonBrief | null; hidden: boolean; reports: number; link: string | null }
+
+// ------------------------------------------------------------------ parking occupancy
+export type ParkingLevel = 'available' | 'limited' | 'full' | 'no_data';
+export type BayStatus = 'free' | 'occupied' | 'unknown' | 'closed';
+export interface ParkingBay { id: string; n: number; kind: 'standard' | 'disabled' | 'visitor' | 'staff' | 'ev'; polygon: Array<[number, number]>; status: BayStatus; since: string; closed_reason: string | null }
+export interface ParkingLot {
+  id: string; name_en: string; name_ar: string; campus_id: string; audience: 'student' | 'staff' | 'visitor' | 'mixed'; detection: 'bay_sensor' | 'entry_exit';
+  lat: number; lng: number; entry: [number, number]; polygon: Array<[number, number]> | null;
+  free: number; occupied: number; unknown: number; closed: number; total: number; usable: number; level: ParkingLevel; trend: 'filling' | 'emptying' | 'steady'; full_by: string | null;
+  by_kind: Record<string, { total: number; free: number }>; walk: { meters: number; minutes: number } | null; updated_at: string; bays?: ParkingBay[];
+}
+export interface ParkingData { mode: 'live' | 'replay'; observed_at: string; time: string; date: string; target: { id: string; name_en: string; name_ar: string } | null; lots: ParkingLot[]; totals: { total: number; free: number }; can_manage: boolean; note: string }
