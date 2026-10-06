@@ -20,7 +20,8 @@ npm start              # serve the built client from the API server (http://loca
 |---|---|---|
 | `API_PORT` | 8787 | API port |
 | `DATA_DIR` | ./data | SQLite file and private uploads |
-| `SESSION_SECRET` | demo value | Signs the persona session cookie |
+| `SESSION_SECRET` | ephemeral locally; required in production | Signs the persona session cookie (at least 32 random characters) |
+| `DEMO_CONTROL_TOKEN` | unset | Enables operator-only reset, clock and policy controls (at least 32 random characters) |
 | `DEMO_MODE` | true | Enables persona switching, reset and the demo clock |
 | `DEMO_CLOCK` | 2026-09-27T09:00:00+03:00 | Frozen "now" (Asia/Riyadh); empty = real clock |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | — / claude-haiku-4-5-20251001 | Optional model-backed intent parsing/explanations |
@@ -32,6 +33,10 @@ npm start              # serve the built client from the API server (http://loca
   `.env.*` except the example are gitignored and excluded from the Docker build context.
 - Production values are platform secrets, never files: `flyctl secrets set CARTO_API_KEY=... -a <app>` (add
   `--stage` to apply on the next deploy).
+- A public deployment fails startup without a strong `SESSION_SECRET`. Store it in your secret manager and set it
+  through Fly or Render before deployment. Docker Compose requires it in the environment as well.
+- Shared demo controls are disabled until you set `DEMO_CONTROL_TOKEN` as a platform secret. Enter that value in the
+  Demo panel's operator field when needed; the page keeps it only in memory. Keep it private and rotate it if shared.
 - Keys that must reach the browser (`CARTO_API_KEY`, `GOOGLE_MAPS_API_KEY`) are served at runtime by
   `/api/config/public`, never compiled into client code. Restrict them to your domains in the provider dashboards.
 - A pre-commit hook blocks secret files and common key formats. Enable it once per clone:
@@ -39,8 +44,9 @@ npm start              # serve the built client from the API server (http://loca
 - If a key is ever committed or pasted somewhere public, rotate it at the provider; deleting the commit is not enough.
 
 ## Data
-The first start seeds `data/unijourney.db`. Uploaded files live in `data/uploads/` and are served only through
-authorized `/api/documents/:id/file` requests. `npm run reset` truncates every table, clears uploads and reseeds.
+In demo mode, the first start seeds `data/unijourney.db`. Uploaded files live in `data/uploads/` and are served only through
+authorized `/api/documents/:id/file` requests. A demo reset truncates every table, clears uploads and reseeds. When
+`DEMO_MODE=false`, startup and reset never seed or delete data; this prototype does not provide real-user sign-in.
 
 ## Deploying for a permanent link
 

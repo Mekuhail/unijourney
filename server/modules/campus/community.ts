@@ -177,9 +177,11 @@ export function sourceOf(postId: string) {
 }
 
 // Uploaded images on a club post are visible to whoever can see the post.
-registerDocumentGrant((doc) => {
+registerDocumentGrant((doc, user) => {
   if (doc.kind !== 'post_media') return false;
-  return !!db().get('SELECT 1 FROM club_post_media m JOIN club_posts p ON p.id = m.post_id WHERE m.document_id = ? AND p.removed_at IS NULL', doc.id);
+  const post = db().get<PostRow>('SELECT p.* FROM club_post_media m JOIN club_posts p ON p.id = m.post_id WHERE m.document_id = ? AND p.removed_at IS NULL', doc.id);
+  if (!post) return false;
+  return canSee(user, getClub(post.club_id), post);
 });
 
 export function postView(p: PostRow, club: ClubRow, u: User) {
@@ -599,4 +601,3 @@ communityRouter.post('/events/:id/checkin', h((req, res) => {
   });
   ok(res, { ...checkinState(e.id, u), created: true }, 201);
 }));
-

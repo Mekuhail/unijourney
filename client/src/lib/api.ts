@@ -16,10 +16,10 @@ function qs(q?: Query): string {
   return s ? `?${s}` : '';
 }
 
-export async function api<T>(path: string, opts: { method?: string; body?: unknown; query?: Query; signal?: AbortSignal } = {}): Promise<T> {
+export async function api<T>(path: string, opts: { method?: string; body?: unknown; query?: Query; signal?: AbortSignal; headers?: Record<string, string> } = {}): Promise<T> {
   const res = await fetch(`/api${path}${qs(opts.query)}`, {
     method: opts.method ?? (opts.body ? 'POST' : 'GET'),
-    headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: { ...(opts.body ? { 'Content-Type': 'application/json' } : {}), ...opts.headers },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
     credentials: 'include',
     signal: opts.signal

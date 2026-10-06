@@ -23,17 +23,22 @@ function pdfText(buf: Buffer): string {
   const out: string[] = [];
   const raw = buf.toString('latin1');
   const streams: string[] = [];
+  const MAX_EXTRACTED_BYTES = 2 * 1024 * 1024;
+  let remaining = MAX_EXTRACTED_BYTES;
   const re = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(raw))) {
+    if (remaining <= 0) break;
     const chunk = Buffer.from(m[1], 'latin1');
     let s = m[1];
     try {
-      s = zlib.inflateSync(chunk).toString('latin1');
+      s = zlib.inflateSync(chunk, { maxOutputLength: remaining }).toString('latin1');
     } catch {
-      /* not compressed */
+      // An oversized or invalid compressed stream is not useful for this demo extractor.
+      s = m[1].slice(0, remaining);
     }
-    streams.push(s);
+    streams.push(s.slice(0, remaining));
+    remaining -= Math.min(s.length, remaining);
   }
   for (const s of streams) {
     const tj = /\((?:\\.|[^\\)])*\)\s*Tj|\[(?:[^\]]*)\]\s*TJ/g;

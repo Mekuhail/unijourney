@@ -55,10 +55,13 @@ export function DemoPanel() {
   const [resetOpen, setResetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [clockInput, setClockInput] = useState('2026-09-27T09:00');
+  // Kept only in component memory; never put an operator token in a URL or persistent browser storage.
+  const [controlToken, setControlToken] = useState('');
+  const controlHeaders = { 'X-Demo-Control-Token': controlToken };
 
   const setClock = async (body: { iso?: string | null; advanceMinutes?: number }) => {
     try {
-      await api('/demo/clock', { body });
+      await api('/demo/clock', { body, headers: controlHeaders });
       await refetch();
       refreshAll('clock', 'calendar');
       toast.success('Demo clock updated');
@@ -69,7 +72,7 @@ export function DemoPanel() {
   const reset = async () => {
     setBusy(true);
     try {
-      await api('/demo/reset', { method: 'POST' });
+      await api('/demo/reset', { method: 'POST', headers: controlHeaders });
       setResetOpen(false);
       await refetch();
       refreshAll('clock', 'calendar', 'persona');
@@ -86,7 +89,7 @@ export function DemoPanel() {
     if (typeof current === 'number') value = Number(raw);
     if (Array.isArray(current)) value = raw.split(',').map((s) => Number(s.trim())).filter((n) => !Number.isNaN(n));
     try {
-      await api(`/policies/${key}`, { method: 'PUT', body: { value } });
+      await api(`/policies/${key}`, { method: 'PUT', body: { value }, headers: controlHeaders });
       await policies.refetch();
       refreshAll();
       toast.success('Policy updated (demo)');
@@ -97,7 +100,7 @@ export function DemoPanel() {
 
   return (
     <div>
-      <PageHeader title={t('nav.demo')} subtitle={t('demo.subtitle')} actions={<Button variant="danger" icon={<RotateCcw className="h-4 w-4" />} onClick={() => setResetOpen(true)}>{t('shell.reset')}</Button>} />
+      <PageHeader title={t('nav.demo')} subtitle={t('demo.subtitle')} actions={<Button variant="danger" icon={<RotateCcw className="h-4 w-4" />} disabled={!controlToken} onClick={() => setResetOpen(true)}>{t('shell.reset')}</Button>} />
       <Tabs value={tab} onChange={setTab} className="mb-5" items={[{ value: 'tour', label: t('shell.tour'), icon: <ListChecks className="h-4 w-4" /> }, { value: 'controls', label: 'Controls', icon: <FlaskConical className="h-4 w-4" /> }, { value: 'integrations', label: 'Real vs simulated', icon: <Plug className="h-4 w-4" /> }, { value: 'policies', label: 'Policies', icon: <Scale className="h-4 w-4" /> }, { value: 'attribution', label: 'Attribution', icon: <BookMarked className="h-4 w-4" /> }]} />
 
       {tab === 'tour' && (
@@ -120,18 +123,22 @@ export function DemoPanel() {
 
       {tab === 'controls' && (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <Card className="lg:col-span-2">
+            <Field label="Demo operator token"><Input type="password" autoComplete="off" value={controlToken} onChange={(e) => setControlToken(e.target.value)} placeholder="Required to reset, change the clock or edit policies" /></Field>
+            <p className="mt-2 text-xs text-muted">Shared demo controls require an operator token. It stays in this page until you leave or reload.</p>
+          </Card>
           <Card>
             <SectionTitle>{t('shell.demoClock')}</SectionTitle>
             <div className="mb-3 flex items-center gap-2 text-sm"><Clock className="h-4 w-4 text-brand-500" /><span className="num font-semibold">{status ? fmtDateTime(status.clock, locale) : '…'}</span><Badge tone="gold">{status?.tz}</Badge>{status?.clockOverride ? <Badge tone="info">frozen</Badge> : <Badge tone="neutral">real time</Badge>}</div>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => void setClock({ advanceMinutes: 60 })}>+1 hour</Button>
-              <Button size="sm" variant="outline" onClick={() => void setClock({ advanceMinutes: 60 * 24 })}>+1 day</Button>
-              <Button size="sm" variant="outline" onClick={() => void setClock({ advanceMinutes: 60 * 24 * 7 })}>+1 week</Button>
-              <Button size="sm" variant="ghost" onClick={() => void setClock({ iso: '2026-09-27T09:00:00+03:00' })}>Reset to seed clock</Button>
+              <Button size="sm" variant="outline" disabled={!controlToken} onClick={() => void setClock({ advanceMinutes: 60 })}>+1 hour</Button>
+              <Button size="sm" variant="outline" disabled={!controlToken} onClick={() => void setClock({ advanceMinutes: 60 * 24 })}>+1 day</Button>
+              <Button size="sm" variant="outline" disabled={!controlToken} onClick={() => void setClock({ advanceMinutes: 60 * 24 * 7 })}>+1 week</Button>
+              <Button size="sm" variant="ghost" disabled={!controlToken} onClick={() => void setClock({ iso: '2026-09-27T09:00:00+03:00' })}>Reset to seed clock</Button>
             </div>
             <div className="mt-3 flex items-end gap-2">
               <Field label="Set (Asia/Riyadh)" className="flex-1"><Input type="datetime-local" value={clockInput} onChange={(e) => setClockInput(e.target.value)} /></Field>
-              <Button size="md" onClick={() => void setClock({ iso: `${clockInput}:00+03:00` })}>{t('common.save')}</Button>
+              <Button size="md" disabled={!controlToken} onClick={() => void setClock({ iso: `${clockInput}:00+03:00` })}>{t('common.save')}</Button>
             </div>
             <p className="mt-2 text-xs text-muted">The clock is frozen so demos are deterministic; every module reads it (deadlines, "yesterday's absence", approvals expiry).</p>
           </Card>
@@ -187,13 +194,14 @@ export function DemoPanel() {
       {tab === 'policies' && (
         <Card>
           <SectionTitle>Configurable policies (with provenance)</SectionTitle>
+          <Field label="Demo operator token" className="mb-4"><Input type="password" autoComplete="off" value={controlToken} onChange={(e) => setControlToken(e.target.value)} placeholder="Required to edit policies" /></Field>
           <div className="space-y-3">
             {policies.data && (Object.keys(policies.data) as Array<keyof Policies>).map((k) => {
               const p = policies.data![k];
               return (
                 <div key={k} className="grid gap-2 rounded-xl border border-line p-3 sm:grid-cols-[1fr_180px]">
                   <div><div className="font-medium">{l(p.label_en, p.label_ar)}</div><div className="text-xs text-muted">{p.provenance}</div></div>
-                  <Input defaultValue={Array.isArray(p.value) ? p.value.join(',') : String(p.value)} onBlur={(e) => { const v = e.target.value; const cur = Array.isArray(p.value) ? p.value.join(',') : String(p.value); if (v !== cur) void savePolicy(k, v); }} aria-label={p.label_en} />
+                  <Input disabled={!controlToken} defaultValue={Array.isArray(p.value) ? p.value.join(',') : String(p.value)} onBlur={(e) => { const v = e.target.value; const cur = Array.isArray(p.value) ? p.value.join(',') : String(p.value); if (v !== cur) void savePolicy(k, v); }} aria-label={p.label_en} />
                 </div>
               );
             })}

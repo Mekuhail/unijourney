@@ -13,6 +13,7 @@ import { getClockOverride, now, setClockOverride, TZ } from './clock.ts';
 import { getPolicies, getSetting, setPolicy, setSetting } from './settings.ts';
 import { adapterStatus } from '../adapters/index.ts';
 import { audit } from './audit.ts';
+import { requireDemoControl } from '../seed/control-auth.ts';
 
 export const coreRouter = Router();
 coreRouter.use(attachUser());
@@ -32,7 +33,7 @@ coreRouter.post('/session/switch', h((req, res) => {
   const { personaId } = parse(z.object({ personaId: z.string().min(1) }), req.body);
   const u = getUser(personaId);
   if (!u) throw notFound('Unknown persona');
-  res.cookie(SESSION_COOKIE, signSession(u.id), { httpOnly: true, sameSite: 'lax', path: '/' });
+  res.cookie(SESSION_COOKIE, signSession(u.id), { httpOnly: true, secure: config.isProd, sameSite: 'lax', path: '/' });
   audit(req.user?.id ?? null, 'session.switch', 'user', u.id, {});
   ok(res, { user: u });
 }));
@@ -112,8 +113,7 @@ coreRouter.get('/approvals', h((req, res) => {
 // ---- policies / demo ---------------------------------------------------
 coreRouter.get('/policies', h((_req, res) => ok(res, getPolicies())));
 coreRouter.put('/policies/:key', h((req, res) => {
-  const u = requireUser(req);
-  if (!config.demoMode && !u.roles.includes('operator')) throw forbidden();
+  requireDemoControl(req);
   const key = req.params.key as keyof ReturnType<typeof getPolicies>;
   if (!(key in getPolicies())) throw bad('Unknown policy');
   const { value, provenance } = parse(z.object({ value: z.unknown(), provenance: z.string().optional() }), req.body);
@@ -134,7 +134,7 @@ coreRouter.get('/demo/status', h((_req, res) => {
 }));
 
 coreRouter.post('/demo/clock', h((req, res) => {
-  if (!config.demoMode) throw forbidden();
+  requireDemoControl(req);
   const body = parse(z.object({ iso: z.string().nullable().optional(), advanceMinutes: z.number().int().optional() }), req.body);
   if (body.advanceMinutes !== undefined) {
     const base = now();
