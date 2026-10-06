@@ -11,6 +11,8 @@ import { nowIso } from './clock.ts';
 import { bad, forbidden, notFound } from './http.ts';
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_OWNER_STORAGE_BYTES = 32 * 1024 * 1024;
+export const MAX_TOTAL_STORAGE_BYTES = 128 * 1024 * 1024;
 
 const ALLOWED: Record<string, { ext: string; magic: (b: Buffer) => boolean }> = {
   'application/pdf': { ext: 'pdf', magic: (b) => b.subarray(0, 4).toString('latin1') === '%PDF' },
@@ -54,6 +56,10 @@ export function createDocument(owner: User, kind: DocKind, file: { originalname:
   if (/\.(exe|sh|bat|cmd|js|msi|dmg|app|scr|com|ps1)$/i.test(file.originalname)) throw bad('Executable files are rejected.');
   if (file.buffer.length === 0) throw bad('Empty file.');
   if (file.buffer.length > MAX_UPLOAD_BYTES) throw bad('File exceeds 10 MB.');
+  const owned = db().get<{ bytes: number }>('SELECT COALESCE(SUM(size), 0) AS bytes FROM documents WHERE owner_id = ?', owner.id)?.bytes ?? 0;
+  const total = db().get<{ bytes: number }>('SELECT COALESCE(SUM(size), 0) AS bytes FROM documents')?.bytes ?? 0;
+  if (owned + file.buffer.length > MAX_OWNER_STORAGE_BYTES) throw bad('Document storage limit reached for this persona.');
+  if (total + file.buffer.length > MAX_TOTAL_STORAGE_BYTES) throw bad('Demo document storage limit reached.');
   const id = newId('doc');
   const sha = createHash('sha256').update(file.buffer).digest('hex');
   const storagePath = path.join(uploadsDir(), `${id}.${spec.ext}`);

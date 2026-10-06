@@ -73,7 +73,7 @@ export function attachUser(): RequestHandler {
     if (!userId && config.demoMode) {
       // Demo default persona: explicit and visible in the persona switcher.
       userId = DEFAULT_PERSONA;
-      res.cookie(SESSION_COOKIE, signSession(userId), { httpOnly: true, sameSite: 'lax', path: '/' });
+      res.cookie(SESSION_COOKIE, signSession(userId), { httpOnly: true, secure: config.isProd, sameSite: 'lax', path: '/' });
     }
     if (userId) {
       const u = getUser(userId);

@@ -9,6 +9,9 @@ notification inbox, document store and approval center. English/Arabic with RTL,
 > Demonstration context only. Every person, record, policy and outcome is **synthetic**. EduGate, Sehhaty, email and job
 > boards are **simulated behind documented adapters**; nothing is sent to a real system.
 
+> Public-source release is pending copyright and asset-rights review. See `docs/OPEN_SOURCE_RELEASE.md` before
+> changing repository visibility. This demo has no real-user authentication and must not hold real student records.
+
 ## Run it (no keys needed)
 
 ```bash
@@ -17,7 +20,7 @@ npm run dev          # API http://localhost:8787 · UI http://localhost:5173
 ```
 
 Requires Node.js **22.13+** (built-in `node:sqlite`, no native builds). The database is created and seeded on first
-start at `data/unijourney.db`. `npm run reset` rebuilds the fixtures (also from the Demo panel). `npm test` runs 162
+start at `data/unijourney.db`. `npm run reset` rebuilds the fixtures (also from the Demo panel with an operator token). `npm test` runs
 domain/API tests, `npm run typecheck` checks both projects, `npm run build && npm start` serves the production build.
 
 Optional `.env` (see `.env.example`): `ANTHROPIC_API_KEY` enables model-backed intent parsing/explanations (the

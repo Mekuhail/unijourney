@@ -13,6 +13,11 @@ export const SEED_VERSION = '2026-09-26.community-feedback-v7';
 
 /** Seeds synthetic demo fixtures. Returns true when seeding ran. */
 export function seedAll(opts: { reset: boolean }): boolean {
+  // Production data is never replaced by demo fixtures, even after a seed version bump.
+  if (!config.demoMode) {
+    if (opts.reset) throw new Error('Demo reset is disabled outside demo mode');
+    return false;
+  }
   const d = db();
   if (opts.reset) {
     truncateAll(d);

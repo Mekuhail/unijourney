@@ -12,6 +12,6 @@ export default defineConfig({
     hookTimeout: 20000,
     fileParallelism: false,
     // Keep test uploads away from the dev database's private files.
-    env: { DATA_DIR: '/tmp/unijourney-test-data', DEMO_MODE: 'true' }
+    env: { DATA_DIR: '/tmp/unijourney-test-data', DEMO_MODE: 'true', DEMO_CONTROL_TOKEN: 'test-operator-token-with-at-least-32-chars' }
   }
 });

@@ -2,6 +2,12 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { freshDb, startServer, type TestServer } from './helpers.ts';
 import { makePdf, makePng } from '../server/seed/fixtures.ts';
 import { SESSION_COOKIE, signSession } from '../server/core/auth.ts';
+import { config } from '../server/core/config.ts';
+import { db } from '../server/core/db.ts';
+import { seedAll } from '../server/seed/index.ts';
+import { MAX_OWNER_STORAGE_BYTES } from '../server/core/documents.ts';
+import { deflateSync } from 'node:zlib';
+import { extractFromBuffer } from '../server/adapters/extraction.ts';
 
 let s: TestServer;
 beforeAll(async () => { freshDb(); s = await startServer(); });
@@ -60,9 +66,53 @@ describe('session, roles and private documents', () => {
   });
 
   it('reset rebuilds fixtures (demo mode only)', async () => {
-    const r = await s.as('u_student').post('/demo/reset');
+    const denied = await s.as('u_student').post('/demo/reset');
+    expect(denied.status).toBe(403);
+    const wrong = await fetch(`${s.url}/api/demo/reset`, { method: 'POST', headers: { 'x-demo-control-token': 'wrong' } });
+    expect(wrong.status).toBe(403);
+    const r = await fetch(`${s.url}/api/demo/reset`, { method: 'POST', headers: { 'x-demo-control-token': config.demoControlToken } });
     expect(r.status).toBe(200);
     const me = await s.as('u_student').get<{ user: { id: string } }>('/session/me');
     expect(me.body.data!.user.id).toBe('u_student');
+  });
+
+  it('never reseeds or resets data when demo mode is off', () => {
+    const count = db().count('users');
+    const old = config.demoMode;
+    config.demoMode = false;
+    try {
+      expect(seedAll({ reset: false })).toBe(false);
+      expect(() => seedAll({ reset: true })).toThrow('disabled outside demo mode');
+      expect(db().count('users')).toBe(count);
+    } finally {
+      config.demoMode = old;
+    }
+  });
+
+  it('requires club membership to read an attached member post image', async () => {
+    const club = db().get<{ id: string }>("SELECT id FROM clubs WHERE lead_id = 'u_lead' LIMIT 1");
+    expect(club).toBeDefined();
+    const up = await upload('u_lead', 'club.png', 'image/png', makePng(), 'post_media');
+    expect(up.status).toBe(201);
+    const created = await s.as('u_lead').post(`/campus/clubs/${club!.id}/posts`, {
+      kind: 'discussion', body: 'Members can see this image',
+      media: [{ document_id: up.body.data!.id, alt: 'Club image', width: 1, height: 1 }]
+    });
+    expect(created.status).toBe(201);
+    expect((await s.as('u_lead').get(`/documents/${up.body.data!.id}`)).status).toBe(200);
+    expect((await s.as('u_security').get(`/documents/${up.body.data!.id}`)).status).toBe(403);
+  });
+
+  it('caps stored documents and compressed PDF extraction', async () => {
+    const first = await upload('u_student2', 'quota.png', 'image/png', makePng(), 'other');
+    expect(first.status).toBe(201);
+    db().update('documents', first.body.data!.id, { size: MAX_OWNER_STORAGE_BYTES });
+    const over = await upload('u_student2', 'another.png', 'image/png', makePng(), 'other');
+    expect(over.status).toBe(400);
+    expect(JSON.stringify(over.body.error)).toContain('storage limit');
+
+    const compressed = deflateSync(Buffer.alloc(3 * 1024 * 1024, 65));
+    const pdf = Buffer.concat([Buffer.from('%PDF-1.4\nstream\n'), compressed, Buffer.from('\nendstream\n')]);
+    expect(extractFromBuffer('application/pdf', pdf).text.length).toBeLessThanOrEqual(2 * 1024 * 1024);
   });
 });

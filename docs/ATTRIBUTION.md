@@ -1,5 +1,8 @@
 # Third-party attribution
 
+Attribution records sources; it is not a license grant for original project code or permission to redistribute
+team-supplied assets. See `OPEN_SOURCE_RELEASE.md` before publishing this repository.
+
 * **React Bits** (https://reactbits.dev, © David Haz) — MIT + Commons Clause License Condition v1.0. Components vendored in
   `client/src/components/reactbits/` and used as part of this application (not redistributed standalone).
 * **OpenStreetMap** — © OpenStreetMap contributors, ODbL. Riyadh campus boundary (way 221634202), building footprints
